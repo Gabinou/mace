@@ -1,0 +1,105 @@
+# Make With C -> mwc
+
+### My ideal C build system:
+- Uses C syntax.
+- Is specific to C.
+- Is as simple as possible.
+- Is a single header file:
+    - No additional binaries required, just a C compiler!
+
+### Usage
+1. Get `mwc.h`
+2. Write your own `build.c`
+3. Compile `gcc build.c -o build`
+4. Build `./build`
+
+## Context
+
+All C build systems suck. I have used:
+- Make
+- Cmake
+- Please
+- ninja
+And they all suck, because...
+- Obtuse, Incomprehensible syntax.
+    - Why do I need to learn that to build C?
+- Does not scale to bigger project.
+    - Proof: Makefile makers exist.
+- Additional executable necessary for compilation.
+    - I rarely see this point brought up. 
+    C is a compiled language, the compiler can build executables. 
+    Why not use the compiler to build the builder? One less dependency!
+- They are general purpose.
+    - Generality brings complexity. Complexity bad.
+    - Simplicity Good. No simpler than single purpose tool.
+
+
+
+### Make
+Can be used to build any compiled language.
+- Only used by C/C++
+- Makefiles suck so much makefile makers exist
+    - `autoconf/autotools`. Regularly recommended AGAINST using it online(!)
+    - `premake`. Least terrible option.
+- Terrible documentation, very hard to find good tutorials, examples.
+
+No modern compiled languages use `make`!
+Many devs make their own!
+- Rust:     `cargo-make`
+- Zig:      `zig build`
+- Go:       `mage` (make, with go syntax)
+Even for C:
+- C:        `bake` 
+
+### Please
+- Weird syntax
+- Terrible documentation
+- Can't build into specific folder
+- Can't change directory before building
+- NOT FASTER THAN MAKE! -> make -j<corenumber> is FASTER
+
+
+### Features:
+- Can
+- Can be header only build system
+    - Write build in <build.c> file
+    - Compile `gcc build.c -o build`
+    - Run `build`
+    - Build is done!
+- NECESSARY
+    - Include/exclude header files, folders
+    - Include/exclude source files, folders
+    - Link executables
+    - Link static libraries
+    - Define compiler flags
+    - Define Linker flags
+    - Add static libraries
+- PERFORMANCE
+    - split into many jobs like `make`
+
+### PROBLEMS:
+- How to know which files gets recompiled?
+    - Make: target must be recompiled if prerequisite is newer
+    - <sys/types.h> (GNU) <sys/stat.h> (GNU) <unistd.h> (POSIX)
+- Must read all files in folders
+    - <glob.h> is a GNU header
+    - Make my own globber.
+- Must read files for dependencies! 
+    - And make a dependency graph!
+    - Graph stored as adjacency list
+    - Make my own parser.
+- Targets
+    - Structs. 
+        - Designated init, C99 feature. Automatic init of omitted elements to 0/NULL
+    - How to compile a single target on runtime?
+        - Have to find all funcs in build.c and put them in a list somehow.
+        - -> ADD_TARGET
+- How to build targets declared in C file?
+　　- have users define targets and put them in an array
+- How to build only specific targets?
+    - hash the target names, keep in array, build only target with same hash + deps
+- `main()` should be in `mwc.h` and parse `build.c`
+
+
+
+CANCELLED, TOO ANNOYING.
