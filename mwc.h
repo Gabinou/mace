@@ -6,18 +6,23 @@
 /**************************** Target struct ***********************************/
 // Contains all information necessary to compile target
 struct Target {
-    char * includes;          /* directories,           ' ' separated */
-    char * sources;           /* files, glob patterns,  ' ' separated */
-    char * sources_exclude;   /* files, glob patterns,  ' ' separated */
-    char * base_dir;          /* directory,                           */
-    char * dependencies;      /* targets,               ' ' separated */
-    char * links;             /* libraries,             ' ' separated */ 
-    char * flags;             /* passed as is to compiler             */ 
-    char * message_pre_build;
-    char * command_pre_build;
-    char * message_post_build;
-    char * command_post_build;
-    int kind;
+    /* User-set public members */
+    char *includes;          /* directories,           ' ' separated */
+    char *sources;           /* files, glob patterns,  ' ' separated */
+    char *sources_exclude;   /* files, glob patterns,  ' ' separated */
+    char *base_dir;          /* directory,                           */
+    char *dependencies;      /* targets,               ' ' separated */
+    char *links;             /* libraries,             ' ' separated */ 
+    char *flags;             /* passed as is to compiler             */ 
+    char *message_pre_build;
+    char *command_pre_build;
+    char *message_post_build;
+    char *command_post_build;
+    int   kind;
+
+    /* Private members */
+    char ** _sources;        /* files */
+    size_t  _sources_num;
 };
 
 /* --- EXAMPLE TARGET --- */ 
@@ -63,6 +68,23 @@ enum MWC_TARGET_KIND {
     MWC_LIBRARY         = 2,
 };
 
+// build include flags from target.include
+void mwc_flags_include(struct Target targets) {
+
+}
+
+// build linker flags from target.links
+void mwc_flags_link(struct Target targets) {
+
+}
+
+/******************************* mwc_find_sources *****************************/
+// 1- if glob pattern, find all matches, add to list
+// 2- if file add to list
+void mwc_find_sources(struct Target * targets, size_t len) {
+
+}
+
 /**************************** mwc_target_dependency ***************************/
 // Build target dependency graph from target links 
 void mwc_target_dependency(struct Target * targets, size_t len) {
@@ -71,7 +93,7 @@ void mwc_target_dependency(struct Target * targets, size_t len) {
 
 /********************************* mwc_build **********************************/
 void mwc_build(struct Target * targets, size_t len) {
-    
+
 }
 
 /************************************ mwc *************************************/
@@ -91,10 +113,12 @@ extern int mwc(int argc, char *argv[]);
 
 // if `mwc clean` is called (clean target), rm all targets  
 
+struct Target * targets;
+
 int main(int argc, char *argv[]) {
     mwc(argc, argv);
-
-    mwc_target_dependency();    
-    mwc_build();    
+    size_t len = 0;
+    mwc_target_dependency(targets, len);    
+    mwc_build(targets, len);    
     return(0);
 }
