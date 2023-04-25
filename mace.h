@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
@@ -40,6 +41,7 @@ struct Target {
 *     .kind               = MACE_LIBRARY,
 * }; 
 */
+
 /******************************** Phony struct ********************************/
 // Builds dependencies, then runs command.
 struct PHONY {
@@ -59,8 +61,10 @@ struct PHONY {
 #define MACE_ADD_PHONY(a)
 
 /****************************** MACE_SET_COMPILER ******************************/
+char *cc;
 // 1- Save compiler name string
-#define MACE_SET_COMPILER(a)
+#define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler) 
+#define _MACE_SET_COMPILER(compiler) cc = #compiler 
 
 /******************************* MACE_SET_OBJDIR *******************************/
 // Sets where the object files will be placed during build. 
@@ -95,8 +99,20 @@ void mace_target_dependency(struct Target * targets, size_t len) {
 }
 
 /********************************* mace_build **********************************/
-void mace_build(struct Target * targets, size_t len) {
+void mace_build(struct Target *targets, size_t len) {
 
+}
+
+void read_from_pipe (FILE * stream) {
+  int c;
+  while ((c = fgetc (stream)) != EOF)
+    putchar (c);
+}
+
+/* Compile a single source file */
+void mace_compile(char *source, char *object, char *flags) {
+    char * arguments[] = {cc, source, "-o", object, flags};
+    execvp(cc, arguments);
 }
 
 /************************************ mace *************************************/
@@ -122,6 +138,8 @@ int main(int argc, char *argv[]) {
     mace(argc, argv);
     size_t len = 0;
     mace_target_dependency(targets, len);    
+    // mace_compile(arguments);
+    mace_compile("mace.c", "baka.out", NULL);
     mace_build(targets, len);    
     return(0);
 }
