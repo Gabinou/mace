@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <glob.h>
 
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
@@ -28,6 +29,7 @@ struct Target {
     /* Private members */
     char  **_sources;         /* filenames */
     size_t  _sources_num;
+    size_t  _sources_len;
     char  *_name;
 };
 
@@ -111,9 +113,30 @@ void mace_glob_sources(struct Target * target) {
     /* If source has a * in it, expland it */
 }
 
+/* Replaces spaces with -I */
+void mace_include_flags(struct Target * target) {
+
+}
+
 // Splits user input string into ** char array
 void mace_split_sources(struct Target * target) {
+    /* --- Preliminaries --- */
+    target->_sources_num = 0;
+    target->_sources_len = 8;
+    target->_sources = malloc(sizeof(*target->_sources)*target->_sources_len);
 
+    /* --- Split sources into tokens --- */
+    char *token = strtok(target->sources, " ");
+    while( token != NULL ) {
+        char * dest = target->_sources[target->_sources_num++]; 
+        strncpy(dest, token, strlen(token));
+        token = strtok(NULL, " ");
+        if (target->_sources_num == target->_sources_len) {
+            target->_sources_len *= 2;
+            size_t bytesize = target->_sources_len *sizeof(*target->_sources);
+            target->_sources = realloc(target->_sources, bytesize);
+        }
+   }
 }
 
 void mace_parse_sources(struct Target * target) {
@@ -141,7 +164,7 @@ void mace_compile(char *source, char *object, char *flags) {
 
 void mace_build_target(struct Target *target) {
     /* --- Parse sources, put into array --- */
-
+    assert(target->kind != 0);
     /* --- Compile sources --- */
     for (int i = 0; i < target->_sources_num; i++) {
         // mace_compile(sources[i], object[i], flags);
@@ -204,9 +227,8 @@ int main(int argc, char *argv[]) {
 
     mace(argc, argv);
     size_t len = 0;
-    mace_target_dependency(targets, len);
-    // mace_compile(arguments);
-    mace_compile("mace.c", "baka.out", NULL);
+    // mace_target_dependency(targets, len);
+    // mace_compile("mace.c", "baka.out", NULL);
     mace_build_targets(targets, target_num);
     mace_free();
     return (0);
