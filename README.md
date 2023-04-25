@@ -1,17 +1,18 @@
-# Make With C -> mwc
+# Mace
 
 ### My ideal C build system:
 - Uses C syntax.
 - Is specific to C.
+   - No C++ support. It sucks.
 - Is as simple as possible.
 - Is a single header file:
     - No additional binaries required, just a C compiler!
 
 ### Usage
-1. Get `mwc.h`
-2. Write your own `build.c`
-3. Compile `gcc build.c -o build`
-4. Build `./build`
+1. Get `mace.h`
+2. Write your own macefile e.g. `mace.c`
+3. Compile `gcc mace.c -o mace`
+4. Build `./mace`
 
 ## Context
 
@@ -20,6 +21,7 @@ All C build systems suck. I have used:
 - Cmake
 - Please
 - ninja
+
 And they all suck, because...
 - Obtuse, Incomprehensible syntax.
     - Why do I need to learn that to build C?
@@ -32,16 +34,18 @@ And they all suck, because...
 - They are general purpose.
     - Generality brings complexity. Complexity bad.
     - Simplicity Good. No simpler than single purpose tool.
-
-
+- Lie about being fast
+    - Nothing faster than `make -j`
+    - Bottleneck is compilation
+    - Not hard to compile in order
 
 ### Make
 Can be used to build any compiled language.
 - Only used by C/C++
+- Terrible documentation, very hard to find good tutorials, examples.
 - Makefiles suck so much makefile makers exist
     - `autoconf/autotools`. Regularly recommended AGAINST using it online(!)
     - `premake`. Least terrible option.
-- Terrible documentation, very hard to find good tutorials, examples.
 
 No modern compiled languages use `make`!
 Many devs make their own!
@@ -56,15 +60,14 @@ Even for C:
 - Terrible documentation
 - Can't build into specific folder
 - Can't change directory before building
-- NOT FASTER THAN MAKE! -> make -j<corenumber> is FASTER
+- NOT FASTER THAN MAKE! -> `make -j<corenumber>` is FASTER
 
 
 ### Features:
-- Can
 - Can be header only build system
-    - Write build in <build.c> file
-    - Compile `gcc build.c -o build`
-    - Run `build`
+    - Write macefile (mace.c, but could be anything)
+    - Compile `gcc mace.c -o mace`
+    - Run `mace`
     - Build is done!
 - NECESSARY
     - Include/exclude header files, folders
@@ -100,6 +103,6 @@ Even for C:
     - hash the target names, keep in array, build only target with same hash + deps
 - `main()` should be in `mwc.h` and parse `build.c`
 
-
-
-CANCELLED, TOO ANNOYING.
+## Credits
+- mace uses the same naming convention as (mage)[]
+- mace contains a modified version of `parg` for argument parsing
