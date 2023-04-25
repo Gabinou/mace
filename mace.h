@@ -16,8 +16,8 @@ struct Target {
     char *sources_exclude;   /* files, glob patterns,  ' ' separated */
     char *base_dir;          /* directory,                           */
     char *dependencies;      /* targets,               ' ' separated */
-    char *links;             /* libraries,             ' ' separated */ 
-    char *flags;             /* passed as is to compiler             */ 
+    char *links;             /* libraries,             ' ' separated */
+    char *flags;             /* passed as is to compiler             */
     char *message_pre_build;
     char *command_pre_build;
     char *message_post_build;
@@ -25,12 +25,12 @@ struct Target {
     int   kind;
 
     /* Private members */
-    char ** _sources;        /* filenames */
+    char **_sources;         /* filenames */
     size_t  _sources_num;
 };
 
-/* --- EXAMPLE TARGET --- */ 
-// Use struct Designated Initializer, guaranteeing unitialized values to 0/NULL. 
+/* --- EXAMPLE TARGET --- */
+// Use struct Designated Initializer, guaranteeing unitialized values to 0/NULL.
 /*
 * struct Target tnecs = {
 *     .includes           = "",
@@ -39,14 +39,14 @@ struct Target {
 *     .base_dir           = "",
 *     .dependencies       = "",
 *     .kind               = MACE_LIBRARY,
-* }; 
+* };
 */
 
 /******************************** Phony struct ********************************/
 // Builds dependencies, then runs command.
 struct PHONY {
-    char * command;
-    char * dependencies;
+    char *command;
+    char *dependencies;
 };
 
 /******************************* mace_add_target *******************************/
@@ -62,12 +62,13 @@ struct PHONY {
 
 /****************************** MACE_SET_COMPILER ******************************/
 char *cc;
+char *ar = "ar";
 // 1- Save compiler name string
-#define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler) 
-#define _MACE_SET_COMPILER(compiler) cc = #compiler 
+#define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
+#define _MACE_SET_COMPILER(compiler) cc = #compiler
 
 /******************************* MACE_SET_OBJDIR *******************************/
-// Sets where the object files will be placed during build. 
+// Sets where the object files will be placed during build.
 #define MACE_SET_OBJDIR(a)
 
 enum MACE_TARGET_KIND {
@@ -88,58 +89,64 @@ void mace_flags_link(struct Target targets) {
 /******************************* mace_find_sources *****************************/
 // 1- if glob pattern, find all matches, add to list
 // 2- if file add to list
-void mace_find_sources(struct Target * targets, size_t len) {
+void mace_find_sources(struct Target *targets, size_t len) {
 
 }
 
 /**************************** mace_target_dependency ***************************/
-// Build target dependency graph from target links 
-void mace_target_dependency(struct Target * targets, size_t len) {
+// Build target dependency graph from target links
+void mace_target_dependency(struct Target *targets, size_t len) {
 
 }
 
 /********************************* mace_build **********************************/
-void mace_build(struct Target *targets, size_t len) {
+/* Cuild all sources from target to object */
+void mace_build(struct Target *target, size_t len) {
+    if (target->kind == MACE_LIBRARY) {
 
-}
+    } else if { (target->kind == MACE_LIBRARY)
+              }
 
-void read_from_pipe (FILE * stream) {
-  int c;
-  while ((c = fgetc (stream)) != EOF)
-    putchar (c);
-}
+    LINKCMD = $(AR) - rcs "$@" $(OBJECTS)
+        void mace_link(char *objects, char *target) {
+        char *arguments[] = {ar, "-rcs", target, objects};
+        printf("Linking  %d\n", target);
+        execvp(ar, arguments);
+    }
 
-/* Compile a single source file */
-void mace_compile(char *source, char *object, char *flags) {
-    char * arguments[] = {cc, source, "-o", object, flags};
-    execvp(cc, arguments);
-}
 
-/************************************ mace *************************************/
-// User-implemented function. 
-// SHOULD:
-// 1- Set compiler
-// 2- Add targets
-extern int mace(int argc, char *argv[]);
+    /* Compile a single source file to object */
+    void mace_compile(char *source, char *object, char *flags) {
+        char *arguments[] = {cc, source, "-o", object, flags};
+        printf("%s\n", source);
+        execvp(cc, arguments);
+    }
 
-/************************************ main ************************************/
-// 1- Run mace, get all info from user:
-//   a- Get compiler 
-//   a- Get targets
-// 2- Build dependency graph from targets
-// 3- Determine which targets need to be recompiled
-// 4- Build the targets
+    /************************************ mace *************************************/
+    // User-implemented function.
+    // SHOULD:
+    // 1- Set compiler
+    // 2- Add targets
+    extern int mace(int argc, char *argv[]);
 
-// if `mace clean` is called (clean target), rm all targets  
+    /************************************ main ************************************/
+    // 1- Run mace, get all info from user:
+    //   a- Get compiler
+    //   a- Get targets
+    // 2- Build dependency graph from targets
+    // 3- Determine which targets need to be recompiled
+    // 4- Build the targets
 
-struct Target * targets;
+    // if `mace clean` is called (clean target), rm all targets
 
-int main(int argc, char *argv[]) {
-    mace(argc, argv);
-    size_t len = 0;
-    mace_target_dependency(targets, len);    
-    // mace_compile(arguments);
-    mace_compile("mace.c", "baka.out", NULL);
-    mace_build(targets, len);    
-    return(0);
-}
+    struct Target *targets;
+
+    int main(int argc, char *argv[]) {
+        mace(argc, argv);
+        size_t len = 0;
+        mace_target_dependency(targets, len);
+        // mace_compile(arguments);
+        mace_compile("mace.c", "baka.out", NULL);
+        mace_build(targets, len);
+        return (0);
+    }
