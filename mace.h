@@ -81,6 +81,8 @@ char *ar = "ar";
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) cc = #compiler
 
+#define MACE_SET_BUILDDIR(dir)
+
 /******************************* MACE_SET_OBJDIR *******************************/
 // Sets where the object files will be placed during build.
 #define MACE_SET_OBJDIR(a)
@@ -170,11 +172,39 @@ int mace_isSource(const char *path) {
     return (out);
 }
 
+int mace_isObject(const char *path) {
+    size_t len  = strlen(path);
+    int out     = path[len - 1] == 'o';      /* C object extension: .o */
+    out        &= path[len - 2] == '.';      /* C object extension: .o */
+    return (out);
+}
+
 int mace_isDir(const char *path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0)
         return 0;
     return S_ISDIR(statbuf.st_mode);
+}
+
+
+char * objdir = "build/";
+char * object = NULL;
+size_t object_len = 0;
+
+void mace_grow_obj() {
+    object_len *= 2;
+    object      = realloc(object, object_len * sizeof(*object));
+}
+
+void mace_object_path(char * source) {
+    size_t objdir_len   = strlen(objdir);
+    size_t source_len   = strlen(source);
+    size_t obj_len      = objdir_len + source_len + 1;
+    if (obj_len > object_len)
+        mace_grow_obj();    
+    strncpy(object,              objdir, obj_len);
+    strncpy(object + objdir_len, source, source_len);
+    object[obj_len - 2] = 'o';
 }
 
 void mace_build_target(struct Target *target) {
@@ -196,7 +226,12 @@ void mace_build_target(struct Target *target) {
 
         } else if (mace_isWildcard(token)) {
             // token has a wildcard in it
-
+            glob_t globbed = mace_glob_sources(token);
+            for (int i = 0; i < globbed.gl_pathc; i++) {
+                assert(mace_isSource(globbed.gl_pathv[i]));
+                mace_object_path(globbed.gl_pathv[i]);
+                // mace_compile(globbed.gl_pathv[i], char *object, char *flags)
+            } 
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it");
             exit(ENOENT);

@@ -32,6 +32,8 @@ static void nourstest_run(char * name, void (*test)()) {
 }
 #endif /*__NOURSTEST_H__ */
 
+#define BUILDDIR "build/"
+
 void test_isFunc() {
     nourstest_true(mace_isSource("test.c"));
     nourstest_true(!mace_isSource("doesnotexist.c"));
@@ -54,10 +56,23 @@ void test_globbing() {
     nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.h") == 0);
 }
 
+void test_object() {
+    if ((object_len == 0) || (object == NULL)) {
+        object_len = 24;
+        object = malloc(object_len * sizeof(*object));
+    }
+
+    mace_object_path("mace.c");
+    nourstest_true(strcmp(object, BUILDDIR"mace.o") == 0);
+    nourstest_true(mace_isObject(object));
+
+}
+
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");    
     nourstest_run("isFunc ",    test_isFunc);
     nourstest_run("globbing ",  test_globbing);
+    nourstest_run("object ",    test_object);
     nourstest_results();
     printf("Tests done\n");
 }
