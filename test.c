@@ -18,11 +18,11 @@ static void nourstest_results() {
     printf("%s (%d/%d)\n", message, test_num - fail_num, test_num);
 }
 #define nourstest_true(test) do {\
-    if ((test_num++, !(test))) \
-        printf("\n %s:%d error #%d", __FILE__, __LINE__, ++fail_num); \
-} while (0)
+        if ((test_num++, !(test))) \
+            printf("\n %s:%d error #%d", __FILE__, __LINE__, ++fail_num); \
+    } while (0)
 
-static void nourstest_run(char * name, void (*test)()) {
+static void nourstest_run(char *name, void (*test)()) {
     const int ts = test_num, fs = fail_num;
     clock_t start = clock();
     printf("\t%-14s", name), test();
@@ -65,11 +65,10 @@ void test_object() {
     mace_object_path("mace.c");
     nourstest_true(strcmp(object, BUILDDIR"mace.o") == 0);
     nourstest_true(mace_isObject(object));
-
 }
 
 int mace(int argc, char *argv[]) {
-    printf("Testing mace\n");    
+    printf("Testing mace\n");
     nourstest_run("isFunc ",    test_isFunc);
     nourstest_run("globbing ",  test_globbing);
     nourstest_run("object ",    test_object);
