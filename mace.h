@@ -4,7 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <glob.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
@@ -118,31 +121,8 @@ void mace_include_flags(struct Target * target) {
 
 }
 
-// Splits user input string into ** char array
-void mace_split_sources(struct Target * target) {
-    /* --- Preliminaries --- */
-    target->_sources_num = 0;
-    target->_sources_len = 8;
-    target->_sources = malloc(sizeof(*target->_sources)*target->_sources_len);
-
-    /* --- Split sources into tokens --- */
-    char *token = strtok(target->sources, " ");
-    while( token != NULL ) {
-        char * dest = target->_sources[target->_sources_num++]; 
-        strncpy(dest, token, strlen(token));
-        token = strtok(NULL, " ");
-        if (target->_sources_num == target->_sources_len) {
-            target->_sources_len *= 2;
-            size_t bytesize = target->_sources_len *sizeof(*target->_sources);
-            target->_sources = realloc(target->_sources, bytesize);
-        }
-   }
-}
-
 void mace_parse_sources(struct Target * target) {
     target->_sources = malloc(sizeof(*target->_sources));
-    mace_split_sources(target);
-    mace_split_sources(target);
 }
 
 
@@ -162,13 +142,55 @@ void mace_compile(char *source, char *object, char *flags) {
     execvp(cc, arguments);
 }
 
+int mace_isWildcard(const char *str) {
+    int out = strchr(str, '*') != NULL;
+    return(out);
+}
+
+int mace_isSource(const char *path) {
+    size_t len  = strlen(path);
+    int out     = path[len - 1] == 'c';
+    out        &= path[len - 2] == '.';
+    struct stat path_stat;
+    stat(path, &path_stat);
+    out        &= S_ISREG(path_stat.st_mode);
+    return(out);
+}
+
+int mace_isDir(const char *path) {
+   struct stat statbuf;
+   if (stat(path, &statbuf) != 0)
+       return 0;
+   return S_ISDIR(statbuf.st_mode);
+}
+
 void mace_build_target(struct Target *target) {
     /* --- Parse sources, put into array --- */
     assert(target->kind != 0);
     /* --- Compile sources --- */
-    for (int i = 0; i < target->_sources_num; i++) {
-        // mace_compile(sources[i], object[i], flags);
-    }
+    /* --- Preliminaries --- */
+
+    /* --- Split sources into tokens --- */
+    char *token = strtok(target->sources, " ");
+    while( token != NULL ) {
+        char * dest = target->_sources[target->_sources_num++]; 
+        strncpy(dest, token, strlen(token));
+        if (mace_isDir(token)) {
+            // token is a directory
+
+        } else if (mace_isSource(token)) {
+            // token is a source file
+
+        } else if (mace_isWildcard(token)) {
+            // token has a wildcard in it
+        
+        } else {
+            printf("Error: source is neither a .c file, a folder nor has a wildcard in it");
+            exit(ENOENT);
+        }
+        token = strtok(NULL, " ");
+   }
+
     /* --- Linking --- */
     if (target->kind == MACE_LIBRARY) {
         // mace_link(objects, target);
