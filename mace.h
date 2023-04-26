@@ -61,13 +61,13 @@ struct PHONY {
 // 2- Builds list of sources
 // All added targets are built
 #define MACE_ADD_TARGET(target) do {\
-targets[target_num] = target;\
-if (++target_num == target_len) {\
-    target_len *= 2;\
-    targets = realloc(targets, target_len * sizeof(*targets));\
-}\
-target._name = #target;\
-}while(0)
+        targets[target_num] = target;\
+        if (++target_num == target_len) {\
+            target_len *= 2;\
+            targets = realloc(targets, target_len * sizeof(*targets));\
+        }\
+        target._name = #target;\
+    }while(0)
 
 /******************************** MACE_ADD_PHONY *******************************/
 // Phony targets are only built when called explicitely e.g. <./build> install
@@ -110,18 +110,25 @@ void mace_target_dependency(struct Target *targets, size_t len) {
 /******************************* mace_find_sources *****************************/
 // 1- if glob pattern, find all matches, add to list
 // 2- if file add to list
-void mace_glob_sources(struct Target * target) {
-    /* If source is a folder, get all .c files in it */
+int globerr(const char *path, int eerrno) {
+    fprintf(stderr, "%s: %s: %s\n", myname, path, strerror(eerrno));
+    exit(ENOENT);
+}
 
+void mace_glob_sources(struct Target *target) {
+    /* If source is a folder, get all .c files in it */
+    glob_t globbed;
+    int flags
+    ret = glob(argv[i], flags, globerr, &globbed);
     /* If source has a * in it, expland it */
 }
 
 /* Replaces spaces with -I */
-void mace_include_flags(struct Target * target) {
+void mace_include_flags(struct Target *target) {
 
 }
 
-void mace_parse_sources(struct Target * target) {
+void mace_parse_sources(struct Target *target) {
     target->_sources = malloc(sizeof(*target->_sources));
 }
 
@@ -143,25 +150,22 @@ void mace_compile(char *source, char *object, char *flags) {
 }
 
 int mace_isWildcard(const char *str) {
-    int out = strchr(str, '*') != NULL;
-    return(out);
+    return ((strchr(str, '*') != NULL));
 }
 
 int mace_isSource(const char *path) {
     size_t len  = strlen(path);
-    int out     = path[len - 1] == 'c';
-    out        &= path[len - 2] == '.';
-    struct stat path_stat;
-    stat(path, &path_stat);
-    out        &= S_ISREG(path_stat.st_mode);
-    return(out);
+    int out     = path[len - 1] == 'c';      /* C source extension: .c */
+    out        &= path[len - 2] == '.';      /* C source extension: .c */
+    out        &= (access(path, F_OK) == 0); /* file exists */
+    return (out);
 }
 
 int mace_isDir(const char *path) {
-   struct stat statbuf;
-   if (stat(path, &statbuf) != 0)
-       return 0;
-   return S_ISDIR(statbuf.st_mode);
+    struct stat statbuf;
+    if (stat(path, &statbuf) != 0)
+        return 0;
+    return S_ISDIR(statbuf.st_mode);
 }
 
 void mace_build_target(struct Target *target) {
@@ -172,8 +176,8 @@ void mace_build_target(struct Target *target) {
 
     /* --- Split sources into tokens --- */
     char *token = strtok(target->sources, " ");
-    while( token != NULL ) {
-        char * dest = target->_sources[target->_sources_num++]; 
+    while (token != NULL) {
+        char *dest = target->_sources[target->_sources_num++];
         strncpy(dest, token, strlen(token));
         if (mace_isDir(token)) {
             // token is a directory
@@ -183,13 +187,13 @@ void mace_build_target(struct Target *target) {
 
         } else if (mace_isWildcard(token)) {
             // token has a wildcard in it
-        
+
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it");
             exit(ENOENT);
         }
         token = strtok(NULL, " ");
-   }
+    }
 
     /* --- Linking --- */
     if (target->kind == MACE_LIBRARY) {
@@ -229,7 +233,7 @@ size_t target_num = 0;
 size_t target_len = 2;
 
 
-void Target_Free(struct Target * target) {
+void Target_Free(struct Target *target) {
     if (target->_sources != NULL) {
         free(target->_sources);
         target->_sources = NULL;
