@@ -34,7 +34,6 @@ static void nourstest_run(char * name, void (*test)()) {
 #endif /*__NOURSTEST_H__ */
 
 void test_isFunc() {
-    printf("isFunc tests\n");
     nourstest_true(mace_isSource("test.c"));
     nourstest_true(!mace_isSource("doesnotexist.c"));
     nourstest_true(!mace_isDir("test.c"));
@@ -45,23 +44,22 @@ void test_isFunc() {
 }
 
 void test_globbing() {
-    printf("globbing tests\n");
     glob_t globbed;
     globbed = mace_glob_sources("../mace/*.c");
     nourstest_true(globbed.gl_pathc == 2);
     nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.c") == 0);
     nourstest_true(strcmp(globbed.gl_pathv[1], "../mace/test.c") == 0);
 
-    // globbed = mace_glob_sources("../mace/*.h");
-    // nourstest_true(globbed.gl_pathc == 1);
-    // nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.h") == 0);
+    globbed = mace_glob_sources("../mace/*.h");
+    nourstest_true(globbed.gl_pathc == 1);
+    nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.h") == 0);
 
 }
 
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");    
-    nourstest_run("isFunc ", test_isFunc);
-    nourstest_run("globbing ", test_globbing);
+    nourstest_run("isFunc ",    test_isFunc);
+    nourstest_run("globbing ",  test_globbing);
     nourstest_results();
     printf("Tests done\n");
 }

@@ -118,7 +118,7 @@ int globerr(const char *path, int eerrno) {
 glob_t mace_glob_sources(const char *path) {
     /* If source is a folder, get all .c files in it */
     glob_t  globbed;
-    int     flags;
+    int     flags = 0;
     int     ret = glob(path, flags, globerr, &globbed);
     if (ret != 0) {
         fprintf(stderr, "problem with %s (%s), quitting\n", path,
