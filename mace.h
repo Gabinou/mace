@@ -62,12 +62,12 @@ void Target_Free(struct Target *target);
 // Adds user-defined target to internal array of targets.
 // Also Saves target name hash.
 #define MACE_ADD_TARGET(target) do {\
-        targets[target_num] = target;\
+        targets[target_num]       = target;\
+        targets[target_num]._name = #target;\
         if (++target_num == target_len) {\
             target_len *= 2;\
-            targets = realloc(targets, target_len * sizeof(*targets));\
+            targets     = realloc(targets, target_len * sizeof(*targets));\
         }\
-        target._name = #target;\
     }while(0)
 
 /******************************** Phony struct ********************************/
@@ -163,11 +163,6 @@ void mace_parse_sources(struct Target *target) {
 
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
-void mace_link(char *objects, char *target) {
-    char *arguments[] = {ar, "-rcs", target, objects, NULL};
-    printf("Linking  %d\n", target);
-    execvp(ar, arguments);
-}
 
 
 pid_t mace_exec(char *arguments[]) {
@@ -179,7 +174,7 @@ pid_t mace_exec(char *arguments[]) {
         execvp(cc, arguments);
         exit(0);
     }
-    return(pid);
+    return (pid);
 }
 
 void mace_wait_pid(int pid) {
@@ -202,6 +197,17 @@ void mace_wait_pid(int pid) {
     }
 }
 
+void mace_link(char *objects, char *target) {
+    char *arguments[] = {ar, "-rcs", target, objects, NULL};
+    printf("Linking  %s\n", target);
+    printf("arguments: %s\n", arguments[0]);
+    printf("arguments: %s\n", arguments[1]);
+    printf("arguments: %s\n", arguments[2]);
+    printf("arguments: %s\n", arguments[3]);
+    pid_t pid = mace_exec(arguments);
+    mace_wait_pid(pid);
+}
+
 /* Compile a single source file to object */
 void mace_compile(char *source, char *object, char *flags, int kind) {
     char libflag[3] = "";
@@ -209,9 +215,6 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
         strncpy(libflag, "-c", 2);
     }
     char *arguments[] = {cc, source, libflag, "-o", object, flags, NULL};
-
-    printf("%s\n", source);
-
     pid_t pid = mace_exec(arguments);
     mace_wait_pid(pid);
 }
@@ -255,7 +258,7 @@ char   *object      = NULL;
 size_t  object_len  = 16;
 char   *objects     = NULL;
 size_t  objects_len = 128;
-size_t  objects_num = 128;
+size_t  objects_num = 0;
 
 char   *builddir    = "build/";
 size_t  build_len   = 16;
@@ -300,6 +303,7 @@ void mace_add_source(struct Target *target, char *token) {
 }
 
 char *mace_libary_path(char *target_name) {
+    assert(target_name != NULL);
     char *lib = malloc(sizeof(*lib) * (strlen(target_name) + 6));
     strncpy(lib,                            "lib",       3);
     strncpy(lib + 3,                        target_name, strlen(target_name));
@@ -353,22 +357,21 @@ void mace_build_target(struct Target *target) {
         if ((objects_num + strlen(object) + 2) >= objects_len) {
             mace_grow_objs();
         }
-        strncpy(objects,     " ",    1);
-        strncpy(objects + 1, object, strlen(object));
-
+        if (objects_num > 0) {
+            strncpy(objects + objects_num,     " ",    1);
+        }
+        strncpy(objects + objects_num + 1, object, strlen(object));
+        objects_num += strlen(object) + 2;
         token = strtok(NULL, " ");
     } while (token != NULL);
 
 
-    printf("LINKINNGGGG?\n");
     /* --- Linking --- */
     if (target->kind == MACE_LIBRARY) {
-        printf("LINKINNGGGG\n");
         char *lib = mace_libary_path(target->_name);
         mace_link(objects, lib);
         free(lib);
     } else if (target->kind == MACE_EXECUTABLE) {
-        printf("MACE_EXECUTABLE\n");
         // mace_compile(source, object, flags);
     }
 
@@ -400,8 +403,8 @@ void mace_build_targets(struct Target *targets, size_t len) {
 // if `mace clean` is called (clean target), rm all targets
 
 struct Target *targets = NULL;
-size_t target_num = 0;
-size_t target_len = 2;
+size_t target_num      = 0;
+size_t target_len      = 2;
 
 void Target_Free(struct Target *target) {
     if (target->_sources != NULL) {
