@@ -165,13 +165,13 @@ void mace_parse_sources(struct Target *target) {
 /* Build all sources from target to object */
 
 
-pid_t mace_exec(char *arguments[]) {
+pid_t mace_exec(char *exec, char *arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
         printf("Error: forking issue. \n");
         exit(ENOENT);
     } else if (pid == 0) {
-        execvp(cc, arguments);
+        execvp(exec, arguments);
         exit(0);
     }
     return (pid);
@@ -200,11 +200,7 @@ void mace_wait_pid(int pid) {
 void mace_link(char *objects, char *target) {
     char *arguments[] = {ar, "-rcs", target, objects, NULL};
     printf("Linking  %s\n", target);
-    printf("arguments: %s\n", arguments[0]);
-    printf("arguments: %s\n", arguments[1]);
-    printf("arguments: %s\n", arguments[2]);
-    printf("arguments: %s\n", arguments[3]);
-    pid_t pid = mace_exec(arguments);
+    pid_t pid = mace_exec(ar, arguments);
     mace_wait_pid(pid);
 }
 
@@ -215,7 +211,7 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
         strncpy(libflag, "-c", 2);
     }
     char *arguments[] = {cc, source, libflag, "-o", object, flags, NULL};
-    pid_t pid = mace_exec(arguments);
+    pid_t pid = mace_exec(cc, arguments);
     mace_wait_pid(pid);
 }
 
@@ -358,9 +354,9 @@ void mace_build_target(struct Target *target) {
             mace_grow_objs();
         }
         if (objects_num > 0) {
-            strncpy(objects + objects_num,     " ",    1);
+            objects = strncpy((objects + objects_num),     " ",    1);
         }
-        strncpy(objects + objects_num + 1, object, strlen(object));
+        objects = strncpy((objects + objects_num + 1), object, strlen(object));
         objects_num += strlen(object) + 2;
         token = strtok(NULL, " ");
     } while (token != NULL);
@@ -409,6 +405,9 @@ size_t target_len      = 2;
 void Target_Free(struct Target *target) {
     if (target->_sources != NULL) {
         for (int i = 0; i < target->_sources_num; ++i) {
+            if (target->_sources[i]== NULL)
+                continue;
+
             free(target->_sources[i]);
         }
 
@@ -421,9 +420,15 @@ void mace_free() {
     for (int i = 0; i < target_num; i++) {
         Target_Free(&targets[i]);
     }
-    free(targets);
-    free(object);
-    free(objects);
+    if (targets != NULL) {
+        free(targets);
+    }
+    if (object != NULL) {
+        free(object);
+    }
+    if (objects != NULL) {
+        free(objects);
+    }
 }
 
 int main(int argc, char *argv[]) {
