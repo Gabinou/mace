@@ -8,6 +8,7 @@
 #include <glob.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 /*----------------------------------------------------------------------------*/
 /*                                 PUBLIC API                                 */
@@ -130,7 +131,7 @@ void mace_target_dependency(struct Target *targets, size_t len) {
 // 2- if file add to list
 int globerr(const char *path, int eerrno) {
     fprintf(stderr, "%s: %s\n", path, strerror(eerrno));
-    exit(ENOENT);
+    // exit(ENOENT);
 }
 
 glob_t mace_glob_sources(const char *path) {
@@ -144,7 +145,7 @@ glob_t mace_glob_sources(const char *path) {
                  ret == GLOB_NOMATCH ? "no match of pattern" :
                  ret == GLOB_NOSPACE ? "no dynamic memory" :
                  "unknown problem"));
-        exit(ENOENT);
+        // exit(ENOENT);
     }
 
     return (globbed);
@@ -163,11 +164,43 @@ void mace_parse_sources(struct Target *target) {
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
 void mace_link(char *objects, char *target) {
-    char *arguments[] = {ar, "-rcs", target, objects};
+    char *arguments[] = {ar, "-rcs", target, objects, NULL};
     printf("Linking  %d\n", target);
     execvp(ar, arguments);
 }
 
+
+pid_t mace_exec(char *arguments[]) {
+    pid_t pid = fork();
+    if (pid < 0) {
+        printf("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        execvp(cc, arguments);
+        exit(0);
+    }
+    return(pid);
+}
+
+void mace_wait_pid(int pid) {
+    int status;
+    if (waitpid(pid, &status, 0) > 0) {
+        if (WIFEXITED(status)        && !WEXITSTATUS(status)) {
+        } else if (WIFEXITED(status) &&  WEXITSTATUS(status)) {
+            if (WEXITSTATUS(status) == 127) {
+                // execvp failed
+                printf("execvp failed\n");
+                exit(WEXITSTATUS(status));
+            } else {
+                printf("program terminated normally, but returned a non-zero status\n");
+                exit(WEXITSTATUS(status));
+            }
+        } else {
+            printf("program didn't terminate normally\n");
+            exit(WEXITSTATUS(status));
+        }
+    }
+}
 
 /* Compile a single source file to object */
 void mace_compile(char *source, char *object, char *flags, int kind) {
@@ -175,10 +208,12 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
     if (kind == MACE_LIBRARY) {
         strncpy(libflag, "-c", 2);
     }
-    char *arguments[] = {cc, source, libflag, "-o", object, flags};
+    char *arguments[] = {cc, source, libflag, "-o", object, flags, NULL};
 
     printf("%s\n", source);
-    execvp(cc, arguments);
+
+    pid_t pid = mace_exec(arguments);
+    mace_wait_pid(pid);
 }
 
 int mace_isWildcard(const char *str) {
@@ -215,13 +250,24 @@ void mace_mkdir(const char *path) {
     }
 }
 
-char *objdir        = "build/";
-char *object        = NULL;
-size_t object_len   = 16;
+char   *objdir      = "obj/";
+char   *object      = NULL;
+size_t  object_len  = 16;
+char   *objects     = NULL;
+size_t  objects_len = 128;
+size_t  objects_num = 128;
+
+char   *builddir    = "build/";
+size_t  build_len   = 16;
 
 void mace_grow_obj() {
     object_len *= 2;
     object      = realloc(object, object_len * sizeof(*object));
+}
+
+void mace_grow_objs() {
+    objects_len *= 2;
+    objects      = realloc(objects, objects_len * sizeof(*objects));
 }
 
 void mace_object_path(char *source) {
@@ -235,7 +281,7 @@ void mace_object_path(char *source) {
     object[obj_len - 2] = 'o';
 }
 
-void mace_add_source(struct Target *target, char* token) {
+void mace_add_source(struct Target *target, char *token) {
     size_t i = target->_sources_num++;
     size_t srcdir_len = strlen(target->base_dir);
     size_t source_len = strlen(token);
@@ -245,12 +291,20 @@ void mace_add_source(struct Target *target, char* token) {
     if (target->_sources_num >= target->_sources_len) {
         target->_sources_len *= 2;
         size_t bytesize = target->_sources_len * sizeof(*target->_sources);
-        target->_sources = realloc(target->_sources, bytesize);   
+        target->_sources = realloc(target->_sources, bytesize);
     }
 
     strncpy(target->_sources[i],              target->base_dir, full_len);
     strncpy(target->_sources[i] + srcdir_len, "/",              1);
     strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
+}
+
+char *mace_libary_path(char *target_name) {
+    char *lib = malloc(sizeof(*lib) * (strlen(target_name) + 6));
+    strncpy(lib,                            "lib",       3);
+    strncpy(lib + 3,                        target_name, strlen(target_name));
+    strncpy(lib + 3 + strlen(target_name),  ".a",        2);
+    return (lib);
 }
 
 void mace_build_target(struct Target *target) {
@@ -265,10 +319,14 @@ void mace_build_target(struct Target *target) {
     target->_sources_num    = 0;
     target->_sources_len    = 16;
     target->_sources        = malloc(target->_sources_len * sizeof(*target->_sources));
+    memset(objects, 0, objects_len * sizeof(*objects));
 
     /* --- Split sources into tokens --- */
     char *token = strtok(target->sources, " ");
-    while (token != NULL) {
+    printf("COMPILING?\n");
+    do {
+        printf("token %s\n", token);
+
         mace_add_source(target, token);
         size_t i = target->_sources_num - 1;
         if (mace_isDir(target->_sources[i])) {
@@ -292,13 +350,25 @@ void mace_build_target(struct Target *target) {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
             exit(ENOENT);
         }
-        token = strtok(NULL, " ");
-    }
+        if ((objects_num + strlen(object) + 2) >= objects_len) {
+            mace_grow_objs();
+        }
+        strncpy(objects,     " ",    1);
+        strncpy(objects + 1, object, strlen(object));
 
+        token = strtok(NULL, " ");
+    } while (token != NULL);
+
+
+    printf("LINKINNGGGG?\n");
     /* --- Linking --- */
     if (target->kind == MACE_LIBRARY) {
-        // mace_link(objects, target);
+        printf("LINKINNGGGG\n");
+        char *lib = mace_libary_path(target->_name);
+        mace_link(objects, lib);
+        free(lib);
     } else if (target->kind == MACE_EXECUTABLE) {
+        printf("MACE_EXECUTABLE\n");
         // mace_compile(source, object, flags);
     }
 
@@ -307,7 +377,9 @@ void mace_build_target(struct Target *target) {
 void mace_build_targets(struct Target *targets, size_t len) {
     assert(targets != NULL);
     for (int i = 0; i < len; i++) {
+        printf("target %i\n", i);
         mace_build_target(&targets[i]);
+        printf("target %i DONE\n", i);
     }
 }
 
@@ -331,7 +403,6 @@ struct Target *targets = NULL;
 size_t target_num = 0;
 size_t target_len = 2;
 
-
 void Target_Free(struct Target *target) {
     if (target->_sources != NULL) {
         for (int i = 0; i < target->_sources_num; ++i) {
@@ -349,12 +420,14 @@ void mace_free() {
     }
     free(targets);
     free(object);
+    free(objects);
 }
 
 int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
-    targets = malloc(target_len * sizeof(*targets));
-    object  = malloc(object_len * sizeof(*object));
+    targets = malloc(target_len  * sizeof(*targets));
+    object  = malloc(object_len  * sizeof(*object));
+    objects = malloc(objects_len * sizeof(*objects));
 
     mace(argc, argv);
     size_t len = 0;
@@ -362,6 +435,8 @@ int main(int argc, char *argv[]) {
     // mace_compile("   mace.c", "baka.out", NULL);
     printf("target_num %d\n", target_num);
     mace_build_targets(targets, target_num);
+    printf("mace_free \n");
     mace_free(targets);
+    printf("FINISH\n");
     return (0);
 }
