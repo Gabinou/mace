@@ -97,7 +97,6 @@ void mace_mkdir(const char *path);
 char *mace_library_path(char *target_name);
 void mace_object_path(char *source);
 
-
 /* --- mace_globals --- */
 struct Target *targets;
 size_t  target_num;
@@ -340,11 +339,17 @@ void mace_object_path(char *source) {
     size_t objdir_len   = strlen(objdir);
     size_t source_len   = strlen(source);
     size_t obj_len      = objdir_len + source_len + 1;
+    assert(objdir_len > 0);
+
     if (obj_len > object_len)
         mace_grow_obj();
-    char * rawpath = calloc(objdir_len, sizeof(*rawpath));
+    printf("objdir_len %d\n", objdir_len);
+    printf("objdir %s\n", objdir);
+    char * rawpath = calloc(obj_len, sizeof(char));
     strncpy(rawpath,              objdir, obj_len);
+    printf("rawpath %s\n", rawpath);
     char * temp = realpath(rawpath, NULL);
+    printf("temp %s\n", temp);
     assert(temp != NULL);
     while((strlen(temp) + source_len + 1) >= object_len)
         mace_grow_obj();
@@ -352,6 +357,7 @@ void mace_object_path(char *source) {
     strncpy(object, temp, strlen(temp));
     strncpy(object + strlen(temp), source, source_len);
     object[strlen(object) - 1] = 'o';
+    free(rawpath);
     free(temp);
 }
 
