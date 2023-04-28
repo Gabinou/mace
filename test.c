@@ -50,10 +50,12 @@ void test_globbing() {
     nourstest_true(globbed.gl_pathc == 2);
     nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.c") == 0);
     nourstest_true(strcmp(globbed.gl_pathv[1], "../mace/test.c") == 0);
+    globfree(&globbed);
 
     globbed = mace_glob_sources("../mace/*.h");
     nourstest_true(globbed.gl_pathc == 1);
     nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.h") == 0);
+    globfree(&globbed);
 }
 
 void test_object() {
@@ -65,6 +67,10 @@ void test_object() {
     mace_object_path("/mace.c");
     nourstest_true(strcmp(object, "/home/gabinours/Sync/mace/obj/mace.o") == 0);
     nourstest_true(mace_isObject(object));
+    mace_object_path("mace.c");
+    nourstest_true(strcmp(object, "/home/gabinours/Sync/mace/obj/mace.o") == 0);
+    nourstest_true(mace_isObject(object));
+
 }
 
 int mace(int argc, char *argv[]) {

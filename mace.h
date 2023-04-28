@@ -252,6 +252,12 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
     char *source_file = (pos == NULL) ? absrc : pos + 1;
     printf("Compiling   \t%s \n", source_file);
     char *arguments[] = {cc, absrc, libflag, "-o", object, flags, NULL};
+    printf("Compiling   \t%s \n", arguments[0]);
+    printf("Compiling   \t%s \n", arguments[1]);
+    printf("Compiling   \t%s \n", arguments[2]);
+    printf("Compiling   \t%s \n", arguments[3]);
+    printf("Compiling   \t%s \n", arguments[4]);
+    printf("Compiling   \t%s \n", arguments[5]);
     pid_t pid = mace_exec(cc, arguments);
     mace_wait_pid(pid);
     free(absrc);
@@ -511,7 +517,7 @@ void mace_free() {
 //   b- Get targets
 // 2- Builds dependency graph from targets
 // 3- Determine which targets need to be recompiled
-// 4- Build the targetskee
+// 4- Build the targets
 // if `mace clean` is called (clean target), rm all targets
 
 int main(int argc, char *argv[]) {
