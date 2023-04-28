@@ -12,7 +12,7 @@ struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
 
 struct Target tnecs_dir = { /* Unitialized values guaranteed to be 0 / NULL */
     .includes           = ".",
-    .sources            = ".",
+    .sources            = "tnecs",
     .base_dir           = "tnecs",
     .kind               = MACE_LIBRARY,
 };
@@ -42,5 +42,5 @@ struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NU
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC);
     MACE_ADD_TARGET(tnecs);
-    MACE_ADD_TARGET(tnecs_dir);
+    // MACE_ADD_TARGET(tnecs_dir);
 }
