@@ -66,6 +66,10 @@ struct Target {
 
 /******************************** DECLARATIONS ********************************/
 
+/* --- mace --- */
+void mace_init();
+void mace_free();
+
 /* --- mace_Target --- */
 void Target_Free(struct Target *target);
 void Target_Source_Add(struct Target *target, char *token);
@@ -92,7 +96,6 @@ int mace_isDir(const        char *path);
 void mace_mkdir(const char *path);
 char *mace_library_path(char *target_name);
 void mace_object_path(char *source);
-void mace_free();
 
 
 /* --- mace_globals --- */
@@ -259,7 +262,6 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
 void mace_compile_glob(struct Target * target, char *globsrc, char *flags, int kind) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
-        printf("globbed.gl_pathv[i] %s\n", globbed.gl_pathv[i]);
         assert(mace_isSource(globbed.gl_pathv[i]));
         char * pos = strrchr(globbed.gl_pathv[i], '/');
         char * source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos;
@@ -389,7 +391,7 @@ void mace_build_target(struct Target *target) {
 
         } else if (mace_isWildcard(token)) {
             /* token has a wildcard in it */
-            printf("isWildcard %s\n", token);
+            // printf("isWildcard %s\n", token);
             mace_compile_glob(target, token, target->flags, target->kind);            
         
         } else if (mace_isSource(token)) {
@@ -479,6 +481,13 @@ void Target_Source_Add(struct Target *target, char *token) {
     strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
 }
 
+void mace_init() {
+    mace_free();
+    targets = malloc(target_len  * sizeof(*targets));
+    object  = malloc(object_len  * sizeof(*object));
+    objects = malloc(objects_len * sizeof(*objects));
+}
+
 void mace_free() {
     for (int i = 0; i < target_num; i++) {
         Target_Free(&targets[i]);
@@ -506,12 +515,9 @@ void mace_free() {
 int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
     printf("START\n");
-    targets = malloc(target_len  * sizeof(*targets));
-    object  = malloc(object_len  * sizeof(*object));
-    objects = malloc(objects_len * sizeof(*objects));
+    mace_init();
 
     mace(argc, argv);
-    size_t len = 0;
     // mace_target_dependency(targets, len);
     mace_build_targets(targets, target_num);
     mace_free(targets);
