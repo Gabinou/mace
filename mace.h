@@ -327,13 +327,18 @@ void mace_build_target(struct Target *target) {
             // token is a directory
             // Glob recursively?
             // if no / at end, add it
-            char * globstr =target->_sources[i] + "/" + "**.c";
-            glob_t globbed = mace_glob_sources();
+            char *globstr = calloc(strlen(target->_sources[i]) + 6, sizeof(*globstr));
+            strncpy(globstr, target->_sources[i], strlen(target->_sources[i]));
+            strncpy(globstr, + strlen(target->_sources[i]), "/", 1);
+            strncpy(globstr + strlen(target->_sources[i]) + 1, "**.c", 4);
+
+            glob_t globbed = mace_glob_sources(globstr);
             for (int i = 0; i < globbed.gl_pathc; i++) {
                 assert(mace_isSource(globbed.gl_pathv[i]));
                 mace_object_path(globbed.gl_pathv[i]);
                 mace_compile(globbed.gl_pathv[i], object, target->flags, target->kind);
             }
+            free(globstr);
 
         } else if (mace_isSource(target->_sources[i])) {
             // token is a source file
