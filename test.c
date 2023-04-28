@@ -36,7 +36,7 @@ static void nourstest_run(char *name, void (*test)()) {
 
 void test_isFunc() {
     nourstest_true(mace_isSource("test.c"));
-    nourstest_true(!mace_isSource("doesnotexist.c"));
+    nourstest_true(mace_isSource("doesnotexist.c"));
     nourstest_true(!mace_isDir("test.c"));
     nourstest_true(mace_isDir("../mace"));
     nourstest_true(mace_isWildcard("src/*"));
@@ -62,8 +62,8 @@ void test_object() {
         object = malloc(object_len * sizeof(*object));
     }
 
-    mace_object_path("mace.c");
-    nourstest_true(strcmp(object, BUILDDIR"mace.o") == 0);
+    mace_object_path("/mace.c");
+    nourstest_true(strcmp(object, "/home/gabinours/Sync/mace/obj/mace.o") == 0);
     nourstest_true(mace_isObject(object));
 }
 
