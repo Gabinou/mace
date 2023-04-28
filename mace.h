@@ -236,7 +236,6 @@ int mace_isDir(const char *path) {
     return S_ISDIR(statbuf.st_mode);
 }
 
-
 void mace_mkdir(const char *path) {
     struct stat st = {0};
     if (stat(path, &st) == -1) {
@@ -391,9 +390,6 @@ void mace_build_targets(struct Target *targets, size_t len) {
         printf("target %i DONE\n", i);
     }
 }
-
-
-
 
 /*----------------------------------------------------------------------------*/
 /*                               MACE INTERNALS                               */
