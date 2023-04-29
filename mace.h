@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <errno.h>
 #include <glob.h>
 #include <sys/types.h>
@@ -34,20 +35,22 @@ struct Target {
     char *sources;           /* files, glob patterns,  ' ' separated */
     char *sources_exclude;   /* files, glob patterns,  ' ' separated */
     char *base_dir;          /* directory,                           */
-    char *dependencies;      /* targets,               ' ' separated */
-    char *links;             /* libraries,             ' ' separated */
+    char *links;             /* libraries or targets   ' ' separated */
     char *flags;             /* passed as is to compiler             */
     char *message_pre_build;
     char *command_pre_build;
     char *message_post_build;
     char *command_post_build;
-    int   kind;
+    int   kind;              /* MACE_TARGET_KIND                     */
 
     /* Private members */
-    char  **_sources;         /* filenames */
-    size_t  _sources_num;
-    size_t  _sources_len;
-    char   *_name;
+    uint64_t   _hash;           /* target name hash,                 */
+    uint64_t  *_dependencies;   /* target hashes                     */
+    size_t     _order;          /* target order added by user        */
+    char     **_sources;        /* filenames */
+    size_t     _sources_num;
+    size_t     _sources_len;
+    char      *_name;
 };
 
 /* --- EXAMPLE TARGET --- */
@@ -73,6 +76,7 @@ void mace_free();
 /* --- mace_Target --- */
 void Target_Free(struct Target *target);
 void Target_Source_Add(struct Target *target, char *token);
+int Target_Order();
 
 int globerr(const char *path, int eerrno);
 glob_t mace_glob_sources(const char *path);
@@ -98,9 +102,10 @@ char *mace_library_path(char *target_name);
 void mace_object_path(char *source);
 
 /* --- mace_globals --- */
-struct Target *targets;
-size_t  target_num;
-size_t  target_len;
+struct Target  *targets;
+uint64_t       *target_hashes;
+size_t          target_num;
+size_t          target_len;
 char   *objdir;
 char   *object;
 size_t  object_len;
@@ -110,16 +115,19 @@ size_t  objects_num;
 char   *builddir;
 size_t  build_len;
 
-
 void mace_grow_obj();
 void mace_grow_objs();
+int Target_Order() {
 
+}
 /******************************* MACE_ADD_TARGET ******************************/
 // Adds user-defined target to internal array of targets.
 // Also Saves target name hash.
 #define MACE_ADD_TARGET(target) do {\
-        targets[target_num]       = target;\
-        targets[target_num]._name = #target;\
+        targets[target_num]        = target;\
+        targets[target_num]._name  = #target;\
+        targets[target_num]._hash  = mace_hash(#target);\
+        targets[target_num]._order = target_num;\
         if (++target_num == target_len) {\
             target_len *= 2;\
             targets     = realloc(targets, target_len * sizeof(*targets));\
@@ -137,6 +145,22 @@ struct PHONY {
     // Default phony: 'clean' removes all targets.
 #define MACE_ADD_PHONY(a)
 };
+
+/****************************** mace_hash ******************************/
+uint64_t mace_hash(const char *str) {
+    /* djb2 hashing algorithm by Dan Bernstein.
+    * Description: This algorithm (k=33) was first reported by dan bernstein many
+    * years ago in comp.lang.c. Another version of this algorithm (now favored by bernstein)
+    * uses xor: hash(i) = hash(i - 1) * 33 ^ str[i]; the magic of number 33
+    * (why it works better than many other constants, prime or not) has never been adequately explained.
+    * [1] https://stackoverflow.com/questions/7666509/hash-function-for-string
+    * [2] http://www.cse.yorku.ca/~oz/hash.html */
+    uint64_t hash = 5381;
+    int32_t str_char;
+    while ((str_char = *str++))
+        hash = ((hash << 5) + hash) + str_char; /* hash * 33 + c */
+    return (hash);
+}
 
 /****************************** MACE_SET_COMPILER ******************************/
 char *cc;
@@ -252,12 +276,6 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
     char *source_file = (pos == NULL) ? absrc : pos + 1;
     printf("Compiling   \t%s \n", source_file);
     char *arguments[] = {cc, absrc, libflag, "-o", object, flags, NULL};
-    printf("Compiling   \t%s \n", arguments[0]);
-    printf("Compiling   \t%s \n", arguments[1]);
-    printf("Compiling   \t%s \n", arguments[2]);
-    printf("Compiling   \t%s \n", arguments[3]);
-    printf("Compiling   \t%s \n", arguments[4]);
-    printf("Compiling   \t%s \n", arguments[5]);
     pid_t pid = mace_exec(cc, arguments);
     mace_wait_pid(pid);
     free(absrc);
