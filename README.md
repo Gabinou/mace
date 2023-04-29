@@ -1,21 +1,21 @@
 
-
 ## About
 
 Mace is a C99-only build system. 
 Specificity, reduced scope, all in service of *simplicity*. 
 
-A macefile is a .c file.
-Targets are structs. 
-Targets are added in the `mace` user entry point function.
-
-
 ## Features
-- C syntax.
-   - No C++ support intended.
 - As simple as possible.
-- Single header file.
-    - A macefile is a .c file.
+- C syntax.
+    - Macefiles are .c files.
+    - Targets are structs. 
+    - Function `mace` is user entry point.
+    - C++ not supported.
+- Single header build system.
+- Easy to learn
+    - Familiar syntax.
+    - Simple API.
+    - Compiling `mace.c` as easy as compiling `hello_world.c`.
 
 ## Usage
 1. Get `mace.h`
@@ -59,15 +59,21 @@ int mace(int argc, char *argv[]) {
 - No build systems for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
     - Proof 2: Modern programming languages devs implement their own build systems.
-- Most if not all build systems have obtuse syntax that scales terribly to larger projects.
+- Most if not all build systems have obtuse syntax, scale terribly to larger projects.
     - Makefiles makers exist (premake, autoconf/autotools) and compound this issue.
     - Make mixes imperative and declarative style.
-- Build system documentation is vast and hard to sift through.
-    - Simple tutorials are hard to find.
+    - Why not build an API with familiar C syntax?
 - Build systems are general-purpose and complex.
     - Complexity bad. Simplicity good.
 - Build system perfomance bottleneck is compilation.
     - Modern compilers (`gcc`, `clang`) are slow, except `tcc`
+
+## Under the hood
+- Compiler spits out object file  dependecies (headers)
+- User inputs targets dependencies with `target.links` (libraries or other targets)
+    - Build order determined by depth first search through depedencies.
+- Mace saves file and flag checksums in .mace_checksums
+    - Recompile if checksum changed
 
 ## Credits
 - mace uses the same naming convention as [mage](https://github.com/magefile/mage)
