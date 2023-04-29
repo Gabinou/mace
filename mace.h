@@ -46,12 +46,14 @@ struct Target {
 
     /* Private members */
     uint64_t   _hash;           /* target name hash,                 */
-    uint64_t  *_dependencies;   /* target hashes                     */
+    uint64_t  *_deps_links;     /* target or libs hashes             */
     size_t     _order;          /* target order added by user        */
     char     **_sources;        /* filenames */
     size_t     _sources_num;
     size_t     _sources_len;
     char      *_name;
+    size_t     _deps_links_num; /* target or libs hashes             */
+    size_t     _deps_links_len; /* target or libs hashes             */
 };
 
 /* --- EXAMPLE TARGET --- */
@@ -62,7 +64,7 @@ struct Target {
 *     .sources            = "",
 *     .sources_exclude    = "",
 *     .base_dir           = "",
-*     .dependencies       = "",
+*     .links              = "",
 *     .kind               = MACE_LIBRARY,
 * };
 */
@@ -77,6 +79,7 @@ void mace_free();
 /* --- mace_Target --- */
 void Target_Free(struct Target *target);
 void Target_Source_Add(struct Target *target, char *token);
+void Target_Deps(struct Target *target);
 int Target_Order();
 
 int globerr(const char *path, int eerrno);
@@ -129,6 +132,7 @@ int Target_Order() {
         targets[target_num]._name  = #target;\
         targets[target_num]._hash  = mace_hash(#target);\
         targets[target_num]._order = target_num;\
+        Target_Deps(&targets[target_num]);\
         if (++target_num == target_len) {\
             target_len *= 2;\
             targets     = realloc(targets, target_len * sizeof(*targets));\
@@ -139,7 +143,7 @@ int Target_Order() {
 // Builds dependencies, then runs command.
 struct PHONY {
     char *command;
-    char *dependencies;      /* targets,               ' ' separated */
+    char *deps;      /* targets,               ' ' separated */
 
     /******************************** MACE_ADD_PHONY *******************************/
     // Phony targets are only built when called explicitely e.g. <./build> install
@@ -190,12 +194,6 @@ void mace_flags_link(struct Target targets) {
 
 }
 
-
-/**************************** mace_target_dependency ***************************/
-// Build target dependency graph from target links
-void mace_target_dependency(struct Target *targets, size_t len) {
-
-}
 
 /******************************* mace_find_sources *****************************/
 // 1- if glob pattern, find all matches, add to list
@@ -398,6 +396,8 @@ void mace_build_target(struct Target *target) {
     target->_sources        = malloc(target->_sources_len * sizeof(*target->_sources));
     memset(objects, 0, objects_len * sizeof(*objects));
     objects_num = 0;
+    /* --- Copy sources into modifiable buffer --- */
+
     /* --- Split sources into tokens --- */
     char *token = strtok(target->sources, " ");
     do {
@@ -529,6 +529,32 @@ void mace_free() {
         free(objects);
     }
 }
+
+void Target_Deps(struct Target *target) {
+    /* --- Preliminaries --- */
+    if (target->links == NULL)
+        return;
+    printf("target->links %s\n", target->links);
+    
+    /* --- Alloc space for deps --- */
+    target->_deps_links_num = 0;
+    target->_deps_links_len = 16;
+    if (target->_deps_links!= NULL) {
+        free(target->_deps_links);
+    }
+    target->_deps_links = malloc(target->_deps_links_len * sizeof(*target->_deps_links));
+    /* --- Copy links into modifiable buffer --- */
+
+    /* --- Split links into tokens --   - */
+    char *token = strtok(target->links, " ");
+    do {
+        printf("token %s \n", token);
+        target->_deps_links[target->_deps_links_num++] = mace_hash(token);
+        token = strtok(NULL, " ");
+    } while (token != NULL);
+
+}
+
 
 /************************************ main ************************************/
 // 1- Runs mace function, get all info from user:
