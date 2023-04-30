@@ -17,6 +17,9 @@ Specificity, reduced scope, all in service of *simplicity*.
     - Simple API.
     - Compiling `mace.c` as easy as compiling `hello_world.c`.
 
+## Limitations
+- Cannot deal with circular dependencies in linked libraries.
+
 ## Usage
 1. Get `mace.h`
 2. Write your own macefile e.g. `mace.c`
@@ -69,10 +72,10 @@ int mace(int argc, char *argv[]) {
     - Modern compilers (`gcc`, `clang`) are slow, except `tcc`
 
 ## Under the hood
-- Compiler spits out object file  dependecies (headers)
-- User inputs targets dependencies with `target.links` (libraries or other targets)
-    - Build order determined by depth first search through depedencies.
-- Mace saves file and flag checksums in .mace_checksums
+- Compiler spits out object file dependecies (headers)
+- User inputs target dependencies with `target.links` (libraries or other targets)
+    - Build order determined by depth first search through dependencies.
+- Mace saves file and flag checksums in `.mace_checksums`
     - Recompile if checksum changed
 
 ## Credits

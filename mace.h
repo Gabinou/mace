@@ -76,12 +76,13 @@ struct Target {
 /* --- mace --- */
 void mace_init();
 void mace_free();
-char* mace_str_buffer(const char * strlit);
+char *mace_str_buffer(const char *strlit);
 
 /* --- mace_Target --- */
 void Target_Free(struct Target *target);
 void Target_Source_Add(struct Target *target, char *token);
-void Target_Deps(struct Target *target);
+void Target_Deps_Hash(struct Target *target);
+bool Target_hasDep(struct Target *target, uint64_t hash);
 int Target_Order();
 
 int globerr(const char *path, int eerrno);
@@ -131,7 +132,7 @@ void mace_grow_objs();
         targets[target_num]._name  = #target;\
         targets[target_num]._hash  = mace_hash(#target);\
         targets[target_num]._order = target_num;\
-        Target_Deps(&targets[target_num]);\
+        Target_Deps_Hash(&targets[target_num]);\
         if (++target_num == target_len) {\
             target_len *= 2;\
             targets     = realloc(targets, target_len * sizeof(*targets));\
@@ -379,11 +380,11 @@ void mace_object_path(char *source) {
     free(path);
 }
 
-char* mace_str_buffer(const char * strlit) {
+char *mace_str_buffer(const char *strlit) {
     size_t  litlen  = strlen(strlit);
     char   *buffer  = calloc(litlen + 1, sizeof(*buffer));
     strncpy(buffer, strlit, litlen);
-    return(buffer);
+    return (buffer);
 }
 
 /******************************** mace_build **********************************/
@@ -402,8 +403,8 @@ void mace_build_target(struct Target *target) {
     memset(objects, 0, objects_len * sizeof(*objects));
     objects_num = 0;
     /* -- Copy sources into modifiable buffer -- */
-   char* buffer = mace_str_buffer(target->sources);
-    
+    char *buffer = mace_str_buffer(target->sources);
+
     /* --- Split sources into tokens --- */
     char *token = strtok(buffer, " ");
     do {
@@ -476,7 +477,7 @@ bool mace_isTargetinBuildOrder(size_t order) {
             break;
         }
     }
-    return(out);
+    return (out);
 }
 
 size_t mace_hash_order(uint64_t hash) {
@@ -487,11 +488,11 @@ size_t mace_hash_order(uint64_t hash) {
             break;
         }
     }
-    return(order);
+    return (order);
 }
 
 size_t mace_target_order(struct Target target) {
-    return(mace_hash_order(target._hash));
+    return (mace_hash_order(target._hash));
 }
 void mace_build_order_add(size_t order) {
     if (build_order == NULL) {
@@ -506,7 +507,7 @@ void mace_deps_build_order(struct Target target, size_t *o_cnt) {
     /* o_cnt should never be geq to target_num */
     if ((*o_cnt) >= target_num)
         return;
-    
+
     size_t order = mace_target_order(target); // target order
     /* Target already in build order, skip */
     if (mace_isTargetinBuildOrder(order))
@@ -537,25 +538,57 @@ void mace_deps_build_order(struct Target target, size_t *o_cnt) {
         return;
     }
 }
+bool Target_hasDep(struct Target *target, uint64_t hash) {
+    printf("target->links %s\n", target->links);
+    for (int i = 0; i < target->_deps_links_num; i++) {
+        printf("target->_deps_links[i] %d\n", target->_deps_links[i]);
+        if (target->_deps_links[i] == hash)
+            return (true);
+    }
+    return (false);
+}
 
-void mace_target_build_order(struct Target *targets, size_t len) {
-    assert(targets != NULL);
+bool mace_circular_deps(struct Target *targs, size_t len) {
+    for (int i = 0; i < target_num; i++) {
+        printf("targs[i].links %s \n", targs[i].links);
+        uint64_t hash_i = targs[i]._hash;
+        printf("i hash_i %d %d\n", i, hash_i);
+        for (int j = 0; j < target_num; j++) {
+            printf("j %d\n", j);
+            if (i == j)
+                continue;
+            if (Target_hasDep(&targs[j], hash_i))
+                return (true);
+        }
+    }
+    return (false);
+}
+
+void mace_target_build_order(struct Target *targs, size_t len) {
+    assert(targs != NULL);
     assert(len      > 0);
     size_t o_cnt = 0;
-    /* Visit all targets */
+
+    /* Check for circular dependency */
+    if (mace_circular_deps(targs, len)) {
+        printf("Circular dependency in linked library detected. Exiting\n");
+        exit(EDOM);
+    }
+
+    /* Visit all targs */
     while (o_cnt < target_num) {
-        mace_deps_build_order(targets[o_cnt], &o_cnt);
+        mace_deps_build_order(targs[o_cnt], &o_cnt);
         o_cnt++;
     }
 }
-void mace_build_targets(struct Target *targets, size_t len) {
-    assert(targets != NULL);
+void mace_build_targets(struct Target *targs, size_t len) {
+    assert(targs != NULL);
     if (len == 0) {
         printf("No targets to compile. Exiting.\n");
         return;
     }
     for (int i = 0; i < len; i++) {
-        mace_build_target(&targets[i]);
+        mace_build_target(&targs[i]);
     }
 }
 
@@ -580,6 +613,10 @@ void Target_Free(struct Target *target) {
         free(target->_sources);
         target->_sources = NULL;
     }
+    if (target->_deps_links != NULL) {
+        free(target->_deps_links);
+    }
+
 }
 
 void Target_Source_Add(struct Target *target, char *token) {
@@ -622,22 +659,24 @@ void mace_free() {
     }
 }
 
-void Target_Deps(struct Target *target) {
+void Target_Deps_Hash(struct Target *target) {
     /* --- Preliminaries --- */
     if (target->links == NULL)
         return;
-    
+
     /* --- Alloc space for deps --- */
     target->_deps_links_num = 0;
     target->_deps_links_len = 16;
-    if (target->_deps_links!= NULL) {
+    if (target->_deps_links != NULL) {
         free(target->_deps_links);
     }
     target->_deps_links = malloc(target->_deps_links_len * sizeof(*target->_deps_links));
     /* --- Copy links into modifiable buffer --- */
-   char* buffer = mace_str_buffer(target->links);
-    /* --- Split links into tokens --   - */
+    char *buffer = mace_str_buffer(target->links);
+    /* --- Split links into tokens, --- */
     char *token = strtok(buffer, " ");
+
+    /* --- Hash tokens into _deps_links --- */
     do {
         target->_deps_links[target->_deps_links_num++] = mace_hash(token);
         token = strtok(NULL, " ");
