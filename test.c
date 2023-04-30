@@ -300,9 +300,16 @@ void test_self_dependency() {
 
 void test_includes() {
     const char *includes = "A B C D";
-    char *include_flags = mace_include_flags(includes);
+    char *include_flags = mace_flags(includes, "-I");
     nourstest_true(strcmp(include_flags, "-IA -IB -IC -ID") == 0);
     free(include_flags);
+}
+
+void test_links() {
+    const char *includes = "A B C D";
+    char *link_flags = mace_flags(includes, "-l");
+    nourstest_true(strcmp(link_flags, "-lA -lB -lC -lD") == 0);
+    free(link_flags);
 }
 
 int mace(int argc, char *argv[]) {
