@@ -539,9 +539,9 @@ void mace_deps_build_order(struct Target target, size_t *o_cnt) {
     }
 }
 bool Target_hasDep(struct Target *target, uint64_t hash) {
-    printf("target->links %s\n", target->links);
+    // printf("target->links %s\n", target->links);
     for (int i = 0; i < target->_deps_links_num; i++) {
-        printf("target->_deps_links[i] %d\n", target->_deps_links[i]);
+        // printf("target->_deps_links[i] %d\n", target->_deps_links[i]);
         if (target->_deps_links[i] == hash)
             return (true);
     }
@@ -549,21 +549,18 @@ bool Target_hasDep(struct Target *target, uint64_t hash) {
 }
 
 bool mace_circular_deps(struct Target *targs, size_t len) {
-    // Circular dependency:
-    //   1- Target i : j dependency
-    //   2- Target j : i dependency
+    // Circular dependency conditions
+    //   1- Target i has j dependency
+    //   2- Target j has i dependency
     for (int i = 0; i < target_num; i++) {
-        printf("targs[i].links %s \n", targs[i].links);
         uint64_t hash_i = targs[i]._hash;
-        printf("i hash_i %d %d\n", i, hash_i);
+        // 1- going through target i's dependencies
         for (int z = 0; z < targs[i]._deps_links_num; z++) {
-            printf("j %d\n", j)
-            int j = mace_hash_order(uint64_t hash)
-            struct Target *target_j = ;
+            int j = mace_hash_order(targs[i]._deps_links[z]);
             if (i == j)
                 continue;
             if (Target_hasDep(&targs[j], hash_i))
-                //  condition 2
+                // 2- target i's dependency j has i as dependency as well
                 return (true);
         }
     }
