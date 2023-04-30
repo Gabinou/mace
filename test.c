@@ -193,7 +193,6 @@ void test_target() {
 }
 
 void test_circular() {
-
     /* mace detect circular dependency */
     struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -262,6 +261,21 @@ void test_circular() {
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
+void test_self_dependency() {
+    struct Target H = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "H",
+        .kind               = MACE_EXECUTABLE,
+    };
+    MACE_ADD_TARGET(H);
+    mace_circular_deps(targets, target_num); /* Should print a warning*/
+    target_num = 0; /* cleanup so that mace doesn't build targets */
+}
+
+
+
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     nourstest_run("isFunc ",    test_isFunc);
@@ -270,5 +284,9 @@ int mace(int argc, char *argv[]) {
     nourstest_run("target ",    test_target);
     nourstest_run("circular ",  test_circular);
     nourstest_results();
+
+    printf("A warning about self dependency should print now:\n \n");
+    test_self_dependency();
+    printf("\n");
     printf("Tests done\n");
 }
