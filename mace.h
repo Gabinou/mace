@@ -549,15 +549,21 @@ bool Target_hasDep(struct Target *target, uint64_t hash) {
 }
 
 bool mace_circular_deps(struct Target *targs, size_t len) {
+    // Circular dependency:
+    //   1- Target i : j dependency
+    //   2- Target j : i dependency
     for (int i = 0; i < target_num; i++) {
         printf("targs[i].links %s \n", targs[i].links);
         uint64_t hash_i = targs[i]._hash;
         printf("i hash_i %d %d\n", i, hash_i);
-        for (int j = 0; j < target_num; j++) {
-            printf("j %d\n", j);
+        for (int z = 0; z < targs[i]._deps_links_num; z++) {
+            printf("j %d\n", j)
+            int j = mace_hash_order(uint64_t hash)
+            struct Target *target_j = ;
             if (i == j)
                 continue;
             if (Target_hasDep(&targs[j], hash_i))
+                //  condition 2
                 return (true);
         }
     }

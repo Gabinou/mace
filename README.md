@@ -10,21 +10,24 @@ Specificity, reduced scope, all in service of *simplicity*.
     - Macefiles are .c files.
     - Targets are structs. 
     - Function `mace` is user entry point.
-    - C++ not supported.
 - Single header build system.
+    - Compiling macefile as easy as compiling `hello_world.c`.
+    - Build project by running resulting executable.
 - Easy to learn
     - Familiar syntax.
     - Simple API.
-    - Compiling `mace.c` as easy as compiling `hello_world.c`.
 
 ## Limitations
 - Cannot deal with circular dependencies in linked libraries.
+- C only
+    - C99 and above.
+    - C++ not supported.
 
 ## Usage
 1. Get `mace.h`
 2. Write your own macefile e.g. `mace.c`
-3. Compile `gcc mace.c -o build`
-4. Build `./build`
+3. Compile `gcc mace.c -o mace`
+4. Build `./mace`
 
 ### Convenience executable
 1. Install mace
