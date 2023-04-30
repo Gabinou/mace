@@ -112,13 +112,13 @@ void mace_object_path(char *source);
 struct Target  *targets;        /* [order] is as added by user */
 size_t          target_num;
 size_t          target_len;
-char   *objdir;
+char   *obj_dir;
 char   *object;
 size_t  object_len;
 char   *objects;
 size_t  objects_len;
 size_t  objects_num;
-char   *builddir;
+char   *build_dir;
 size_t  build_len;
 
 void mace_grow_obj();
@@ -141,17 +141,20 @@ void mace_grow_objs();
 
 /******************************** Phony struct ********************************/
 // Builds dependencies, then runs command.
-struct PHONY {
+struct Command {
     char *command;
     char *deps;      /* targets,               ' ' separated */
-
-    /******************************** MACE_ADD_PHONY *******************************/
-    // Phony targets are only built when called explicitely e.g. <./build> install
-    // Default phony: 'clean' removes all targets.
-#define MACE_ADD_PHONY(a)
 };
 
-/****************************** mace_hash ******************************/
+/****************************** MACE_ADD_COMMAND ******************************/
+// Command targets are only built when called explicitely e.g. <./build> install
+// Default phony: 'clean' removes all targets.
+#define MACE_ADD_COMMAND(a)
+// How to dermine command order?
+//  - If command has dependencies, order should be computer from dependency graph
+//  - If command has NO dependencies, user can set order
+
+/********************************* mace_hash **********************************/
 uint64_t mace_hash(const char *str) {
     /* djb2 hashing algorithm by Dan Bernstein.
     * Description: This algorithm (k=33) was first reported by dan bernstein many
@@ -176,9 +179,10 @@ char *ar = "ar";
 
 #define MACE_SET_BUILDDIR(dir)
 
-/******************************* MACE_SET_OBJDIR *******************************/
+/******************************* MACE_SET_obj_dir *******************************/
 // Sets where the object files will be placed during build.
-#define MACE_SET_OBJDIR(a)
+#define MACE_SET_OBJ_DIR(a)
+#define MACE_SET_BUILD_DIR(a)
 
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
@@ -330,22 +334,27 @@ void mace_mkdir(const char *path) {
 
 char *mace_library_path(char *target_name) {
     assert(target_name != NULL);
-    char *lib = calloc((strlen(target_name) + 6), sizeof(*lib));
-    strncpy(lib,                            "lib",       3);
-    strncpy(lib + 3,                        target_name, strlen(target_name));
-    strncpy(lib + 3 + strlen(target_name),  ".a",        2);
+    size_t bld_len = strlen(build_dir);
+    size_t tar_len = strlen(target_name);
+
+    char *lib = calloc((bld_len + tar_len + 6), sizeof(*lib));
+
+    strncpy(lib,                         build_dir,   bld_len);
+    strncpy(lib + bld_len,               "lib",       3);
+    strncpy(lib + bld_len + 3,           target_name, tar_len);
+    strncpy(lib + bld_len + 3 + tar_len, ".a",        2);
     return (lib);
 }
 
 /******************************* mace_globals *********************************/
-char   *objdir      = "obj/";
+char   *obj_dir      = "obj/";
 char   *object      = NULL;
 size_t  object_len  = 16;
 char   *objects     = NULL;
 size_t  objects_len = 128;
 size_t  objects_num = 0;
 
-char   *builddir    = "build/";
+char   *build_dir   = "build/";
 size_t  build_len   = 16;
 
 void mace_grow_obj() {
@@ -360,7 +369,7 @@ void mace_grow_objs() {
 
 void mace_object_path(char *source) {
     /* --- Expanding path --- */
-    char *path = realpath(objdir, NULL);
+    char *path = realpath(obj_dir, NULL);
     assert(path != NULL);
 
     /* --- Grow object --- */
@@ -389,10 +398,10 @@ char *mace_str_buffer(const char *strlit) {
 
 /******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
+
     /* --- Parse sources, put into array --- */
     // printf("mace_build_target\n");
 
-    mace_mkdir(objdir);
     assert(target->kind != 0);
     /* --- Compile sources --- */
     /* --- Preliminaries --- */
@@ -703,7 +712,9 @@ void Target_Deps_Hash(struct Target *target) {
 int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
     printf("START\n");
-    mace_init();
+    mace_init();      
+    mace_mkdir(obj_dir);
+    mace_mkdir(build_dir);
 
     mace(argc, argv);
 
