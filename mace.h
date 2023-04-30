@@ -220,28 +220,38 @@ char *mace_include_flags(const char *includes) {
     assert(includes != NULL);
     /* -- Copy sources into modifiable buffer -- */
     char *buffer = mace_str_buffer(includes);
-    // Pathological case where includes have length 1: "A B C D",
+
+    /* -- Pathological case where includes have length 1: "A B C D" -- */
     // With n the number of folders:
     //  1- len of target->includes                           = 2n - 1
     //  2- len to add because of -I                          = 2n
     //  3- Total len of include_flags is the sum: of 1 and 2 = 4n - 1
     //  4- 2 * (len of target->includes + 1) > total len     = 4n (includes null terminator)
     char *include_flags = calloc((strlen(includes) + 1) * 2, sizeof(*include_flags));
+    assert(include_flags != NULL);    
 
     /* --- Split sources into tokens --- */
     char *token = strtok(buffer, " ");
 
-    int total_len = 0;
+    size_t total_len = 0;
     do {
-        // for every token, add -I
-        strncpy(include_flags + total_len, "-I", (total_len += 2));
-        strncpy(include_flags + total_len, token, (total_len += strlen(token)));
-        strncpy(include_flags + total_len, " ", (total_len += 1));
+        /* - for every token, add -I - */
+        strncpy(include_flags + total_len, "-I", 2);
+        total_len += 2;
+
+        /* - add token - */
+        strncpy(include_flags + total_len, token, strlen(token));
+        total_len += strlen(token);
         token = strtok(NULL, " ");
+
+        /* - if not the final token - */
+        if (token!= NULL) {
+            strncpy(include_flags + total_len, " ", 1);
+            total_len += 1;
+        }
     } while (token != NULL);
-
-    include_flags = realloc(include_flags, (strlen(include_flags) + 1) * sizeof(*include_flags));
-
+    include_flags = realloc(include_flags, strlen(include_flags) * sizeof(*include_flags));
+    include_flags[strlen(include_flags)] = '\0';
     free(buffer);
     return (include_flags);
 }
@@ -455,7 +465,6 @@ char *mace_str_buffer(const char *strlit) {
 void mace_build_target(struct Target *target) {
 
     /* --- Parse sources, put into array --- */
-    // printf("mace_build_target\n");
 
     assert(target->kind != 0);
     /* --- Compile sources --- */
@@ -604,9 +613,7 @@ void mace_deps_build_order(struct Target target, size_t *o_cnt) {
     }
 }
 bool Target_hasDep(struct Target *target, uint64_t hash) {
-    // printf("target->links %s\n", target->links);
     for (int i = 0; i < target->_deps_links_num; i++) {
-        // printf("target->_deps_links[i] %d\n", target->_deps_links[i]);
         if (target->_deps_links[i] == hash)
             return (true);
     }
@@ -637,7 +644,14 @@ bool mace_circular_deps(struct Target *targs, size_t len) {
 
 void mace_target_build_order(struct Target *targs, size_t len) {
     assert(targs != NULL);
-    assert(len    > 0);
+    
+    /* Skip if no targets */
+    if(len == 0) {
+        printf("No targets. Skipping build order computation.\n");
+        return;
+    }
+
+    
     size_t o_cnt = 0;
 
     /* Check for circular dependency */
@@ -645,12 +659,18 @@ void mace_target_build_order(struct Target *targs, size_t len) {
         printf("Circular dependency in linked library detected. Exiting\n");
         exit(EDOM);
     }
-    if (len == 1)
-        /* Visit all targs */
-        while (o_cnt < target_num) {
-            mace_deps_build_order(targs[o_cnt], &o_cnt);
-            o_cnt++;
-        }
+
+    /* If only 1 include, build order is trivial */
+    if (len == 1) {
+        mace_build_order_add(0);
+        return;
+    }
+    
+    /* Visit all targs */
+    while (o_cnt < target_num) {
+        mace_deps_build_order(targs[o_cnt], &o_cnt);
+        o_cnt++;
+    }
 }
 
 void mace_build_targets(struct Target *targs, size_t len) {
