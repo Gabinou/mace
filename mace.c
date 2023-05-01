@@ -6,37 +6,17 @@
 struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
     .includes           = "tnecs.h",
     .sources            = "tnecs.c",
-    .base_dir           = "tnecs",
+    .base_dir           = "second_party/tnecs",
     .kind               = MACE_LIBRARY,
 };
 
-struct Target tnecs_dir = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = "tnecs",
-    .sources            = "tnecs",
-    .base_dir           = "tnecs",
-    .kind               = MACE_LIBRARY,
-};
-
-struct Target tnecs_glob = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = "tnecs",
-    .sources            = "tnecs/*.c",
-    .base_dir           = "tnecs",
-    .kind               = MACE_LIBRARY,
-};
-
-struct Target physfs = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = "physfs",
-    .sources            = "physfs",
-    .base_dir           = "physfs",
-    .kind               = MACE_LIBRARY,
-};
 
 struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = "",
-    .sources            = "",
+    .includes           = "include/ include/bars/ include/menu/ include/popup/ include/systems/, names/ names/popup/ names/menu/",
+    .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
     .sources_exclude    = "",
     .base_dir           = "",
-    .links              = "tnecs SDL2",
+    .links              = "tnecs",
     .kind               = MACE_EXECUTABLE,
 };
 
@@ -47,7 +27,10 @@ struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NU
 /*======================================================================*/
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC);
+    mace_set_build_dir("A_build");
+    mace_set_obj_dir("B_obj");
     MACE_ADD_TARGET(tnecs);
+    // MACE_ADD_TARGET(CodenameFiresaga);
     // MACE_ADD_TARGET(tnecs_dir);
     // MACE_ADD_TARGET(tnecs_glob);
     // MACE_ADD_TARGET(physfs);
