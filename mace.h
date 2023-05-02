@@ -213,9 +213,53 @@ char *mace_copy_str(char *restrict buffer, const char *str) {
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
 
+void argv_free(int argc, char * argv) {
+    if (argv== NULL)
+        return;
+    
+    for (int i = 0; i < argc; i++) {
+        free(argv[i]);
+        argv[i] = NULL;
+    }
+    argv = NULL;
+}
+
+char *argv_grows(int *len, int *argc, char *argv) {
+    if ((*argc) >= (*len)) {
+       *len *= 2;
+       argv = realloc(argv, len * sizeof(*argv)); 
+    }
+}
+
+char *argv_flags(int * len, int * argc, char * argv, const char *includes, const char *flag) {
+    size_t flag_len = (flag == NULL) ? 0 : strlen(token);
+
+    /* -- Copy includes into modifiable buffer -- */
+    char *buffer = mace_str_buffer(includes);
+
+    char *token = strtok(buffer, " ");
+    do {
+        argv_grows(len, argc, argv);
+
+        size_t token_len = strlen(token);
+        char * arg = calloc(token_len + 3);
+
+        /* - Copy token into arg - */
+        if (flag_len > 0) {
+            strncpy(arg, flag, flag_len);
+        }
+        strncpy(arg + flag_len, token, total_len);
+
+        token = strtok(NULL, " ");
+        argv[argc++] = arg;
+    } while (token != NULL);
+
+    free(buffer)
+    return (argv);
+}
+
 // build include flags from target.include
 char *Target_Flags_Include(struct Target *target) {
-    /* -- Skip if no includes -- */
     if (target->_include_flags != NULL)
         free(target->_include_flags);
 
@@ -369,6 +413,8 @@ void mace_wait_pid(int pid) {
 void mace_link(char *objects, char *target) {
     char *arguments[] = {ar, "-rcs", target, objects, NULL};
     printf("Linking \t%s \n", target);
+    // TODO: split objects into individual arguments
+
     // mace_exec_print(arguments, sizeof(arguments)/sizeof(*arguments));
     pid_t pid = mace_exec(ar, arguments);
     mace_wait_pid(pid);
@@ -377,9 +423,9 @@ void mace_link(char *objects, char *target) {
 /* Compile a single source file to object */
 void mace_compile(const char *restrict source, char *restrict object, const char *restrict user_flags, char *restrict include_flags, char *restrict link_flags, int kind) {
     char libflag[3] = "";
-    if (kind == MACE_LIBRARY) {
+    if (kind == MACE_LIBRARY)
         strncpy(libflag, "-c", 2);
-    }
+
     char *absrc = realpath(source, NULL);
     char *pos = strrchr(absrc, '/');
     char *source_file = (pos == NULL) ? absrc : pos + 1;
@@ -389,10 +435,9 @@ void mace_compile(const char *restrict source, char *restrict object, const char
         size_t flags_len = strlen(user_flags);
         aflags = calloc(flags_len + 1, sizeof(*aflags));
         strncpy(aflags, user_flags, flags_len);
-    // } else {
-        // aflags = calloc(1, sizeof(*aflags));
     }
-    char *const arguments[] = {cc, absrc, include_flags, link_flags, libflag, "-o", object, aflags, NULL};
+    // TODO: split user_flags, include_flags, link_flags into individual arguments
+    char *const arguments[] = {cc, absrc, include_flags, link_flags, libflag,"-v", "-o", object, aflags, NULL};
     printf("aflags %s\n", aflags);
     printf("object %sAAAA\n", object);
     mace_exec_print(arguments, sizeof(arguments)/sizeof(*arguments));
@@ -523,7 +568,6 @@ char *mace_str_buffer(const char *strlit) {
 
 /******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
-
     /* --- Parse sources, put into array --- */
 
     assert(target->kind != 0);
@@ -556,13 +600,13 @@ void mace_build_target(struct Target *target) {
             strncpy(globstr + srclen,     "/",    1);
             strncpy(globstr + srclen + 1, "**.c", 4);
 
-            mace_compile_glob(target, globstr, target->flags, target->kind);
+            mace_compile_glob(target, globstr, target->flags, MACE_LIBRARY);
             free(globstr);
 
         } else if (mace_isWildcard(token)) {
             /* token has a wildcard in it */
             // printf("isWildcard %s\n", token);
-            mace_compile_glob(target, token, target->flags, target->kind);
+            mace_compile_glob(target, token, target->flags, MACE_LIBRARY);
 
         } else if (mace_isSource(token)) {
             /* token is a source file */
@@ -570,11 +614,7 @@ void mace_build_target(struct Target *target) {
             Target_Source_Add(target, token);
             size_t i = target->_sources_num - 1;
             mace_object_path(token);
-            printf("target->_include_flags %s\n", target->_include_flags);
-            printf("target->_link_flags %s\n", target->_link_flags);
-            printf("object %s\n", object);
-            printf("target->flags %s\n", target->flags);
-            mace_compile(target->_sources[i], object, target->flags, target->_include_flags, target->_link_flags, target->kind);
+            mace_compile(target->_sources[i], object, target->flags, target->_include_flags, target->_link_flags, MACE_LIBRARY);
 
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
@@ -601,7 +641,7 @@ void mace_build_target(struct Target *target) {
         char *lib = mace_library_path(target->_name);
         mace_link(objects, lib);
         free(lib);
-    } else if (target->kind == MACE_EXECUTABLE) {
+    } else if (target->kind == MACE_EXECUTABLE) {  
         // mace_compile(source, object, flags);
     }
     free(buffer);
