@@ -111,7 +111,7 @@ void test_target() {
 
     /* cleanup so that mace doesn't build targets */
     mace_free();
-    target_num = 0; 
+    target_num = 0;
     mace_init();
 
     /* mace computing build order as a function of linking dependencies */
@@ -176,18 +176,21 @@ void test_target() {
     MACE_ADD_TARGET(D);
     MACE_ADD_TARGET(F);
     nourstest_true(target_num == 7);
-    // /* Print names */
-    // for (int i = 0; i < target_num; ++i) {
-    //     printf("%s ", targets[i]._name);
-    // }
-    // printf("\n");
+    nourstest_true(strcmp(targets[0]._name, "B") == 0);
+    nourstest_true(strcmp(targets[1]._name, "C") == 0);
+    nourstest_true(strcmp(targets[2]._name, "E") == 0);
+    nourstest_true(strcmp(targets[3]._name, "A") == 0);
+    nourstest_true(strcmp(targets[4]._name, "G") == 0);
+    nourstest_true(strcmp(targets[5]._name, "D") == 0);
+    nourstest_true(strcmp(targets[6]._name, "F") == 0);
 
-    // /* Print hashes */
-    // for (int i = 0; i < target_num; ++i) {
-    //     printf("%d ", targets[i]._hash);
-    // }
-    // printf("\n");
-    // nourstest_true(!mace_circular_deps(targets, target_num));
+    nourstest_true(targets[0]._hash == mace_hash("B"));
+    nourstest_true(targets[1]._hash == mace_hash("C"));
+    nourstest_true(targets[2]._hash == mace_hash("E"));
+    nourstest_true(targets[3]._hash == mace_hash("A"));
+    nourstest_true(targets[4]._hash == mace_hash("G"));
+    nourstest_true(targets[5]._hash == mace_hash("D"));
+    nourstest_true(targets[6]._hash == mace_hash("F"));
 
     mace_target_build_order(targets, target_num);
     assert(build_order != NULL);
@@ -206,7 +209,7 @@ void test_target() {
     nourstest_true(target_num == 7);
     nourstest_true(build_order[0]);
     nourstest_true(build_order[target_num - 1] == A_order);
-    
+
     mace_free();
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
@@ -293,7 +296,7 @@ void test_self_dependency() {
     };
     MACE_ADD_TARGET(H);
     mace_circular_deps(targets, target_num); /* Should print a warning*/
-    
+
     mace_free();
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
@@ -304,8 +307,8 @@ void test_argv() {
     const char *sources = "a.c bd.c efg.c hijk.c lmnop.c";
     int len = 8;
     int argc = 0;
-    char ** argv = calloc(8, sizeof(*argv));
-    
+    char **argv = calloc(8, sizeof(*argv));
+
     mace_argv_flags(&len, &argc, argv, includes, "-I");
     nourstest_true(argc == 4);
     nourstest_true(len == 8);
@@ -313,7 +316,7 @@ void test_argv() {
     nourstest_true(strcmp(argv[1], "-IB") == 0);
     nourstest_true(strcmp(argv[2], "-IC") == 0);
     nourstest_true(strcmp(argv[3], "-ID") == 0);
-    
+
     mace_argv_flags(&len, &argc, argv, links, "-l");
     nourstest_true(argc == 9);
     nourstest_true(len == 16);
@@ -322,7 +325,7 @@ void test_argv() {
     nourstest_true(strcmp(argv[6], "-lputain") == 0);
     nourstest_true(strcmp(argv[7], "-lde") == 0);
     nourstest_true(strcmp(argv[8], "-lmerde") == 0);
-    
+
     mace_argv_flags(&len, &argc, argv, sources, NULL);
     nourstest_true(argc == 14);
     nourstest_true(len == 16);
@@ -331,7 +334,7 @@ void test_argv() {
     nourstest_true(strcmp(argv[11], "efg.c") == 0);
     nourstest_true(strcmp(argv[12], "hijk.c") == 0);
     nourstest_true(strcmp(argv[13], "lmnop.c") == 0);
-    
+
 }
 
 int mace(int argc, char *argv[]) {
@@ -351,5 +354,5 @@ int mace(int argc, char *argv[]) {
     test_self_dependency();
     printf("\n");
     printf("Tests done\n");
-    return(0);
+    return (0);
 }
