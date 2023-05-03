@@ -336,6 +336,9 @@ void test_argv() {
 
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
+    mace_mkdir(obj_dir);
+    mace_mkdir(build_dir);
+
     nourstest_run("isFunc ",    test_isFunc);
     nourstest_run("globbing ",  test_globbing);
     nourstest_run("object ",    test_object);

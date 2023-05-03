@@ -815,10 +815,6 @@ int main(int argc, char *argv[]) {
     mace_init();
 
     mace(argc, argv);
-    printf("obj_dir %s\n", obj_dir);
-    printf("build_dir %s\n", build_dir);
-    assert(obj_dir != NULL);
-    assert(build_dir != NULL);
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
