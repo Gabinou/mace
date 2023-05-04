@@ -57,6 +57,7 @@ struct Target {
     int         _argc_includes;    /* number of arguments in argv_includes    */
     char      **_argv_sources;     /* sources, in argv form                   */
     int         _argc_sources;     /* number of arguments in argv_sources     */
+    int         _len_sources;      /* alloc len of arguments in argv_sources  */
     char      **_argv_links;       /* linked libraries, in argv form          */
     int         _argc_links;       /* number of arguments in argv_links       */
     char      **_argv_flags;       /* user flags, in argv form                */
@@ -266,8 +267,7 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
         argv = argv_grows(len, argc, argv);
 
         size_t token_len = strlen(token);
-        char *arg = calloc(token_len + 3, sizeof(*arg));
-
+        char *arg = calloc((token_len + flag_len + 1), sizeof(*arg));
         /* - Copy token into arg - */
         if (flag_len > 0) {
             strncpy(arg, flag, flag_len);
@@ -453,6 +453,22 @@ void mace_compile3(char *sources, char *objects, struct Target * target) {
     // mace_wait_pid(pid);
 }
 
+void Target_Source_Add(struct Target *target, char *token) {
+    if (target->_argv_sources == NULL) {
+        target->_len_sources = 8;
+        target->_argv_sources = malloc(target->_len_sources * sizeof(*target->_argv_sources));
+    }
+
+    if (token == NULL)
+        return;
+
+    target->_argv_sources = argv_grows(&target->_len_sources, &target->_argc_sources, target->_argv_sources);
+    
+    size_t token_len = strlen(token);
+    char *arg = calloc(token_len, sizeof(*arg));
+    strncpy(arg, token, token_len);
+    target->_argv_sources[target->_argc_sources++] = arg;
+}
 
 
 /* Compile globbed files to objects */
