@@ -309,7 +309,7 @@ void test_argv() {
     int argc = 0;
     char **argv = calloc(8, sizeof(*argv));
 
-    mace_argv_flags(&len, &argc, argv, includes, "-I");
+    argv = mace_argv_flags(&len, &argc, argv, includes, "-I");
     nourstest_true(argc == 4);
     nourstest_true(len == 8);
     nourstest_true(strcmp(argv[0], "-IA") == 0);
@@ -317,7 +317,7 @@ void test_argv() {
     nourstest_true(strcmp(argv[2], "-IC") == 0);
     nourstest_true(strcmp(argv[3], "-ID") == 0);
 
-    mace_argv_flags(&len, &argc, argv, links, "-l");
+    argv = mace_argv_flags(&len, &argc, argv, links, "-l");
     nourstest_true(argc == 9);
     nourstest_true(len == 16);
     nourstest_true(strcmp(argv[4], "-lta") == 0);
@@ -326,7 +326,7 @@ void test_argv() {
     nourstest_true(strcmp(argv[7], "-lde") == 0);
     nourstest_true(strcmp(argv[8], "-lmerde") == 0);
 
-    mace_argv_flags(&len, &argc, argv, sources, NULL);
+    argv = mace_argv_flags(&len, &argc, argv, sources, NULL);
     nourstest_true(argc == 14);
     nourstest_true(len == 16);
     nourstest_true(strcmp(argv[9], "a.c") == 0);
@@ -334,6 +334,24 @@ void test_argv() {
     nourstest_true(strcmp(argv[11], "efg.c") == 0);
     nourstest_true(strcmp(argv[12], "hijk.c") == 0);
     nourstest_true(strcmp(argv[13], "lmnop.c") == 0);
+
+    struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = ". include  include/bars  include/menu include/popup include/systems "
+        "names names/popup names/menu "
+        "second_party/nstr second_party/noursmath second_party/tnecs "
+        "third_party/physfs third_party/tinymt third_party/stb third_party/cJson ",
+        .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
+        .sources_exclude    = "",
+        .base_dir           = "",
+        .links              = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    Target_argv_user(&CodenameFiresaga);
+    nourstest_true(CodenameFiresaga._argc_includes == 16);
+    nourstest_true(CodenameFiresaga._argc_flags == 0);
+    nourstest_true(CodenameFiresaga._argc_links == 1);
+    // nourstest_true(strcmp(argv[9], "a.c") == 0);
 
 }
 

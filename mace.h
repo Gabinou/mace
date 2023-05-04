@@ -48,14 +48,19 @@ struct Target {
     char      *_name;              /* target name set by user                 */
     uint64_t   _hash;              /* target name hash,                       */
     int        _order;             /* target order added by user              */
-
+   
+    // Note: argv should have same length allocated
+    //       Use temporary variable to store length,m then realloc to argc
     char      **_argv;             /* buffer for argv to exec build commands  */
-    char      **_argv_includes;    /* includes, in argv form                  */
-    char      **_argv_sources;     /* sources, in argv form                   */
-    char      **_argv_links;       /* linked libraries, in argv form          */
-    char      **_argv_flags;       /* user flags, in argv form                */
     int         _argc;             /* number of arguments in argv             */
-    int         _argl;             /* argv alloc length                       */
+    char      **_argv_includes;    /* includes, in argv form                  */
+    int         _argc_includes;    /* number of arguments in argv_includes    */
+    char      **_argv_sources;     /* sources, in argv form                   */
+    int         _argc_sources;     /* number of arguments in argv_sources     */
+    char      **_argv_links;       /* linked libraries, in argv form          */
+    int         _argc_links;       /* number of arguments in argv_links       */
+    char      **_argv_flags;       /* user flags, in argv form                */
+    int         _argc_flags;       /* number of arguments in argv_flags       */
 
     uint64_t  *_deps_links;        /* target or libs hashes                   */
     size_t     _deps_links_num;    /* target or libs hashes                   */
@@ -93,10 +98,12 @@ char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
 
 /* --- mace_Target --- */
-void Target_Free(struct Target              *target);
-bool Target_hasDep(struct Target            *target, uint64_t hash);
-void Target_Deps_Hash(struct Target         *target);
-void Target_Source_Add(struct Target        *target, char    *token);
+void Target_Free(struct Target        *target);
+void Target_Free_argv(struct Target   *target);
+bool Target_hasDep(struct Target      *target, uint64_t hash);
+void Target_Deps_Hash(struct Target   *target);
+void Target_Source_Add(struct Target  *target, char    *token);
+void Target_argv_user(struct Target   *target);
 int Target_Order();
 
 
@@ -223,6 +230,9 @@ char *mace_copy_str(char *restrict buffer, const char *str) {
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
 
+/************************************ argv ************************************/
+//
+
 void argv_free(int argc, char **argv) {
     if (argv == NULL)
         return;
@@ -242,15 +252,18 @@ char **argv_grows(int *len, int *argc, char **argv) {
     return (argv);
 }
 
-char **mace_argv_flags(int *len, int *argc, char **argv, const char *includes, const char *flag) {
+char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, const char *flag) {
+    assert(argc != NULL);
+    assert(len != NULL);
+    assert((*len) > 0);
     size_t flag_len = (flag == NULL) ? 0 : strlen(flag);
 
-    /* -- Copy includes into modifiable buffer -- */
-    char *buffer = mace_str_buffer(includes);
+    /* -- Copy user_str into modifiable buffer -- */
+    char *buffer = mace_str_buffer(user_str);
 
     char *token = strtok(buffer, " ");
     do {
-        argv_grows(len, argc, argv);
+        argv = argv_grows(len, argc, argv);
 
         size_t token_len = strlen(token);
         char *arg = calloc(token_len + 3, sizeof(*arg));
@@ -260,14 +273,50 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *includes, c
             strncpy(arg, flag, flag_len);
         }
         strncpy(arg + flag_len, token, token_len);
+        argv[(*argc)++] = arg;
 
         token = strtok(NULL, " ");
-        argv[(*argc)++] = arg;
     } while (token != NULL);
 
     free(buffer);
     return (argv);
 }
+
+void Target_argv_user(struct Target *target) {
+    // Makes flags for target includes, links libraries, and flags
+    //  NOT sources: they can be folders, so need to be globbed
+    Target_Free_argv(target);
+    int len;
+
+    /* -- Make _argv_includes to argv -- */
+    if(target->includes != NULL) {
+        len = 8;
+        target->_argc_includes = 0;
+        target->_argv_includes = malloc(len * sizeof(*target->_argv_includes));
+        target->_argv_includes = mace_argv_flags(&len, &target->_argc_includes, target->_argv_includes, target->includes, "-I");
+        target->_argv_includes = realloc(target->_argv_includes, target->_argc_includes * sizeof(*target->_argv_includes));
+    }
+
+    /* -- Make _argv_links to argv -- */
+    if(target->links != NULL) {
+        len = 8;
+        target->_argc_links = 0;
+        target->_argv_links = malloc(len * sizeof(*target->_argv_links));
+        target->_argv_links = mace_argv_flags(&len, &target->_argc_links, target->_argv_links, target->links, "-l");
+        target->_argv_links = realloc(target->_argv_links, target->_argc_links * sizeof(*target->_argv_links));
+    }
+
+    /* -- Make _argv_flags to argv -- */
+    if(target->flags != NULL) {
+        len = 8;
+        target->_argc_flags = 0;
+        target->_argv_flags = malloc(len * sizeof(*target->_argv_flags));
+        target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags, target->flags, NULL);
+        target->_argv_flags = realloc(target->_argv_flags, target->_argc_flags * sizeof(*target->_argv_flags));
+    }
+}
+
+
 
 
 /******************************* mace_find_sources *****************************/
@@ -330,7 +379,7 @@ void mace_wait_pid(int pid) {
                 exit(WEXITSTATUS(status));
             }
         } else {
-            printf("program didn't terminate normally\n");
+            printf("program didn't terminate- normally\n");
             exit(WEXITSTATUS(status));
         }
     }
@@ -765,6 +814,42 @@ void Target_Free(struct Target *target) {
     if (target->_deps_links != NULL) {
         free(target->_deps_links);
         target->_deps_links = NULL;
+    }
+    Target_Free_argv(target);
+}
+
+void Target_Free_argv(struct Target *target) { 
+    if (target->_argv_includes != NULL) {
+        for (int i = 0; i < target->_argc_includes; i++) {
+            free(target->_argv_includes[i]);
+        }
+        free(target->_argv_includes);
+        target->_argv_includes = NULL;
+        target->_argc_includes = 0;
+    }
+    if (target->_argv_sources != NULL) {
+        for (int i = 0; i < target->_argc_sources; i++) {
+            free(target->_argv_sources[i]);
+        }
+        free(target->_argv_sources);
+        target->_argv_sources = NULL;
+        target->_argc_sources = 0;
+    }
+    if (target->_argv_links != NULL) {
+        for (int i = 0; i < target->_argc_links; i++) {
+            free(target->_argv_links[i]);
+        }
+        free(target->_argv_links);
+        target->_argv_links = NULL;
+        target->_argc_links = 0;
+    }
+    if (target->_argv_flags != NULL) {
+        for (int i = 0; i < target->_argc_flags; i++) {
+            free(target->_argv_flags[i]);
+        }
+        free(target->_argv_flags);
+        target->_argv_flags = NULL;
+        target->_argc_flags = 0;
     }
 }
 
