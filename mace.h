@@ -1048,10 +1048,13 @@ void mace_deps_build_order(struct Target target, size_t *o_cnt) {
         return;
 
     /* All dependencies of target were built, add it to build order */
-    if (target._d_cnt == target._deps_links_num) {
-        mace_build_order_add(order);
-        return;
+    if (target._d_cnt != target._deps_links_num) {
+        printf("Error: Not all target dependencies before target in build order.")
+        exit(1);
     }
+    
+    mace_build_order_add(order);
+    return;
 }
 
 bool Target_hasDep(struct Target *target, uint64_t hash) {
@@ -1084,21 +1087,10 @@ bool mace_circular_deps(struct Target *targs, size_t len) {
     return (false);
 }
 
-void mace_target_build_order(struct Target *targs, size_t len) {
-
-    /* Skip if no targets */
-    if ((targs == NULL) || (len == 0)) {
-        perror("No targets. Skipping build order computation.\n");
-        return;
-    }
-
+void mace_target_build_order() {
+    struct Target *targs = targets;
+    size_t len = target_num;
     size_t o_cnt = 0; /* order count */
-
-    /* Check for circular dependency */
-    if (mace_circular_deps(targs, len)) {
-        perror("Circular dependency in linked library detected. Exiting\n");
-        exit(EDOM);
-    }
 
     /* If only 1 include, build order is trivial */
     if (len == 1) {
@@ -1190,14 +1182,23 @@ void Target_Free_argv(struct Target *target) {
         target->_argc_objects = 0;
     }
 }
+
 void mace_post_user() {
     // Checks that user:
     //   1- Set compiler,
-    //   2- Added at least one target.
+    //   2- Added at least one target,
+    //   3- Dod not add a circular dependency.
     // If not exit with error.
+    
     if ((targs == NULL) || (len == 0) || (build_order == NULL) || (build_order_num == 0)) {
         printf("No targets to compile. Exiting.\n");
-        return;
+        exit(EDOM);
+    }
+    
+    /* Check for circular dependency */
+    if (mace_circular_deps(targs, len)) {
+        perror("Circular dependency in linked library detected. Exiting\n");
+        exit(EDOM);
     }
 }
 
@@ -1261,7 +1262,7 @@ void Target_Deps_Hash(struct Target *target) {
     /* --- Preliminaries --- */
     if (target->links == NULL)
         return;
-
+        
     /* --- Alloc space for deps --- */
     target->_deps_links_num = 0;
     target->_deps_links_len = 16;
@@ -1310,10 +1311,10 @@ int main(int argc, char *argv[]) {
     mace_mkdir(build_dir);
 
     /* --- Compute build order using targets deps list. --- */
-    mace_target_build_order(targets, target_num);
+    mace_target_build_order();
     
     /* --- Perform compilation with buil_order --- */
-    mace_build_targets(targets, target_num);
+    mace_build_targets();
     
     /* ---  --- */
     mace_free();
