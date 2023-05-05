@@ -69,7 +69,7 @@ struct Target {
     char      *_name;              /* target name set by user                 */
     uint64_t   _hash;              /* target name hash,                       */
     int        _order;             /* target order added by user              */
-   
+
     // Note: argv should have same length allocated
     //       Use temporary variable to store length,m then realloc to argc
     char      **_argv;             /* buffer for argv to exec build commands  */
@@ -144,7 +144,7 @@ void Target_argv_init(struct Target     *target);
 int Target_Order();
 void Target_argv_grow(struct Target *target);
 
-char** mace_argv_grow(char **argv, int *argc, int *arg_len);
+char **mace_argv_grow(char **argv, int *argc, int *arg_len);
 
 
 int globerr(const char *path, int eerrno);
@@ -157,8 +157,9 @@ void  mace_wait_pid(int pid);
 /* --- mace_build --- */
 void mace_link_static_library(char *target, char **argv_objects, int argc_objects);
 void mace_link_dynamic_library(char *target, char *objects);
-void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links, int argc_links, char **argv_flags, int argc_flags);
-void mace_compile(char *source, char *object, struct Target * target);
+void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links,
+                          int argc_links, char **argv_flags, int argc_flags);
+void mace_compile(char *source, char *object, struct Target *target);
 void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags);
 
 /* --- mace_is --- */
@@ -312,7 +313,7 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
         size_t total_len = (token_len + flag_len + 1);
         size_t i = 0;
         char *arg = calloc(total_len, sizeof(*arg));
-        
+
         /* - Copy flag into arg - */
         if (flag_len > 0) {
             strncpy(arg, flag, flag_len);
@@ -339,30 +340,36 @@ void Target_Parse_User(struct Target *target) {
     int len;
 
     /* -- Make _argv_includes to argv -- */
-    if(target->includes != NULL) {
+    if (target->includes != NULL) {
         len = 8;
         target->_argc_includes = 0;
         target->_argv_includes = malloc(len * sizeof(*target->_argv_includes));
-        target->_argv_includes = mace_argv_flags(&len, &target->_argc_includes, target->_argv_includes, target->includes, "-I");
-        target->_argv_includes = realloc(target->_argv_includes, target->_argc_includes * sizeof(*target->_argv_includes));
+        target->_argv_includes = mace_argv_flags(&len, &target->_argc_includes, target->_argv_includes,
+                                                 target->includes, "-I");
+        target->_argv_includes = realloc(target->_argv_includes,
+                                         target->_argc_includes * sizeof(*target->_argv_includes));
     }
 
     /* -- Make _argv_links to argv -- */
-    if(target->links != NULL) {
+    if (target->links != NULL) {
         len = 8;
         target->_argc_links = 0;
         target->_argv_links = malloc(len * sizeof(*target->_argv_links));
-        target->_argv_links = mace_argv_flags(&len, &target->_argc_links, target->_argv_links, target->links, "-l");
-        target->_argv_links = realloc(target->_argv_links, target->_argc_links * sizeof(*target->_argv_links));
+        target->_argv_links = mace_argv_flags(&len, &target->_argc_links, target->_argv_links,
+                                              target->links, "-l");
+        target->_argv_links = realloc(target->_argv_links,
+                                      target->_argc_links * sizeof(*target->_argv_links));
     }
 
     /* -- Make _argv_flags to argv -- */
-    if(target->flags != NULL) {
+    if (target->flags != NULL) {
         len = 8;
         target->_argc_flags = 0;
         target->_argv_flags = malloc(len * sizeof(*target->_argv_flags));
-        target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags, target->flags, NULL);
-        target->_argv_flags = realloc(target->_argv_flags, target->_argc_flags * sizeof(*target->_argv_flags));
+        target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags,
+                                              target->flags, NULL);
+        target->_argv_flags = realloc(target->_argv_flags,
+                                      target->_argc_flags * sizeof(*target->_argv_flags));
     }
 }
 
@@ -371,12 +378,12 @@ void Target_argv_grow(struct Target *target) {
 }
 
 
-char** mace_argv_grow(char **argv, int *argc, int *arg_len) {
+char **mace_argv_grow(char **argv, int *argc, int *arg_len) {
     if (*argc >= *arg_len) {
         (*arg_len) *= 2;
-        argv = realloc(argv, *arg_len *sizeof(*argv));
+        argv = realloc(argv, *arg_len * sizeof(*argv));
     }
-    return(argv);
+    return (argv);
 }
 
 // should be called after Target_Parse_User
@@ -404,7 +411,7 @@ void Target_argv_init(struct Target *target) {
     if ((target->_argc_includes > 0) && (target->_argv_includes != NULL)) {
         for (int i = 0; i < target->_argc_includes; i++) {
             Target_argv_grow(target);
-            target->_argv[target->_argc++] = target->_argv_includes[i];            
+            target->_argv[target->_argc++] = target->_argv_includes[i];
         }
     }
     /* -- argv links -- */
@@ -536,7 +543,8 @@ void mace_link_static_library(char *target, char **argv_objects, int argc_object
 }
 
 
-void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links, int argc_links, char **argv_flags, int argc_flags) {
+void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links,
+                          int argc_links, char **argv_flags, int argc_flags) {
     printf("Linking \t%s \n", target);
 
     if (cc == NULL) {
@@ -562,7 +570,7 @@ void mace_link_executable(char *target, char **argv_objects, int argc_objects, c
             argv[argc++] = argv_objects[i] + strlen("-o");
         }
     }
-    
+
     /* -- argv user flags -- */
     if ((argc_flags > 0) && (argv_flags != NULL)) {
         for (int i = 0; i < argc_flags; i++) {
@@ -601,7 +609,7 @@ void mace_link_dynamic_library(char *target, char *objects) {
 
 // mace_compile: SINGLE SOURCE
 // TODO: compile many files at once
-void mace_compile(char *source, char *object, struct Target * target) {
+void mace_compile(char *source, char *object, struct Target *target) {
     assert(source != NULL);
     assert(object != NULL);
     assert(target != NULL);
@@ -629,14 +637,14 @@ void Target_Object_Hash_Add(struct Target *target, uint64_t hash) {
 
 int Target_hasObjectHash(struct Target *target, uint64_t hash) {
     if (target->_argv_objects_hash == NULL)
-        return(-1);
+        return (-1);
 
     for (int i = 0; i < target->_argc_objects_hash; i++) {
         if (hash == target->_argv_objects_hash[i])
-            return(i);
+            return (i);
     }
 
-    return(-1);
+    return (-1);
 }
 
 void Target_Object_Add(struct Target *target, char *token) {
@@ -653,11 +661,14 @@ void Target_Object_Add(struct Target *target, char *token) {
 
     if (token == NULL)
         return;
-    target->_argv_objects = argv_grows(&target->_len_objects, &target->_argc_objects, target->_argv_objects);
+    target->_argv_objects = argv_grows(&target->_len_objects, &target->_argc_objects,
+                                       target->_argv_objects);
 
     if (target->_len_objects >= target->_argc_objects_hash) {
-        target->_argv_objects_hash = realloc(target->_argv_objects_hash, target->_len_objects * sizeof(*target->_argv_objects_hash));
-        target->_argv_objects_cnt = realloc(target->_argv_objects_cnt, target->_len_objects * sizeof(*target->_argv_objects_cnt));
+        target->_argv_objects_hash = realloc(target->_argv_objects_hash,
+                                             target->_len_objects * sizeof(*target->_argv_objects_hash));
+        target->_argv_objects_cnt = realloc(target->_argv_objects_cnt,
+                                            target->_len_objects * sizeof(*target->_argv_objects_cnt));
     }
 
     uint64_t hash = mace_hash(token);
@@ -668,14 +679,14 @@ void Target_Object_Add(struct Target *target, char *token) {
         Target_Object_Hash_Add(target, hash);
     } else {
         target->_argv_objects_cnt[hash_id]++;
-        if (target->_argv_objects_cnt[hash_id] >= 10){
+        if (target->_argv_objects_cnt[hash_id] >= 10) {
             printf("Too many same name sources/objects");
             exit(-1);
         }
     }
-    
+
     size_t token_len = strlen(token);
-    char * flag = "-o";
+    char *flag = "-o";
     size_t flag_len = strlen(flag);
     size_t total_len = token_len + flag_len + 1;
     if (hash_id > 0)
@@ -702,8 +713,9 @@ void Target_Source_Add(struct Target *target, char *token) {
     if (token == NULL)
         return;
 
-    target->_argv_sources = argv_grows(&target->_len_sources, &target->_argc_sources, target->_argv_sources);
-    
+    target->_argv_sources = argv_grows(&target->_len_sources, &target->_argc_sources,
+                                       target->_argv_sources);
+
     size_t token_len = strlen(token);
     char *arg = calloc(token_len + 1, sizeof(*arg));
     strncpy(arg, token, token_len);
@@ -723,7 +735,8 @@ void mace_compile_glob(struct Target *target, char *globsrc, const char *restric
         Target_Source_Add(target, globbed.gl_pathv[i]);
         mace_object_path(source_file);
         Target_Object_Add(target, object);
-        mace_compile(target->_argv_sources[target->_argc_sources - 1], target->_argv_objects[target->_argc_objects - 1], target);
+        mace_compile(target->_argv_sources[target->_argc_sources - 1],
+                     target->_argv_objects[target->_argc_objects - 1], target);
     }
     globfree(&globbed);
 }
@@ -732,9 +745,9 @@ void mace_compile_glob(struct Target *target, char *globsrc, const char *restric
 int mace_isTarget(uint64_t hash) {
     for (int i = 0; i < target_num; i++) {
         if (targets[i]._hash == hash)
-            return(true);
+            return (true);
     }
-    return(false);
+    return (false);
 }
 
 int mace_isWildcard(const char *str) {
@@ -915,7 +928,8 @@ void mace_build_target(struct Target *target) {
             Target_Source_Add(target, token);
             mace_object_path(token);
             Target_Object_Add(target, object);
-            mace_compile(target->_argv_sources[target->_argc_sources - 1], target->_argv_objects[target->_argc_objects - 1], target);
+            mace_compile(target->_argv_sources[target->_argc_sources - 1],
+                         target->_argv_objects[target->_argc_objects - 1], target);
 
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
@@ -935,7 +949,7 @@ void mace_build_target(struct Target *target) {
         objects_num += strlen(object) + 2;
         token = strtok(NULL, " ");
     } while (token != NULL);
-    
+
     /* --- Move back to cwd to link --- */
     chdir(cwd);
 
@@ -946,7 +960,8 @@ void mace_build_target(struct Target *target) {
         free(lib);
     } else if (target->kind == MACE_EXECUTABLE) {
         char *exec = mace_executable_path(target->_name);
-        mace_link_executable(exec, target->_argv_objects, target->_argc_objects, target->_argv_links, target->_argc_links, target->_argv_flags, target->_argc_flags);
+        mace_link_executable(exec, target->_argv_objects, target->_argc_objects, target->_argv_links,
+                             target->_argc_links, target->_argv_flags, target->_argc_flags);
 
     }
     free(buffer);
@@ -1119,7 +1134,7 @@ void Target_Free_notargv(struct Target *target) {
 }
 
 
-void Target_Free_argv(struct Target *target) { 
+void Target_Free_argv(struct Target *target) {
     if (target->_argv_includes != NULL) {
         for (int i = 0; i < target->_argc_includes; i++) {
             free(target->_argv_includes[i]);
@@ -1151,7 +1166,7 @@ void Target_Free_argv(struct Target *target) {
         free(target->_argv_flags);
         target->_argv_flags = NULL;
         target->_argc_flags = 0;
-    }   
+    }
     if (target->_argv_sources != NULL) {
         for (int i = 0; i < target->_argc_sources; i++) {
             free(target->_argv_sources[i]);
