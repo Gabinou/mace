@@ -112,7 +112,7 @@ void test_target() {
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
         .links              = "SDL2 SDL2_image SDL2_ttf m GLEW cJSON nmath "
-        "physfs tinymt tnecs nstr parg",
+                              "physfs tinymt tnecs nstr parg",
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(firesaga);
@@ -365,10 +365,10 @@ void test_argv() {
 
     struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = ". include  include/bars  include/menu include/popup "
-        "include/systems names names/popup names/menu "
-        "second_party/nstr second_party/noursmath second_party/tnecs "
-        "third_party/physfs third_party/tinymt third_party/stb "
-        "third_party/cJson",
+                              "include/systems names names/popup names/menu "
+                              "second_party/nstr second_party/noursmath second_party/tnecs "
+                              "third_party/physfs third_party/tinymt third_party/stb "
+                              "third_party/cJson",
         .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
         .flags              = "",
         .links              = "tnecs",
@@ -425,13 +425,13 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv[21], "-c")                       == 0);
     nourstest_true(CodenameFiresaga._argv[22] == NULL);
 
-    Target_Free( &CodenameFiresaga);
+    Target_Free(&CodenameFiresaga);
 }
 
 void test_post_user() {
     pid_t pid;
     int status;
- 
+
     // mace does not exit if nothing is wrong
     mace_init();
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -447,8 +447,8 @@ void test_post_user() {
         perror("Error: forking issue. \n");
         exit(ENOENT);
     } else if (pid == 0) {
-        int fd = open("/dev/null",O_WRONLY | O_CREAT, 0666);   // open the file /dev/null
-        dup2(fd, 1); 
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        dup2(fd, 1);
         mace_post_user();
         close(fd);
         exit(0);
@@ -463,13 +463,13 @@ void test_post_user() {
         exit(ENOENT);
     } else if (pid == 0) {
         cc = NULL;
-        int fd = open("/dev/null",O_WRONLY | O_CREAT, 0666);   // open the file /dev/null
-        dup2(fd, 1); 
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        dup2(fd, 1);
         mace_post_user();
         close(fd);
         exit(0);
     }
-  
+
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) == ENXIO);
 
