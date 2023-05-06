@@ -170,6 +170,7 @@ void mace_target_build_order();
 char *mace_str_buffer(const char *const strlit);
 char *mace_copy_str(char *restrict buffer, const char *str);
 char **mace_argv_flags(int *len, int *argc, char **argv, const char *includes, const char *flag);
+void mace_argv_free(char **argv, int argc);
 void mace_add_target(struct Target *target, char *name);
 
 /* --- mace_setters --- */
@@ -326,6 +327,15 @@ char **argv_grows(int *len, int *argc, char **argv) {
     return (argv);
 }
 
+void mace_argv_free(char **argv, int argc) {
+    for (int i = 0; i < argc; i++) {
+        if (argv[i] != NULL) {
+            free(argv[i]);
+        }
+    }
+    free(argv);
+}
+
 char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, const char *flag) {
     assert(argc != NULL);
     assert(len != NULL);
@@ -467,6 +477,7 @@ void Target_argv_init(struct Target *target) {
     strncpy(compflag, "-c", 2);
     target->_argv[target->_argc++] = compflag;
 
+    Target_argv_grow(target);
     target->_argv[target->_argc] = NULL;
 }
 
@@ -1151,55 +1162,29 @@ void Target_Free_notargv(struct Target *target) {
     }
 }
 
-
 void Target_Free_argv(struct Target *target) {
-    if (target->_argv_includes != NULL) {
-        for (int i = 0; i < target->_argc_includes; i++) {
-            free(target->_argv_includes[i]);
-        }
-        free(target->_argv_includes);
-        target->_argv_includes = NULL;
-        target->_argc_includes = 0;
-    }
-    if (target->_argv_sources != NULL) {
-        for (int i = 0; i < target->_argc_sources; i++) {
-            free(target->_argv_sources[i]);
-        }
-        free(target->_argv_sources);
-        target->_argv_sources = NULL;
-        target->_argc_sources = 0;
-    }
-    if (target->_argv_links != NULL) {
-        for (int i = 0; i < target->_argc_links; i++) {
-            free(target->_argv_links[i]);
-        }
-        free(target->_argv_links);
-        target->_argv_links = NULL;
-        target->_argc_links = 0;
-    }
-    if (target->_argv_flags != NULL) {
-        for (int i = 0; i < target->_argc_flags; i++) {
-            free(target->_argv_flags[i]);
-        }
-        free(target->_argv_flags);
-        target->_argv_flags = NULL;
-        target->_argc_flags = 0;
-    }
-    if (target->_argv_sources != NULL) {
-        for (int i = 0; i < target->_argc_sources; i++) {
-            free(target->_argv_sources[i]);
-        }
-        free(target->_argv_sources);
-        target->_argv_sources = NULL;
-        target->_argc_sources = 0;
-    }
-    if (target->_argv_objects != NULL) {
-        for (int i = 0; i < target->_argc_objects; i++) {
-            free(target->_argv_objects[i]);
-        }
-        free(target->_argv_objects);
-        target->_argv_objects = NULL;
-        target->_argc_objects = 0;
+    mace_argv_free(target->_argv_includes, target->_argc_includes);
+    target->_argv_includes = NULL;
+    target->_argc_includes = 0;
+    mace_argv_free(target->_argv_sources, target->_argc_sources);
+    target->_argv_sources = NULL;
+    target->_argc_sources = 0;
+    mace_argv_free(target->_argv_links, target->_argc_links);
+    target->_argv_links = NULL;
+    target->_argc_links = 0;
+    mace_argv_free(target->_argv_flags, target->_argc_flags);
+    target->_argv_flags = NULL;
+    target->_argc_flags = 0;
+    mace_argv_free(target->_argv_sources, target->_argc_sources);
+    target->_argv_sources = NULL;
+    target->_argc_sources = 0;
+    mace_argv_free(target->_argv_objects, target->_argc_objects);
+    target->_argv_objects = NULL;
+    target->_argc_objects = 0;
+    if ((target->_argv != NULL) && (target->_argc > 0))  {
+        free(target->_argv[target->_argc - 1]);
+        free(target->_argv[target->_argc - 2]);
+        free(target->_argv);
     }
 }
 

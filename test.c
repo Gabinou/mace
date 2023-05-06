@@ -361,6 +361,7 @@ void test_argv() {
     nourstest_true(strcmp(argv[11], "efg.c")   == 0);
     nourstest_true(strcmp(argv[12], "hijk.c")  == 0);
     nourstest_true(strcmp(argv[13], "lmnop.c") == 0);
+    mace_argv_free(argv, argc);
 
     struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = ". include  include/bars  include/menu include/popup "
@@ -423,7 +424,10 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv[20], "-Lbuild")                  == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv[21], "-c")                       == 0);
     nourstest_true(CodenameFiresaga._argv[22] == NULL);
+
+    Target_Free( &CodenameFiresaga);
 }
+
 void test_post_user() {
     pid_t pid;
     int status;
