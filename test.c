@@ -447,8 +447,10 @@ void test_post_user() {
         perror("Error: forking issue. \n");
         exit(ENOENT);
     } else if (pid == 0) {
+        /* -- redirect stderr and stdout to /dev/null -- */
         int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
-        dup2(fd, 1);
+        dup2(fd, fileno(stderr));
+        dup2(fd, fileno(stdout));
         mace_post_user();
         close(fd);
         exit(0);
@@ -463,8 +465,10 @@ void test_post_user() {
         exit(ENOENT);
     } else if (pid == 0) {
         cc = NULL;
+        /* -- redirect stderr and stdout to /dev/null -- */
         int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
-        dup2(fd, 1);
+        dup2(fd, fileno(stderr));
+        dup2(fd, fileno(stdout));
         mace_post_user();
         close(fd);
         exit(0);
@@ -474,6 +478,136 @@ void test_post_user() {
     nourstest_true(WEXITSTATUS(status) == ENXIO);
 
     // MACE_SET_COMPILER(gcc);
+}
+void test_separator() {
+    mace_init();
+    mace_set_separator(",");
+    nourstest_true(strcmp(mace_separator, ",") == 0);
+    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .links              = "tnecs,baka,ta,mere",
+        .kind               = MACE_STATIC_LIBRARY,
+    };
+    MACE_ADD_TARGET(tnecs);    
+    
+    Target_Parse_User(&targets[0]);
+    nourstest_true(targets[0]._argc_links == 4);
+    nourstest_true(strcmp(targets[0]._argv_links[0], "-ltnecs") == 0);
+    nourstest_true(strcmp(targets[0]._argv_links[1], "-lbaka") == 0);
+    nourstest_true(strcmp(targets[0]._argv_links[2], "-lta") == 0);
+    nourstest_true(strcmp(targets[0]._argv_links[3], "-lmere") == 0);
+
+    mace_set_separator(" ");
+    struct Target tnecs2 = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .links              = "tnecs,baka,ta,mere",
+        .kind               = MACE_STATIC_LIBRARY,
+    };
+    MACE_ADD_TARGET(tnecs2);    
+
+    Target_Parse_User(&targets[1]);
+    nourstest_true(targets[1]._argc_links == 1);
+    nourstest_true(strcmp(targets[1]._argv_links[0], "-ltnecs,baka,ta,mere") == 0);
+
+    mace_free();
+
+    int pid, status;
+    // mace exits as expected if separator is NULL
+    pid = fork();
+    status;
+    if (pid < 0) {
+        perror("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        cc = NULL;
+        /* -- redirect stderr and stdout to /dev/null -- */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        dup2(fd, fileno(stderr));
+        dup2(fd, fileno(stdout));
+        mace_set_separator(NULL);
+        close(fd);
+        exit(0);
+    }
+    nourstest_true(waitpid(pid, &status, 0) > 0);
+    nourstest_true(WEXITSTATUS(status) == EPERM);
+    
+    // mace exits as expected if separator is too long
+    pid = fork();
+    status;
+    if (pid < 0) {
+        perror("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        cc = NULL;
+        /* -- redirect stderr and stdout to /dev/null -- */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        dup2(fd, fileno(stderr));
+        dup2(fd, fileno(stdout));
+        mace_set_separator("Aaaa");
+        close(fd);
+        exit(0);
+    }
+    nourstest_true(waitpid(pid, &status, 0) > 0);
+    nourstest_true(WEXITSTATUS(status) == EPERM);
+
+    // mace exits as expected if separator is too short
+    pid = fork();
+    status;
+    if (pid < 0) {
+        perror("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        cc = NULL;
+        /* -- redirect stderr and stdout to /dev/null -- */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        dup2(fd, fileno(stderr));
+        dup2(fd, fileno(stdout));
+        mace_set_separator("");
+        close(fd);
+        exit(0);
+    }
+    nourstest_true(waitpid(pid, &status, 0) > 0);
+    nourstest_true(WEXITSTATUS(status) == EPERM);
+
+    // No issues for " "
+    pid = fork();
+    status;
+    if (pid < 0) {
+        perror("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        cc = NULL;
+        /* -- redirect stderr and stdout to /dev/null -- */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        dup2(fd, fileno(stderr));
+        dup2(fd, fileno(stdout));
+        mace_set_separator(" ");
+        close(fd);
+        exit(0);
+    }
+    nourstest_true(waitpid(pid, &status, 0) > 0);
+    nourstest_true(WEXITSTATUS(status) == 0);
+
+    // No issues for ","
+    pid = fork();
+    status;
+    if (pid < 0) {
+        perror("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        cc = NULL;
+        /* -- redirect stderr and stdout to /dev/null -- */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        dup2(fd, fileno(stderr));
+        dup2(fd, fileno(stdout));
+        mace_set_separator(",");
+        close(fd);
+        exit(0);
+    }
+    nourstest_true(waitpid(pid, &status, 0) > 0);
+    nourstest_true(WEXITSTATUS(status) == 0);
 }
 
 int mace(int argc, char *argv[]) {
@@ -486,7 +620,8 @@ int mace(int argc, char *argv[]) {
     nourstest_run("target ",    test_target);
     nourstest_run("circular ",  test_circular);
     nourstest_run("argv ",      test_argv);
-    nourstest_run("post_user ",      test_post_user);
+    nourstest_run("post_user ", test_post_user);
+    nourstest_run("separator ", test_separator);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
