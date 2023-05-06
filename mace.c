@@ -14,6 +14,8 @@ int main(int argc, char *argv[]) {
 
     // How to get the compiler?
     //  - Compiler is set in the macefile...
+    //  - mace executable uses a different compiler variable?
+    //      - YES! use tcc to compile mace
     // Compile the macefile
 
     // Run the resulting executable
