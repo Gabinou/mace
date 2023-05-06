@@ -375,7 +375,7 @@ void test_argv() {
         .kind               = MACE_EXECUTABLE,
     };
 
-    Target_Parse_User(&CodenameFiresaga);
+    mace_Target_Parse_User(&CodenameFiresaga);
     nourstest_true(CodenameFiresaga._argc_includes == 16);
     nourstest_true(CodenameFiresaga._argc_flags == 0);
     nourstest_true(CodenameFiresaga._argc_links == 1);
@@ -398,7 +398,7 @@ void test_argv() {
     nourstest_true(CodenameFiresaga._argv_flags == NULL);
 
     // MACE_SET_COMPILER(gcc);
-    Target_argv_init(&CodenameFiresaga);
+    mace_Target_argv_init(&CodenameFiresaga);
     assert(CodenameFiresaga._argv != NULL);
     nourstest_true(CodenameFiresaga._arg_len == 32);
     nourstest_true(strcmp(CodenameFiresaga._argv[MACE_ARGV_CC], "gcc") == 0);
@@ -425,7 +425,7 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv[21], "-c")                       == 0);
     nourstest_true(CodenameFiresaga._argv[22] == NULL);
 
-    Target_Free(&CodenameFiresaga);
+    mace_Target_Free(&CodenameFiresaga);
 }
 
 void test_post_user() {
@@ -491,7 +491,7 @@ void test_separator() {
     };
     MACE_ADD_TARGET(tnecs);    
     
-    Target_Parse_User(&targets[0]);
+    mace_Target_Parse_User(&targets[0]);
     nourstest_true(targets[0]._argc_links == 4);
     nourstest_true(strcmp(targets[0]._argv_links[0], "-ltnecs") == 0);
     nourstest_true(strcmp(targets[0]._argv_links[1], "-lbaka") == 0);
@@ -507,7 +507,7 @@ void test_separator() {
     };
     MACE_ADD_TARGET(tnecs2);    
 
-    Target_Parse_User(&targets[1]);
+    mace_Target_Parse_User(&targets[1]);
     nourstest_true(targets[1]._argc_links == 1);
     nourstest_true(strcmp(targets[1]._argv_links[0], "-ltnecs,baka,ta,mere") == 0);
 
