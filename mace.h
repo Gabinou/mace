@@ -163,37 +163,42 @@ char cwd[MACE_CWD_BUFFERSIZE];
 void mace_init();
 void mace_free();
 void mace_post_user();
-uint64_t mace_hash(char *str);
-void mace_build_targets();
-void mace_target_build_order();
 
-char *mace_str_buffer(const char *const strlit);
-char *mace_copy_str(char *restrict buffer, const char *str);
+/* --- mace_hashing --- */
+uint64_t mace_hash(char *str);
+
+/* --- mace_utils --- */
+/* -- str -- */
+char  *mace_str_buffer(const char *const strlit);
+char  *mace_str_copy(char *restrict buffer, const char *str);
+
+/* -- argv -- */
 char **mace_argv_flags(int *len, int *argc, char **argv, const char *includes, const char *flag);
-void mace_argv_free(char **argv, int argc);
-void mace_add_target(struct Target *target, char *name);
+char **mace_argv_grow(char **argv, int *argc, int *arg_len);
+void   mace_argv_free(char **argv, int argc);
 
 /* --- mace_setters --- */
 char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
 
 /* --- mace_Target --- */
+void mace_add_target(struct Target *target, char *name);
+
+/* -- Target OOP -- */
 void Target_Free(struct Target          *target);
-void Target_Free_argv(struct Target     *target);
-void Target_Free_notargv(struct Target  *target);
 bool Target_hasDep(struct Target        *target, uint64_t hash);
+void Target_Free_argv(struct Target     *target);
 void Target_Deps_Hash(struct Target     *target);
+void Target_argv_init(struct Target     *target);
+void Target_argv_grow(struct Target     *target);
 void Target_Source_Add(struct Target    *target, char    *token);
 void Target_Object_Add(struct Target    *target, char    *token);
 void Target_Parse_User(struct Target    *target);
-void Target_argv_init(struct Target     *target);
-int Target_Order();
-void Target_argv_grow(struct Target *target);
-
-char **mace_argv_grow(char **argv, int *argc, int *arg_len);
+void Target_Free_notargv(struct Target  *target);
 
 
-int globerr(const char *path, int eerrno);
+/* --- mace_glob --- */
+int mace_globerr(const char *path, int eerrno);
 glob_t mace_glob_sources(const char *path);
 
 /* --- mace_exec --- */
@@ -201,18 +206,28 @@ pid_t mace_exec(const char *exec, char *const arguments[]);
 void  mace_wait_pid(int pid);
 
 /* --- mace_build --- */
+/* -- linking -- */
 void mace_link_static_library(char *target, char **argv_objects, int argc_objects);
 void mace_link_dynamic_library(char *target, char *objects);
 void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links,
                           int argc_links, char **argv_flags, int argc_flags);
+
+/* -- compiling object files -> .o -- */
 void mace_compile(char *source, char *object, struct Target *target);
 void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags);
+void mace_build_targets();
+
+/* -- build_order -- */
+// build order of all targets
+void mace_targets_build_order();
+// build order of target links
+void mace_links_build_order(struct Target target, size_t *o_cnt);
 
 /* --- mace_is --- */
-int mace_isWildcard(const   char *str);
-int mace_isSource(const     char *path);
-int mace_isObject(const     char *path);
-int mace_isDir(const        char *path);
+int mace_isWildcard(const char *str);
+int mace_isSource(const   char *path);
+int mace_isObject(const   char *path);
+int mace_isDir(const      char *path);
 
 /* --- mace_filesystem --- */
 void  mace_mkdir(const char    *path);
@@ -220,19 +235,23 @@ void  mace_object_path(char    *source);
 char *mace_library_path(char   *target_name);
 
 /* --- mace_globals --- */
-struct Target  *targets;        /* [order] is as added by user */
+
+/* -- list of targets added by user -- */
+struct Target  *targets;    /* [order] is as added by user      */
 size_t          target_num;
 size_t          target_len;
-char           *obj_dir;
+
+/* -- buffer to write object -- */
 char           *object;
 size_t          object_len;
-char           *objects;
-size_t          objects_len;
-size_t          objects_num;
-char           *build_dir;
 
-void mace_grow_obj();
-void mace_grow_objs();
+/* -- directories -- */
+char           *obj_dir;    /* intermediary .o files            */
+char           *build_dir;  /* linked libraries, executables    */
+
+/* -- mace_globals control -- */
+void mace_grow_object();
+void mace_grow_objects();
 
 /******************************* MACE_ADD_TARGET ******************************/
 
@@ -285,14 +304,14 @@ uint64_t mace_hash(char *str) {
 /****************************** MACE_SET_obj_dir ******************************/
 // Sets where the object files will be placed during build.
 char *mace_set_obj_dir(char *obj) {
-    return (obj_dir = mace_copy_str(obj_dir, obj));
+    return (obj_dir = mace_str_copy(obj_dir, obj));
 }
 
 char *mace_set_build_dir(char *build) {
-    return (build_dir = mace_copy_str(build_dir, build));
+    return (build_dir = mace_str_copy(build_dir, build));
 }
 
-char *mace_copy_str(char *restrict buffer, const char *str) {
+char *mace_str_copy(char *restrict buffer, const char *str) {
     if (buffer != NULL) {
         free(buffer);
     }
@@ -484,7 +503,7 @@ void Target_argv_init(struct Target *target) {
 /******************************* mace_find_sources *****************************/
 // 1- if glob pattern, find all matches, add to list
 // 2- if file add to list
-int globerr(const char *path, int eerrno) {
+int mace_globerr(const char *path, int eerrno) {
     fprintf(stderr, "%s: %s\n", path, strerror(eerrno));
     exit(ENOENT);
 }
@@ -493,7 +512,7 @@ glob_t mace_glob_sources(const char *path) {
     /* If source is a folder, get all .c files in it */
     glob_t  globbed;
     int     flags = 0;
-    int     ret = glob(path, flags, globerr, &globbed);
+    int     ret = glob(path, flags, mace_globerr, &globbed);
     if (ret != 0) {
         fprintf(stderr, "problem with %s (%s), quitting\n", path,
                 (ret == GLOB_ABORTED ? "filesystem problem" :
@@ -552,9 +571,7 @@ void mace_wait_pid(int pid) {
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
 void mace_link_static_library(char *target, char **argv_objects, int argc_objects) {
-    // char *arguments[] = {ar, "-rcs", target, objects, NULL};
     printf("Linking \t%s \n", target);
-    // TODO: split objects into individual arguments
     int arg_len = 8;
     int argc = 0;
     char **argv = calloc(arg_len, sizeof(*argv));
@@ -867,22 +884,14 @@ char *mace_library_path(char *target_name) {
 
 /******************************* mace_globals *********************************/
 char   *object      = NULL;
-size_t  object_len  = 16;
-char   *objects     = NULL;
-size_t  objects_len = 128;
-size_t  objects_num = 0;
+size_t  object_len  =  16;
 
 char   *obj_dir     = NULL;
 char   *build_dir   = NULL;
 
-void mace_grow_obj() {
+void mace_grow_object() {
     object_len *= 2;
-    object      = realloc(object, object_len * sizeof(*object));
-}
-
-void mace_grow_objs() {
-    objects_len *= 2;
-    objects      = realloc(objects, objects_len * sizeof(*objects));
+    object      = realloc(object,   object_len  * sizeof(*object));
 }
 
 void mace_object_path(char *source) {
@@ -903,7 +912,7 @@ void mace_object_path(char *source) {
     size_t source_len = strlen(source);
     size_t path_len;
     while (((path_len = strlen(path)) + source_len + 2) >= object_len)
-        mace_grow_obj();
+        mace_grow_object();
     memset(object, 0, object_len * sizeof(*object));
 
     /* --- Writing path to object --- */
@@ -935,9 +944,6 @@ void mace_build_target(struct Target *target) {
     /* --- Preliminaries --- */
     Target_Free_notargv(target);
 
-    /* TODO: rework objects to argv style*/
-    memset(objects, 0, objects_len * sizeof(*objects));
-    objects_num = 0;
     /* -- Copy sources into modifiable buffer -- */
     char *buffer = mace_str_buffer(target->sources);
 
@@ -978,18 +984,7 @@ void mace_build_target(struct Target *target) {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
             exit(ENOENT);
         }
-        if ((objects_num + strlen(object) + 2) >= objects_len) {
-            mace_grow_objs();
-        }
 
-        if (objects_num > 0) {
-            strncpy(objects + objects_num,     " ",    1);
-            strncpy(objects + objects_num + 1, object, strlen(object));
-        } else {
-            strncpy(objects + objects_num,     object, strlen(object));
-        }
-
-        objects_num += strlen(object) + 2;
         token = strtok(NULL, " ");
     } while (token != NULL);
 
@@ -1050,7 +1045,7 @@ void mace_build_order_add(size_t order) {
 
 /* - Depth first search through depencies - */
 // Builds all target dependencies before building target
-void mace_deps_build_order(struct Target target, size_t *o_cnt) {
+void mace_links_build_order(struct Target target, size_t *o_cnt) {
     /* o_cnt should never be geq to target_num */
     if ((*o_cnt) >= target_num)
         return;
@@ -1073,7 +1068,7 @@ void mace_deps_build_order(struct Target target, size_t *o_cnt) {
 
         size_t next_target_order = mace_hash_order(target._deps_links[target._d_cnt]);
         /* Recursively search target's next dependency -> depth first search */
-        mace_deps_build_order(targets[next_target_order], o_cnt);
+        mace_links_build_order(targets[next_target_order], o_cnt);
     }
 
     /* Target already in build order, skip */
@@ -1120,7 +1115,7 @@ bool mace_circular_deps(struct Target *targs, size_t len) {
     return (false);
 }
 
-void mace_target_build_order() {
+void mace_targets_build_order() {
     size_t o_cnt = 0; /* order count */
 
     /* If only 1 include, build order is trivial */
@@ -1129,9 +1124,9 @@ void mace_target_build_order() {
         return;
     }
 
-    /* Visit all targs */
+    /* Visit all targets */
     while (o_cnt < target_num) {
-        mace_deps_build_order(targets[o_cnt], &o_cnt);
+        mace_links_build_order(targets[o_cnt], &o_cnt);
         o_cnt++;
     }
 }
@@ -1233,11 +1228,9 @@ void mace_init() {
     /* --- Memory allocation --- */
     target_len  = MACE_DEFAULT_TARGET_LEN;
     object_len  = MACE_DEFAULT_OBJECT_LEN;
-    objects_len = MACE_DEFAULT_OBJECTS_LEN;
 
     targets = malloc(target_len  * sizeof(*targets));
     object  = malloc(object_len  * sizeof(*object));
-    objects = malloc(objects_len * sizeof(*objects));
 
     /* --- Default output folders --- */
     mace_set_build_dir("build/");
@@ -1256,10 +1249,6 @@ void mace_free() {
         free(object);
         object = NULL;
     }
-    if (objects != NULL) {
-        free(objects);
-        objects = NULL;
-    }
     if (obj_dir != NULL) {
         free(obj_dir);
         obj_dir = NULL;
@@ -1272,10 +1261,9 @@ void mace_free() {
         free(build_order);
         build_order = NULL;
     }
+    target_num      = 0;
+    object_len      = 0;
     build_order_num = 0;
-    target_num = 0;
-    object_len = 0;
-    objects_num = 0;
 }
 
 void Target_Deps_Hash(struct Target *target) {
@@ -1284,7 +1272,7 @@ void Target_Deps_Hash(struct Target *target) {
         return;
 
     /* --- Alloc space for deps --- */
-    target->_deps_links_num = 0;
+    target->_deps_links_num =  0;
     target->_deps_links_len = 16;
     if (target->_deps_links != NULL) {
         free(target->_deps_links);
@@ -1330,8 +1318,8 @@ int main(int argc, char *argv[]) {
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
-    /* --- Compute build order using targets deps list. --- */
-    mace_target_build_order();
+    /* --- Compute build order using targets links list. --- */
+    mace_targets_build_order();
 
     /* --- Perform compilation with buil_order --- */
     mace_build_targets();
