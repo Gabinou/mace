@@ -7,8 +7,8 @@ Specificity, reduced scope, all in service of *simplicity*.
 ## Features
 - As simple as possible.
 - C syntax.
-    - Macefiles are .c files.
-    - Targets are structs. 
+    - Macefiles are `.c` files.
+    - Targets are `structs`. 
     - Function `mace` is user entry point.
 - Single header build system.
     - Compiling macefile as easy as compiling `hello_world.c`.
@@ -25,19 +25,19 @@ Specificity, reduced scope, all in service of *simplicity*.
 
 ## Usage
 1. Get `mace.h`
-2. Write your own macefile e.g. `mace.c`
-3. Compile `gcc mace.c -o mace`
+2. Write your own macefile e.g. `macefile.c`
+3. Compile `gcc macefile.c -o mace`
 4. Build `./mace`
 
-### Convenience executable
+### TODO: Convenience executable
 1. Install mace
     1. `gcc mace.h -o mace`
     2. `install ....`
-2. Write your own macefile e.g. `mace.c`
-3. Build `mace mace.c`
+2. Write your own macefile e.g. `macefile.c`
+3. Build `mace macefile.c`
 
 ## Example macefile
-```
+```c
 #include "mace.h"
 
 #define CC gcc
@@ -46,7 +46,7 @@ struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
     .includes           = "tnecs.h",
     .sources            = "tnecs.c",
     .base_dir           = "tnecs",
-    .kind               = MACE_LIBRARY,
+    .kind               = MACE_STATIC_LIBRARY,
 };
 
 /******************************* WARNING ********************************/
@@ -67,12 +67,11 @@ int mace(int argc, char *argv[]) {
     - Proof 2: Modern programming languages devs implement their own build systems.
 - Most if not all build systems have obtuse syntax, scale terribly to larger projects.
     - Makefiles makers exist (premake, autoconf/autotools) and compound this issue.
-    - Make mixes imperative and declarative style.
-    - Why not build an API with familiar C syntax?
+    - Mix of imperative and declarative style.
 - Build systems are general-purpose and complex.
     - Complexity bad. Simplicity good.
 - Build system perfomance bottleneck is compilation.
-    - Modern compilers (`gcc`, `clang`) are slow, except `tcc`
+    - Modern compilers (`gcc`, `clang`) are slow, maybe except `tcc`
 
 ## Under the hood
 - Compiler spits out object file dependecies (headers)
@@ -83,4 +82,5 @@ int mace(int argc, char *argv[]) {
 
 ## Credits
 - mace uses the same naming convention as [mage](https://github.com/magefile/mage)
-- mace contains a modified version of `parg` for argument parsing
+- mace contains a modified version of [parg](https://github.com/jibsen/parg) for argument parsing
+- mace contains a modified version of [sha1cd](https://github.com/cr-marcstevens/sha1collisiondetection) to sha1 checksums
