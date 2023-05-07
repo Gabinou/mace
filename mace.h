@@ -140,7 +140,7 @@ struct Target {
 /******************************* COMMAND STRUCT *******************************/
 struct Command {
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
-    const char *command;                 /* command string,  ' ' separated    */
+    const char *command;           /* command string,  ' ' separated          */
 
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
@@ -327,16 +327,12 @@ void mace_grow_targets() {
 }
 
 void mace_add_command(struct Command *command, char *name, int build_order) {
-    printf("mace_add_command %d\n", build_order);
     if (build_order >= target_len)
         mace_grow_targets();
     commands[build_order]        = *command;
     commands[build_order]._name  =  name;
 
-    printf("commands[build_order] %s\n", commands[build_order]._name);
     mace_Command_Parse_User(&commands[build_order]);
-    mace_exec_print(commands[build_order]._argv, commands[build_order]._argc);
-    printf("commands[build_order] %s\n", commands[build_order]._name);
 }
 
 void mace_add_target(struct Target *target, char *name) {
@@ -480,7 +476,6 @@ void mace_Command_Parse_User(struct Command *command) {
                                      command->command, NULL, false);
     bytesize       = command->_argc * sizeof(*command->_argv);
     command->_argv = realloc(command->_argv, bytesize);
-    mace_exec_print(command->_argv, command->_argc);
 }
 
 
