@@ -1,3 +1,19 @@
+/*
+* mace.h
+*
+* Copyright (C) Gabriel Taillon, 2023
+*
+* Single header build system. Uses C to exclusively build C.
+* Simple and specific. No config files with weird syntax.
+* 
+* Usage: 
+*  - Write a macefile.c
+*       - Implement the function mace.
+*       - Set compiler, add targets, add commands, etc.
+*       - Compile and run to build. Manually, or with the convenience executable.
+*
+* See README for more details.
+*/
 
 #include <assert.h>
 #include <stdio.h>
@@ -146,8 +162,8 @@ struct Command {
     /*                      COMMAND DEFINITION                          /
     *                                                                   /
     * struct Command mycommand = {                                      /
-    *     .command = "install foo /usr/local/bin/foo "                  /
-    *                "&& install mace.h /usr/local/include/mace.h"      /
+    *     .command = "install -T foo    /usr/local/bin/foo &&"          /
+    *                "install -T mace.h /usr/local/include/mace.h"      /
     * };                                                                /
     * NOTE: command separator is "&&"                                   /
     /*-----------------------------------------------------------------*/
@@ -290,7 +306,6 @@ char *checksum = "sha1DC";
 /* -- Compiler -- */
 char *cc      = NULL; // DESIGN QUESTION: Should I set a default?
 char *ar      = "ar";
-char *install = "install";
 
 /* -- current working directory -- */
 char cwd[MACE_CWD_BUFFERSIZE];
@@ -442,10 +457,17 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
     while (token != NULL) {
         argv = argv_grows(len, argc, argv);
         char *to_use = token;
-        char *pathstr = NULL;
+        char *rpath = NULL;
         if (path) {
-            pathstr = realpath(token, NULL);
-            to_use = pathstr;
+            /* - Expand path - */
+            char *rpath = calloc(PATH_MAX, sizeof(*rpath));
+            rpath = realpath(token, rpath);
+            rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
+            if (rpath == NULL) {
+                fprintf(stderr, "realpath error : %s\n", strerror(errno));
+                exit(errno);
+            }
+            to_use = rpath;
         }
         size_t to_use_len = strlen(to_use);
 
@@ -620,11 +642,11 @@ void mace_Target_argv_init(struct Target *target) {
 
 void mace_set_separator(char *sep) {
     if (sep == NULL) {
-        perror("Separator should not be NULL.");
+        fprintf(stderr, "Separator should not be NULL.\n");
         exit(EPERM);
     }
     if (strlen(sep) != 1) {
-        perror("Separator should have length one.");
+        fprintf(stderr, "Separator should have length one.\n");
         exit(EPERM);
     }
     mace_separator = sep;
@@ -665,7 +687,7 @@ void mace_exec_print(char *const arguments[], size_t argnum) {
 pid_t mace_exec(const char *exec, char *const arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
-        perror("Error: forking issue. \n");
+        fprintf(stderr, "Error: forking issue.\n");
         exit(ENOENT);
     } else if (pid == 0) {
         execvp(exec, arguments);
@@ -679,18 +701,18 @@ void mace_wait_pid(int pid) {
     int status;
     if (waitpid(pid, &status, 0) > 0) {
         if (WIFEXITED(status)        && !WEXITSTATUS(status)) {
-            //pass
+            /* pass */
         } else if (WIFEXITED(status) &&  WEXITSTATUS(status)) {
             if (WEXITSTATUS(status) == 127) {
-                // execvp failed
-                perror("execvp failed\n");
+                /* execvp failed */
+                fprintf(stderr, "execvp failed.\n");
                 exit(WEXITSTATUS(status));
             } else {
-                perror("program terminated normally, but returned a non-zero status\n");
+                fprintf(stderr, "Fork returned a non-zero status.\n");
                 exit(WEXITSTATUS(status));
             }
         } else {
-            perror("program didn't terminate- normally\n");
+            fprintf(stderr, "Fork didn't terminate normally.\n");
             exit(WEXITSTATUS(status));
         }
     }
@@ -735,10 +757,6 @@ void mace_link_executable(char *target, char **argv_objects, int argc_objects, c
                           int argc_links, char **argv_flags, int argc_flags) {
     vprintf("Linking \t%s \n", target);
 
-    if (cc == NULL) {
-        perror("C compiler not set, exiting.");
-        exit(EFAULT);
-    }
     int arg_len = 8;
     int argc = 0;
     char **argv = calloc(arg_len, sizeof(*argv));
@@ -749,7 +767,7 @@ void mace_link_executable(char *target, char **argv_objects, int argc_objects, c
     char *oflag       = calloc(target_len + 3, sizeof(*oflag));
     strncpy(oflag, "-o", 2);
     strncpy(oflag + 2, target, target_len);
-    int oflag_i = argc++; 
+    int oflag_i = argc++;
     argv[oflag_i] = oflag;
 
     /* --- Adding objects --- */
@@ -782,7 +800,7 @@ void mace_link_executable(char *target, char **argv_objects, int argc_objects, c
     char *ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
     strncpy(ldirflag, "-L", 2);
     strncpy(ldirflag + 2, build_dir, build_dir_len);
-    int ldirflag_i = argc++; 
+    int ldirflag_i = argc++;
     argv[ldirflag_i] = ldirflag;
 
     mace_exec_print(argv, argc);
@@ -892,8 +910,8 @@ void mace_Target_Object_Add(struct Target *target, char *token) {
     } else {
         target->_argv_objects_cnt[hash_id]++;
         if (target->_argv_objects_cnt[hash_id] >= 10) {
-            perror("Too many same name sources/objects");
-            exit(-1);
+            fprintf(stderr, "Too many same name sources/objects\n");
+            exit(EPERM);
         }
     }
 
@@ -934,9 +952,11 @@ bool mace_Target_Source_Add(struct Target *target, char *token) {
     char *arg = calloc(token_len + 1, sizeof(*arg));
     strncpy(arg, token, token_len);
     assert(arg != NULL);
+
+    /* - Expand path - */
     char *rpath = calloc(PATH_MAX, sizeof(*target->_argv_sources));
     rpath = realpath(arg, rpath);
-    rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*targets));
+    rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
     if (rpath == NULL) {
         fprintf(stderr, "realpath error : %s\n", strerror(errno));
         exit(errno);
@@ -1091,9 +1111,9 @@ char *mace_str_buffer(const char *strlit) {
 }
 
 void mace_run_command(struct Command *command) {
-    if (command->commands == NULL) {
+    if (command->commands == NULL)
         return;
-    }
+
     assert(chdir(cwd) == 0);
     int len, bytesize;
 
@@ -1104,29 +1124,20 @@ void mace_run_command(struct Command *command) {
     char *token = strtok(buffer, mace_command_separator);
     do {
         mace_Command_Free_argv(command);
-        
+
         len = 8;
         command->_argc = 0;
         command->_argv = calloc(len, sizeof(*command->_argv));
         command->_argv = mace_argv_flags(&len, &command->_argc, command->_argv,
                                          token, NULL, false);
 
-        /* -- Moving source and dest over once -- */
-        command->_argv[command->_argc] = command->_argv[command->_argc - 1]; 
-        command->_argv[command->_argc - 1] = command->_argv[command->_argc - 2]; 
-        
-        /* -- argv -T for source -- */
-        char *Tflag = calloc(3, sizeof(*Tflag));
-        strncpy(Tflag, "-T", 2);
-        command->_argv[command->_argc - 2] = Tflag;
-        command->_argc++;
-        if (command->_argc < len) {
-            bytesize       = (command->_argc+1) * sizeof(*command->_argv);
+        if ((command->_argc + 1) < len) {
+            bytesize       = (command->_argc + 1) * sizeof(*command->_argv);
             command->_argv = realloc(command->_argv, bytesize);
         }
 
         mace_exec_print(command->_argv, command->_argc);
-        pid_t pid = mace_exec(install,  command->_argv);
+        pid_t pid = mace_exec(command->_argv[0], command->_argv);
         mace_wait_pid(pid);
 
         token = strtok(NULL, mace_command_separator);
@@ -1208,7 +1219,8 @@ void mace_build_target(struct Target *target) {
         free(lib);
     } else if (target->kind == MACE_EXECUTABLE) {
         char *exec = mace_executable_path(target->_name);
-        mace_link_executable(exec, target->_argv_objects, target->_argc_objects, target->_argv_links,target->_argc_links, target->_argv_flags, target->_argc_flags);
+        mace_link_executable(exec, target->_argv_objects, target->_argc_objects, target->_argv_links,
+                             target->_argc_links, target->_argv_flags, target->_argc_flags);
         free(exec);
     }
     free(buffer);
@@ -1427,19 +1439,19 @@ void mace_post_user() {
 
     /* Check that compiler is set */
     if (cc == NULL) {
-        perror("Compiler not set. Exiting.\n");
+        fprintf(stderr, "Compiler not set. Exiting.\n");
         exit(ENXIO);
     }
 
     /* Check that a target exists */
     if ((targets == NULL) || (target_num <= 0)) {
-        perror("No targets to compile. Exiting.\n");
+        fprintf(stderr, "No targets to compile. Exiting.\n");
         exit(ENXIO);
     }
 
     /* Check for circular dependency */
     if (mace_circular_deps(targets, target_num)) {
-        perror("Circular dependency in linked library detected. Exiting\n");
+        fprintf(stderr, "Circular dependency in linked library detected. Exiting\n");
         exit(ENXIO);
     }
 }
@@ -1448,7 +1460,7 @@ void mace_post_user() {
 void mace_init() {
     mace_free();
     if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
-        perror("getcwd() error");
+        fprintf(stderr, "getcwd() error\n");
         exit(errno);
     }
 

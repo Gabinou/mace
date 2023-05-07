@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* -- TODO: Get argv compiler -- */
+    /* -- TODO: Get argv target -- */
 
     /* -- Compile the macefile -- */
     char *argv_compile[] = {MACE_STRINGIFY(CC), argv[1], "-o", MACE_STRINGIFY(BUILDER)};
@@ -40,4 +41,5 @@ int main(int argc, char *argv[]) {
     char *argv_run[] = {MACE_STRINGIFY(BUILDER)};
     pid = mace_exec(MACE_STRINGIFY(BUILDER), argv_run);
     mace_wait_pid(pid);
+
 }
