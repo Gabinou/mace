@@ -1,23 +1,26 @@
+/* Source file for mace convenience executable */
 
 #include "mace.h"
 
-#define CC gcc
-
-// Source file for mace convenience executable
+// Compiler used by mace executable to compile macefiles
+#define CC "gcc"
+#define MACE_BUILDER "build"
 
 int main(int argc, char *argv[]) {
-    // Inputs only one argument: a macefile
+    /* Inputs only one argument: a macefile */
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <file>\n", argv[0]);
         return EPERM;
     }
 
-    // How to get the compiler?
-    //  - Compiler is set in the macefile...
-    //  - mace executable uses a different compiler variable?
-    //      - YES! use tcc to compile mace
-    // Compile the macefile
+    pid_t pid;
+    /* Compile the macefile */
+    char *argv_compile[] = {CC, argv[1], "-o", MACE_BUILDER};
+    pid = mace_exec(CC, argv_compile);
+    mace_wait_pid(pid);
 
-    // Run the resulting executable
-    // mace_exec(const char *exec, char *const arguments[]);
+    /* Run the resulting executable */
+    char *argv_run[] = {MACE_BUILDER};
+    pid = mace_exec(MACE_BUILDER, argv_run);
+    mace_wait_pid(pid);
 }
