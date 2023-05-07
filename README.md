@@ -26,14 +26,13 @@ Specificity, reduced scope, all in service of *simplicity*.
 ## Usage
 1. Get `mace.h`
 2. Write your own macefile e.g. `macefile.c`
-3. Compile `gcc macefile.c -o build`
+3. Compile builder executable `gcc macefile.c -o build`
 4. Build `./build`
 
-### TODO: Convenience executable
-1. Install `mace`
-    0. Modify compiler used by `mace` in `mace.c` (default: `gcc`)
-    1. Compile installer: `gcc install.c -o install`
-    2. Run installer:     `./install`
+### Convenience executable
+1. Install `mace` convenience executable
+    1. Compile `installer.c` macefile: `gcc installer.c -o installer`
+    2. Run installer: `./install`
 2. Write your own macefile e.g. `macefile.c`
 3. Build `mace macefile.c`
 
