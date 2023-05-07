@@ -3,7 +3,7 @@
 
 // Compiler used to compile installer executable
 #ifndef CC
-#define CC gcc
+    #define CC gcc
 #endif /* CC */
 #define BUILD_DIR "bin"
 #define OBJ_DIR "obj"
@@ -38,12 +38,9 @@ int mace(int argc, char *argv[]) {
     // 1. Copies mace convenience executable to `/usr/local/bin`
     // 2. Copies mace header                 to `/usr/local/include`
     struct Command install_mace = {
-        .commands               = "install" 
-                                  " " BUILD_DIR "/" EXECUTABLE_NAME
-                                  " " PREFIX "/bin/" EXECUTABLE_NAME
-                                  " " "&& install"
-                                  " " HEADER_NAME 
-                                  " " PREFIX "/include/" HEADER_NAME,
+    .commands =
+            "install " BUILD_DIR "/" EXECUTABLE_NAME " " PREFIX "/bin/" EXECUTABLE_NAME
+            "&&install " HEADER_NAME " " PREFIX "/include/" HEADER_NAME"",
     };
     MACE_ADD_COMMAND(install_mace);
 }

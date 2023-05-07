@@ -13,12 +13,12 @@
 
 /* -- Default compiler used by mace executable to compile macefiles. -- */
 #ifndef CC
-#define CC gcc
+    #define CC gcc
 #endif
 
 /* -- Name of the builder executable to compile macefile into. -- */
 #ifndef BUILDER
-#define BUILDER build
+    #define BUILDER build
 #endif
 
 int main(int argc, char *argv[]) {

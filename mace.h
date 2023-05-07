@@ -36,6 +36,7 @@ extern int mace(int argc, char *argv[]);
 *   MACE_ADD_TARGET(foo1);            /
 *   MACE_ADD_COMMAND(after_foo1);     /
 *   MACE_ADD_TARGET(foo2);            /
+*   MACE_ADD_COMMAND(after_foo2);     /
 * };                                  /
 /*-----------------------------------*/
 
@@ -53,10 +54,8 @@ void mace_set_separator(char *sep);
 
 /* --- Commands --- */
 struct Command;
-// - Commands run before target at build_order.
-//  - ONE command per build_order.
-// - Multiple commands at same build_order run first-come first-serve.
 // - MACE_ADD_COMMAND will add command to run before next target.
+//  - ONE command per build_order.
 #define MACE_ADD_COMMAND(command) mace_add_command(&command, #command, target_num)
 void mace_add_command(struct Command *command, char *name, int build_order);
 
@@ -140,7 +139,18 @@ struct Target {
 /******************************* COMMAND STRUCT *******************************/
 struct Command {
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
-    const char *command;           /* command string,  ' ' separated          */
+    char *commands;                 /* commands string, split commands with &&*/
+
+    /*-----------------------------------------------------------------*/
+    /*                            EXAMPLE                               /
+    /*                      COMMAND DEFINITION                          /
+    *                                                                   /
+    * struct Command mycommand = {                                      /
+    *     .command = "install foo /usr/local/bin/foo "                  /
+    *                "&& install mace.h /usr/local/include/mace.h"      /
+    * };                                                                /
+    * NOTE: command separator is "&&"                                   /
+    /*-----------------------------------------------------------------*/
 
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
@@ -160,6 +170,7 @@ struct Command {
 
 enum MACE {
     MACE_DEFAULT_TARGET_LEN     =   8,
+    MACE_MAX_COMMANDS           =   8,
     MACE_DEFAULT_OBJECT_LEN     =  16,
     MACE_DEFAULT_OBJECTS_LEN    = 128,
     MACE_CWD_BUFFERSIZE         = 128,
@@ -210,9 +221,8 @@ void mace_add_target(struct Target   *target,  char *name);
 void mace_add_command(struct Command *command, char *name, int build_order);
 
 /* -- Command OOP -- */
-void mace_Command_Free(struct Command *command);
-void mace_Command_Free_argv(struct Command *command);
-void mace_Command_Parse_User(struct Command *command);
+void mace_Command_Free(struct Command       *command);
+void mace_Command_Free_argv(struct Command  *command);
 
 /* -- Target OOP -- */
 void mace_Target_Free(struct Target              *target);
@@ -270,6 +280,7 @@ bool verbose = false;
 
 /* -- separator -- */
 char *mace_separator = " ";
+char *mace_command_separator = "&&";
 
 /* -- Checksum -- */
 // char *checksum = "sha256sum";
@@ -331,8 +342,7 @@ void mace_add_command(struct Command *command, char *name, int build_order) {
         mace_grow_targets();
     commands[build_order]        = *command;
     commands[build_order]._name  =  name;
-
-    mace_Command_Parse_User(&commands[build_order]);
+    printf("commands %s \n",commands[build_order].commands);
 }
 
 void mace_add_target(struct Target *target, char *name) {
@@ -427,8 +437,8 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
 
     /* -- Copy user_str into modifiable buffer -- */
     char *buffer = mace_str_buffer(user_str);
-
-    char *token = strtok(buffer, mace_separator);
+    char *sav = NULL;
+    char *token = strtok_r(buffer, mace_separator, &sav);
     while (token != NULL) {
         argv = argv_grows(len, argc, argv);
         char *to_use = token;
@@ -454,30 +464,12 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
         i += to_use_len;
         argv[(*argc)++] = arg;
 
-        token = strtok(NULL, mace_separator);
+        token = strtok_r(NULL, mace_separator, &sav);
     }
 
     free(buffer);
     return (argv);
 }
-
-void mace_Command_Parse_User(struct Command *command) {
-    mace_Command_Free_argv(command);
-    int len, bytesize;
-    /* -- Make _argv_includes to argv -- */
-    if (command->command == NULL) {
-        perror("Command was added with NULL command string.");
-        exit(EPERM);
-    }
-    len = 8;
-    command->_argc = 0;
-    command->_argv = calloc(len, sizeof(*command->_argv));
-    command->_argv = mace_argv_flags(&len, &command->_argc, command->_argv,
-                                     command->command, NULL, false);
-    bytesize       = command->_argc * sizeof(*command->_argv);
-    command->_argv = realloc(command->_argv, bytesize);
-}
-
 
 void mace_Target_Parse_User(struct Target *target) {
     // Makes flags for target includes, links libraries, and flags
@@ -938,7 +930,7 @@ bool mace_Target_Source_Add(struct Target *target, char *token) {
     char *arg = calloc(token_len + 1, sizeof(*arg));
     strncpy(arg, token, token_len);
     assert(arg != NULL);
-    char* rpath = calloc(PATH_MAX, sizeof(*target->_argv_sources));
+    char *rpath = calloc(PATH_MAX, sizeof(*target->_argv_sources));
     rpath = realpath(arg, rpath);
     rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*targets));
     if (rpath == NULL) {
@@ -1094,13 +1086,47 @@ char *mace_str_buffer(const char *strlit) {
     return (buffer);
 }
 void mace_run_command(struct Command *command) {
-    if (command->_argv == NULL)
+    if (command->commands == NULL) {
         return;
-
+    }
     assert(chdir(cwd) == 0);
-    mace_exec_print(command->_argv, command->_argc);
-    pid_t pid = mace_exec(install,  command->_argv);
-    mace_wait_pid(pid);
+    int len, bytesize;
+
+    /* -- Copy sources into modifiable buffer -- */
+    char *buffer = mace_str_buffer(command->commands);
+
+    /* --- Split sources into tokens --- */
+    char *token = strtok(buffer, mace_command_separator);
+    do {
+        mace_Command_Free_argv(command);
+        
+        len = 8;
+        command->_argc = 0;
+        command->_argv = calloc(len, sizeof(*command->_argv));
+        command->_argv = mace_argv_flags(&len, &command->_argc, command->_argv,
+                                         token, NULL, false);
+
+        /* -- Moving source and dest over once -- */
+        command->_argv[command->_argc] = command->_argv[command->_argc - 1]; 
+        command->_argv[command->_argc - 1] = command->_argv[command->_argc - 2]; 
+        
+        /* -- argv -T for source -- */
+        char *Tflag = calloc(3, sizeof(*Tflag));
+        strncpy(Tflag, "-T", 2);
+        command->_argv[command->_argc - 2] = Tflag;
+        command->_argc++;
+
+        bytesize       = command->_argc * sizeof(*command->_argv);
+        command->_argv = realloc(command->_argv, bytesize);
+
+        mace_exec_print(command->_argv, command->_argc);
+        pid_t pid = mace_exec(install,  command->_argv);
+        mace_wait_pid(pid);
+
+        token = strtok(NULL, mace_command_separator);
+    } while (token != NULL);
+
+    free(buffer);
 }
 
 /******************************** mace_build **********************************/
@@ -1318,6 +1344,8 @@ void mace_build_targets() {
 /*----------------------------------------------------------------------------*/
 
 void mace_Command_Free(struct Command *command) {
+    if (command == NULL)
+        return;
     mace_Command_Free_argv(command);
 }
 
@@ -1437,6 +1465,10 @@ void mace_free() {
     for (int i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
     }
+    for (int i = 0; i < target_num + 1; i++) {
+        mace_Command_Free(&commands[i]);
+    }
+
     if (targets != NULL) {
         free(targets);
         targets = NULL;
