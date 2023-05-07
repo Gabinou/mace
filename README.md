@@ -1,7 +1,8 @@
 
 ## About
 
-Mace is a C99-only build system. 
+Mace is a C99-only build system.
+
 Specificity, reduced scope, all in service of *simplicity*. 
 
 ## Features
@@ -19,9 +20,7 @@ Specificity, reduced scope, all in service of *simplicity*.
 
 ## Limitations
 - Cannot deal with circular dependencies in linked libraries.
-- C only
-    - C99 and above.
-    - C++ not supported.
+- C only, C99 and above, C++ not supported.
 
 ## Usage
 1. Get `mace.h`
@@ -74,13 +73,15 @@ int mace(int argc, char *argv[]) {
 - No build systems for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
     - Proof 2: Modern programming languages devs implement their own build systems.
+    - Proof 3: Ask random C/C++ developers about `make`, `Cmake`, etc.
 - Most if not all build systems have obtuse syntax, scale terribly to larger projects.
+    - Personal experience: homemade `makefile` need constant updates and break in unexpected ways if the project structure changes slightly.
     - Makefiles makers exist (premake, autoconf/autotools) and compound this issue.
-    - Mix of imperative and declarative style.
+    - Mix of imperative and declarative style, terrible.
 - Build systems are general-purpose and complex.
     - Complexity bad. Simplicity good.
 - Build system perfomance bottleneck is compilation.
-    - Modern compilers (`gcc`, `clang`) are slow, maybe except `tcc`
+    - Modern compilers (`gcc`, `clang`) are slow, maybe except `tcc`.
 
 ## Under the hood
 - Compiler spits out object file dependecies (headers)
@@ -90,6 +91,4 @@ int mace(int argc, char *argv[]) {
     - Recompile if checksum changed
 
 ## Credits
-- mace uses the same naming convention as [mage](https://github.com/magefile/mage)
-- mace contains a modified version of [parg](https://github.com/jibsen/parg) for argument parsing
-- mace contains a modified version of [sha1cd](https://github.com/cr-marcstevens/sha1collisiondetection) to sha1 checksums
+- Inspiration for this project: [mage](https://github.com/magefile/mage)
