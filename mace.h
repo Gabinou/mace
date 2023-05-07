@@ -342,7 +342,6 @@ void mace_add_command(struct Command *command, char *name, int build_order) {
         mace_grow_targets();
     commands[build_order]        = *command;
     commands[build_order]._name  =  name;
-    printf("commands %s \n",commands[build_order].commands);
 }
 
 void mace_add_target(struct Target *target, char *name) {
@@ -423,6 +422,7 @@ void mace_argv_free(char **argv, int argc) {
     for (int i = 0; i < argc; i++) {
         if (argv[i] != NULL) {
             free(argv[i]);
+            argv[i] = NULL;
         }
     }
     free(argv);
@@ -749,7 +749,8 @@ void mace_link_executable(char *target, char **argv_objects, int argc_objects, c
     char *oflag       = calloc(target_len + 3, sizeof(*oflag));
     strncpy(oflag, "-o", 2);
     strncpy(oflag + 2, target, target_len);
-    argv[argc++] = oflag;
+    int oflag_i = argc++; 
+    argv[oflag_i] = oflag;
 
     /* --- Adding objects --- */
     if ((argc_objects > 0) && (argv_objects != NULL)) {
@@ -781,11 +782,14 @@ void mace_link_executable(char *target, char **argv_objects, int argc_objects, c
     char *ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
     strncpy(ldirflag, "-L", 2);
     strncpy(ldirflag + 2, build_dir, build_dir_len);
-    argv[argc++] = ldirflag;
+    int ldirflag_i = argc++; 
+    argv[ldirflag_i] = ldirflag;
 
     mace_exec_print(argv, argc);
     pid_t pid = mace_exec(cc, argv);
     mace_wait_pid(pid);
+    free(argv[oflag_i]);
+    free(argv[ldirflag_i]);
     free(argv);
 }
 
@@ -858,10 +862,10 @@ int Target_hasObjectHash(struct Target *target, uint64_t hash) {
 void mace_Target_Object_Add(struct Target *target, char *token) {
     if (target->_argv_objects == NULL) {
         target->_len_objects = 8;
-        target->_argv_objects = malloc(target->_len_objects * sizeof(*target->_argv_objects));
+        target->_argv_objects = calloc(target->_len_objects, sizeof(*target->_argv_objects));
     }
     if (target->_argv_objects_cnt == NULL) {
-        target->_argv_objects_cnt = malloc(target->_len_objects * sizeof(*target->_argv_objects_cnt));
+        target->_argv_objects_cnt = calloc(target->_len_objects,  sizeof(*target->_argv_objects_cnt));
     }
     if (target->_argv_objects_hash == NULL) {
         target->_argv_objects_hash = calloc(target->_len_objects, sizeof(*target->_argv_objects_hash));
@@ -873,10 +877,10 @@ void mace_Target_Object_Add(struct Target *target, char *token) {
                                        target->_argv_objects);
 
     if (target->_len_objects >= target->_argc_objects_hash) {
-        target->_argv_objects_hash = realloc(target->_argv_objects_hash,
-                                             target->_len_objects * sizeof(*target->_argv_objects_hash));
-        target->_argv_objects_cnt = realloc(target->_argv_objects_cnt,
-                                            target->_len_objects * sizeof(*target->_argv_objects_cnt));
+        size_t bytesize = target->_len_objects * sizeof(*target->_argv_objects_hash);
+        target->_argv_objects_hash = realloc(target->_argv_objects_hash, bytesize);
+        bytesize = target->_len_objects * sizeof(*target->_argv_objects_cnt);
+        target->_argv_objects_cnt = realloc(target->_argv_objects_cnt, bytesize);
     }
 
     uint64_t hash = mace_hash(token);
@@ -1008,7 +1012,7 @@ char *mace_executable_path(char *target_name) {
     size_t bld_len = strlen(build_dir);
     size_t tar_len = strlen(target_name);
 
-    char *exec = calloc((bld_len + tar_len + 1), sizeof(*exec));
+    char *exec = calloc((bld_len + tar_len + 2), sizeof(*exec));
     size_t full_len = 0;
     strncpy(exec,            build_dir,   bld_len);
     full_len += bld_len;
@@ -1085,6 +1089,7 @@ char *mace_str_buffer(const char *strlit) {
     strncpy(buffer, strlit, litlen);
     return (buffer);
 }
+
 void mace_run_command(struct Command *command) {
     if (command->commands == NULL) {
         return;
@@ -1115,9 +1120,10 @@ void mace_run_command(struct Command *command) {
         strncpy(Tflag, "-T", 2);
         command->_argv[command->_argc - 2] = Tflag;
         command->_argc++;
-
-        bytesize       = command->_argc * sizeof(*command->_argv);
-        command->_argv = realloc(command->_argv, bytesize);
+        if (command->_argc < len) {
+            bytesize       = (command->_argc+1) * sizeof(*command->_argv);
+            command->_argv = realloc(command->_argv, bytesize);
+        }
 
         mace_exec_print(command->_argv, command->_argc);
         pid_t pid = mace_exec(install,  command->_argv);
@@ -1202,9 +1208,8 @@ void mace_build_target(struct Target *target) {
         free(lib);
     } else if (target->kind == MACE_EXECUTABLE) {
         char *exec = mace_executable_path(target->_name);
-        mace_link_executable(exec, target->_argv_objects, target->_argc_objects, target->_argv_links,
-                             target->_argc_links, target->_argv_flags, target->_argc_flags);
-
+        mace_link_executable(exec, target->_argv_objects, target->_argc_objects, target->_argv_links,target->_argc_links, target->_argv_flags, target->_argc_flags);
+        free(exec);
     }
     free(buffer);
 }
@@ -1386,6 +1391,10 @@ void mace_Target_Free_argv(struct Target *target) {
     mace_argv_free(target->_argv_objects, target->_argc_objects);
     target->_argv_objects = NULL;
     target->_argc_objects = 0;
+    free(target->_argv_objects_cnt);
+    target->_argv_objects_cnt = NULL;
+    free(target->_argv_objects_hash);
+    target->_argv_objects_hash = NULL;
     if ((target->_argv != NULL) && (target->_argc > 0))  {
         if (target->_argv[target->_argc - 1] != NULL) {
             free(target->_argv[target->_argc - 1]);
@@ -1444,17 +1453,15 @@ void mace_init() {
     }
 
     /* --- Memory allocation --- */
-    if (build_order == NULL) {
-        build_order = malloc(target_len * sizeof(*build_order));
-        build_order_num = 0;
-    }
 
-    target_len  = MACE_DEFAULT_TARGET_LEN;
-    object_len  = MACE_DEFAULT_OBJECT_LEN;
+    target_len      = MACE_DEFAULT_TARGET_LEN;
+    object_len      = MACE_DEFAULT_OBJECT_LEN;
+    build_order_num = 0;
 
-    object   = calloc(object_len, sizeof(*object));
-    targets  = calloc(target_len, sizeof(*targets));
-    commands = calloc(target_len, sizeof(*commands));
+    object      = calloc(object_len, sizeof(*object));
+    targets     = calloc(target_len, sizeof(*targets));
+    commands    = calloc(target_len, sizeof(*commands));
+    build_order = calloc(target_len, sizeof(*build_order));
 
     /* --- Default output folders --- */
     mace_set_build_dir("build/");
@@ -1472,6 +1479,10 @@ void mace_free() {
     if (targets != NULL) {
         free(targets);
         targets = NULL;
+    }
+    if (commands != NULL) {
+        free(commands);
+        commands = NULL;
     }
     if (object != NULL) {
         free(object);
