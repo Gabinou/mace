@@ -58,7 +58,12 @@ int mace(int argc, char *argv[]) {
 You can modify the default install path `/usr/local` with `-DPREFIX=\"<path>\"` when compiling `installer`.
 
 ## Why?
-- No build systems for C is truly good.
+- To build my personal C projects with.
+    - Tried: make, premake, please, cmake...
+    - Couldn't find anything that uses C to build C.
+- I want it simple.
+    - I'm dumb. Complexity bad. Simplicity good.
+- No well known build system for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
     - Proof 2: Modern programming languages devs implement their own build systems: Rust, Zig, Go, etc.
     - Proof 3: Ask random C/C++ developers about `make`, `CMake`, etc.
@@ -66,10 +71,6 @@ You can modify the default install path `/usr/local` with `-DPREFIX=\"<path>\"` 
     - Makefiles makers exist (`premake`, `autoconf`/`autotools`) and compound this issue.
     - Mix of imperative and declarative style.
     - Personal experience: homemade `makefile` need constant updates and break in unexpected ways if the project structure changes slightly.
-- Generality breeds complexity.
-    - Complexity bad. Simplicity good.
-- Build system perfomance bottleneck is compilation.
-    - Modern compilers (`gcc`, `clang`) are slow, maybe except `tcc`.
 
 ## Limitations
 - Tested on Linux only.
