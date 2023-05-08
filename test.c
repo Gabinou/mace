@@ -384,11 +384,15 @@ void test_argv() {
         .kind               = MACE_EXECUTABLE,
     };
 
+    char buffer[PATH_MAX] = {0};
     mace_Target_Parse_User(&CodenameFiresaga);
     nourstest_true(CodenameFiresaga._argc_includes == 16);
     nourstest_true(CodenameFiresaga._argc_flags == 0);
     nourstest_true(CodenameFiresaga._argc_links == 1);
-    nourstest_true(strcmp(CodenameFiresaga._argv_includes[0],  "-I.")                      == 0);
+    strncpy(buffer, "-I", 2);
+    strncpy(buffer+2, cwd, strlen(cwd));
+
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[0],  buffer)                     == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[1],  "-Iinclude")                == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[2],  "-Iinclude/bars")           == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[3],  "-Iinclude/menu")           == 0);
@@ -413,7 +417,7 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv[MACE_ARGV_CC], "gcc") == 0);
     nourstest_true(CodenameFiresaga._argv[MACE_ARGV_SOURCE] == NULL);
     nourstest_true(CodenameFiresaga._argv[MACE_ARGV_OBJECT] == NULL);
-    nourstest_true(strcmp(CodenameFiresaga._argv[3],  "-I.")                      == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[3],  buffer)                     == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv[4],  "-Iinclude")                == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv[5],  "-Iinclude/bars")           == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv[6],  "-Iinclude/menu")           == 0);
@@ -487,6 +491,7 @@ void test_post_user() {
     nourstest_true(WEXITSTATUS(status) == ENXIO);
 
     // MACE_SET_COMPILER(gcc);
+    mace_free();
 }
 void test_separator() {
     mace_init();
@@ -627,14 +632,14 @@ int mace(int argc, char *argv[]) {
     nourstest_run("globbing ",  test_globbing);
     nourstest_run("object ",    test_object);
     nourstest_run("target ",    test_target);
-    // nourstest_run("circular ",  test_circular);
-    // nourstest_run("argv ",      test_argv);
-    // nourstest_run("post_user ", test_post_user);
-    // nourstest_run("separator ", test_separator);
+    nourstest_run("circular ",  test_circular);
+    nourstest_run("argv ",      test_argv);
+    nourstest_run("post_user ", test_post_user);
+    nourstest_run("separator ", test_separator);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
-        // test_self_dependency();
+        test_self_dependency();
     printf("\n");
     printf("Tests done\n");
     return (0);

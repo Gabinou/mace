@@ -598,8 +598,8 @@ void mace_argv_free(char **argv, int argc) {
     free(argv);
 }
 
-char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, const char *flag,
-                       bool path) {
+char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, 
+                       const char *flag, bool path) {
     assert(argc != NULL);
     assert(len != NULL);
     assert((*len) > 0);
@@ -616,13 +616,16 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
         if (path) {
             /* - Expand path - */
             char *rpath = calloc(PATH_MAX, sizeof(*rpath));
-            rpath = realpath(token, rpath);
-            if (rpath == NULL) {
-                fprintf(stderr, "realpath error : %s\n", strerror(errno));
-                exit(errno);
+
+            if (realpath(token, rpath) == NULL) {
+                // TODO: remove those prints during tests.
+                printf("Warning! realpath error : %s '%s'\n", strerror(errno), token);
+                to_use = token;
+                free(rpath);
+            } else {
+                rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
+                to_use = rpath;
             }
-            rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
-            to_use = rpath;
         }
         size_t to_use_len = strlen(to_use);
 
@@ -1110,14 +1113,15 @@ bool mace_Target_Source_Add(struct Target *target, char *token) {
 
     /* - Expand path - */
     char *rpath = calloc(PATH_MAX, sizeof(*target->_argv_sources));
-    rpath = realpath(arg, rpath);
-    if (rpath == NULL) {
-        fprintf(stderr, "realpath error : %s\n", strerror(errno));
-        exit(errno);
+    if (realpath(arg, rpath) == NULL) {
+        printf("Warning! realpath error : %s '%s'\n", strerror(errno), arg);
+        target->_argv_sources[target->_argc_sources++] = arg;
+        free(rpath);
+    } else {
+        rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
+        target->_argv_sources[target->_argc_sources++] = rpath;
+        free(arg);
     }
-    rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
-    target->_argv_sources[target->_argc_sources++] = rpath;
-    free(arg);
     return (excluded);
 }
 
