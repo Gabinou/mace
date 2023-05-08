@@ -18,15 +18,35 @@ Specificity, reduced scope, all in service of *simplicity*.
     - Familiar syntax.
     - Simple API.
 
-## Limitations
-- Cannot deal with circular dependencies in linked libraries.
-- C only, C99 and above, C++ not supported.
-
 ## Usage
 1. Get `mace.h`
 2. Write your own macefile e.g. `macefile.c`
 3. Compile builder executable `gcc macefile.c -o build`
 4. Build `./build`
+
+### Example macefile
+```c
+#include "mace.h"
+
+#define CC gcc
+
+/******************************* WARNING ********************************/
+// 1. main is defined in mace.h                                         //
+// 2. arguments from main are passed to mace directly                   //
+// 3. mace function is declared in mace.h, MUST be implemented by user  //
+/*======================================================================*/
+int mace(int argc, char *argv[]) {
+    MACE_SET_COMPILER(CC)
+    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_STATIC_LIBRARY,
+    };
+    MACE_ADD_TARGET(tnecs);
+}
+
+```
 
 ### Convenience executable
 1. Install `mace` convenience executable
@@ -44,44 +64,23 @@ Some default behaviour of the convenience executable can be customized, see `ins
 - Default compiler with the target flag `-DCC=gcc`
 - Builder executable name with the target flag `-DBUILDER=build`
 
-## Example macefile
-```c
-#include "mace.h"
-
-#define CC gcc
-
-struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = "tnecs.h",
-    .sources            = "tnecs.c",
-    .base_dir           = "tnecs",
-    .kind               = MACE_STATIC_LIBRARY,
-};
-
-/******************************* WARNING ********************************/
-// 1. main is defined in mace.h                                         //
-// 2. arguments from main are passed to mace directly                   //
-// 3. mace function is declared in mace.h, MUST be implemented by user  //
-/*======================================================================*/
-int mace(int argc, char *argv[]) {
-    MACE_SET_COMPILER(CC)
-    MACE_ADD_TARGET(tnecs);
-}
-
-```
-
 ## Why?
 - No build systems for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
     - Proof 2: Modern programming languages devs implement their own build systems.
     - Proof 3: Ask random C/C++ developers about `make`, `Cmake`, etc.
 - Most if not all build systems have obtuse syntax, scale terribly to larger projects.
-    - Personal experience: homemade `makefile` need constant updates and break in unexpected ways if the project structure changes slightly.
     - Makefiles makers exist (premake, autoconf/autotools) and compound this issue.
     - Mix of imperative and declarative style, terrible.
+    - Personal experience: homemade `makefile` need constant updates and break in unexpected ways if the project structure changes slightly.
 - Build systems are general-purpose and complex.
     - Complexity bad. Simplicity good.
 - Build system perfomance bottleneck is compilation.
     - Modern compilers (`gcc`, `clang`) are slow, maybe except `tcc`.
+
+## Limitations
+- Cannot deal with circular dependencies in linked libraries.
+- C only, C99 and above, C++ not supported.
 
 ## Under the hood
 - Compiler spits out object file dependecies (headers)
