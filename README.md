@@ -92,3 +92,5 @@ Some default behaviour of the convenience executable can be customized, see `ins
 
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
+- sha1dc checksum algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
+
