@@ -617,11 +617,11 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
             /* - Expand path - */
             char *rpath = calloc(PATH_MAX, sizeof(*rpath));
             rpath = realpath(token, rpath);
-            rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
             if (rpath == NULL) {
                 fprintf(stderr, "realpath error : %s\n", strerror(errno));
                 exit(errno);
             }
+            rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
             to_use = rpath;
         }
         size_t to_use_len = strlen(to_use);
@@ -1111,11 +1111,11 @@ bool mace_Target_Source_Add(struct Target *target, char *token) {
     /* - Expand path - */
     char *rpath = calloc(PATH_MAX, sizeof(*target->_argv_sources));
     rpath = realpath(arg, rpath);
-    rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
     if (rpath == NULL) {
         fprintf(stderr, "realpath error : %s\n", strerror(errno));
         exit(errno);
     }
+    rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
     target->_argv_sources[target->_argc_sources++] = rpath;
     free(arg);
     return (excluded);
