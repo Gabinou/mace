@@ -68,9 +68,9 @@ Some default behaviour of the convenience executable can be customized, see `ins
 - No build systems for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
     - Proof 2: Modern programming languages devs implement their own build systems.
-    - Proof 3: Ask random C/C++ developers about `make`, `Cmake`, etc.
+    - Proof 3: Ask random C/C++ developers about `make`, `CMake`, etc.
 - Most if not all build systems have obtuse syntax, scale terribly to larger projects.
-    - Makefiles makers exist (premake, autoconf/autotools) and compound this issue.
+    - Makefiles makers exist (`premake`, `autoconf`/`autotools`) and compound this issue.
     - Mix of imperative and declarative style, terrible.
     - Personal experience: homemade `makefile` need constant updates and break in unexpected ways if the project structure changes slightly.
 - Build systems are general-purpose and complex.
@@ -92,5 +92,6 @@ Some default behaviour of the convenience executable can be customized, see `ins
 
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
-- sha1dc checksum algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
+- Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
+- Argument parser [parg](https://github.com/jibsen/parg)
 
