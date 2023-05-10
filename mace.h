@@ -4541,7 +4541,7 @@ int parg_zgetopt_long(struct parg_state * ps, int argc, char * const argv[], con
 /* list of parg options to be parsed, with usage */
 static struct parg_opt longopts[] = {
     // {NULL,          PARG_NOARG,  0,  0,  NULL,   "Debug options:"},
-    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build all targets"},
+    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build all targets (ignored if target is 'clean')"},
     {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else."},
     {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
     {"file",        PARG_REQARG, 0, 'f', "FILE", "Specify input macefile (defaults to macefile.c)"},
@@ -4555,37 +4555,98 @@ static struct parg_opt longopts[] = {
 
 struct Mace_Arguments {
     uint64_t target;
+    int reserved_target;
+    uint64_t skip;
+    char *macefile;
+    int jobs;
+    bool debug;
+    bool silent;
+    bool dry_run;
 };
 
+struct Mace_Arguments Mace_Arguments_default = {
+    .target   = 0,
+    .reserved_target = -1,
+    .jobs     = 1,
+    .macefile = NULL,
+    .debug    = false,
+    .silent   = false,
+    .dry_run  = false,
+};
+
+void Mace_Arguments_Free(struct Mace_Arguments * args) {
+    if (args->macefile != NULL) {
+        free(args->macefile);
+        args->macefile = NULL;
+    }
+}
 
 struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
-    struct Mace_Arguments out_args = {0};
+    struct Mace_Arguments out_args = Mace_Arguments_default;
     struct parg_state ps = parg_state_default;
     int *longindex;
     int c;
     while ((c = parg_getopt_long(&ps, argc, argv, "BC:df:hj:no:sv", longopts, longindex)) != -1) {
         switch (c) {
             case 1:
-                printf("target '%s' \n", ps.optarg);
+                if (strcmp(ps.optarg, MACE_CLEAN) == 0) {
+                    out_args.reserved_target = MACE_CLEAN_I;
+                } else if (strcmp(ps.optarg, MACE_ALL) == 0) {
+                    out_args.reserved_target = MACE_ALL_I;
+                }
                 out_args.target = mace_hash(ps.optarg);
                 break;
+            case 'B':
+                if (out_args.reserved_target > 0) {
+                    out_args.reserved_target = MACE_ALL_I;
+                }
+                exit(0);
+                break;
+            case 'C':
+                assert(chdir(ps.optarg) == 0);
+                break;
+            case 'd':
+                out_args.debug      = true;
+                break;
+            case 'f': {
+                size_t len = strlen(ps.optarg);
+                out_args.macefile = calloc(len + 1, sizeof(*out_args.macefile));
+                strncpy(out_args.macefile, ps.optarg, len);
+                break;
+            }
             case 'h':
                 mace_parg_usage(argv[0], longopts);
                 exit(0);
                 break;
+            case 'j':
+                out_args.jobs       = atoi(ps.optarg);
+                break;
+            case 'n':
+                out_args.dry_run    = true;
+                break;
+            case 'o':
+                out_args.skip       = mace_hash(ps.optarg);
+                break;
+            case 's':
+                out_args.silent     = true;
+                break;
             case 'v':
                 printf("mace version %s\n", MACE_VER_STRING);
                 exit(0);
-//             case '?':
-//                 if (ps.optopt == 's') {
-//                     printf("option -s/--state requires an argument\n");
-//                 } else if (ps.optopt == 'm') {
-//                     printf("option -m/--map requires an argument\n");
-//                 } else {
-//                     printf("unknown option -%c\n", ps.optopt);
-//                 }
-//                 exit(ERROR_Generic);
-//                 break;
+            case '?':
+                if (ps.optopt == 'C') {
+                    printf("option -C/--directory requires an argument\n");
+                } else if (ps.optopt == 'o') {
+                    printf("option -o/--old-file requires an argument\n");
+                } else if (ps.optopt == 'j') {
+                    printf("option -j/--jobs requires an argument\n");
+                } else if (ps.optopt == 'f') {
+                    printf("option -f/--file requires an argument\n");
+                } else {
+                    printf("unknown option -%c\n", ps.optopt);
+                }
+                exit(EPERM);
+                break;
             default:
                 printf("error: unhandled option -%c\n", c);
                 exit(EPERM);
@@ -4614,7 +4675,7 @@ int main(int argc, char *argv[]) {
     printf("START\n");
     
     /* --- Parse user arguments --- */
-    mace_parse_args(argc, argv);
+    struct Mace_Arguments args = mace_parse_args(argc, argv);
     
     /* --- Get cwd, alloc memory, set defaults. --- */
     mace_init();
@@ -4638,6 +4699,7 @@ int main(int argc, char *argv[]) {
 
     /* --- Finish --- */
     mace_free();
+    Mace_Arguments_Free(&args);
     printf("FINISH\n");
     return (0);
 }
