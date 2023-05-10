@@ -103,6 +103,7 @@ void test_object() {
 }
 
 void test_target() {
+    nourstest_true(target_num                           == 0);
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
