@@ -247,9 +247,6 @@ void test_target() {
 
     /* mace computing build order as a function of linking dependencies */
     struct Target AA = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
         .links              = "DD",
         .dependencies       = "EE",
         .kind               = MACE_EXECUTABLE,

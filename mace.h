@@ -260,7 +260,7 @@ void mace_build_targets();
 /* build order of all targets */
 void mace_targets_build_order();
 /* build order of target links */
-void mace_links_build_order(struct Target target, size_t *o_cnt);
+void mace_deps_links_build_order(struct Target target, size_t *o_cnt);
 
 /* --- mace_is --- */
 int mace_isWildcard(const char *str);
@@ -289,11 +289,16 @@ char cwd[MACE_CWD_BUFFERSIZE];
 
 /* -- Reserved targets hashes -- */
 uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
-uint64_t mace_default_target = 0;
+int mace_default_target = -1; /* [order] */
+int mace_user_target = -1; /* [order] */
 
-/* -- build order -- */
+/* -- build order for current target -- */
 size_t *restrict build_order         = NULL;
 size_t  build_order_num = 0;
+
+/* -- build order of all -- */
+size_t *restrict build_order_all = NULL;
+size_t  build_order_all_num = 0;
 
 /* -- list of targets added by user -- */
 struct Target  *restrict targets     = NULL;   /* [order] is as added by user */
@@ -562,6 +567,8 @@ void mace_grow_targets() {
     targets     = realloc(targets,     target_len * sizeof(*targets));
     // commands    = realloc(commands,    target_len * sizeof(*commands));
     build_order = realloc(build_order, target_len * sizeof(*build_order));
+    if (mace_default_target >= 0) 
+        build_order_all = realloc(build_order_all, target_len * sizeof(*build_order_all));
 }
 
 void mace_add_target(struct Target *target, char *name) {
@@ -583,6 +590,21 @@ void mace_add_target(struct Target *target, char *name) {
     if (++target_num >= target_len) {
         mace_grow_targets();
     }
+}
+
+// To compile default target:
+//  1- Compute build order starting from this target.
+//  2- Build all targets in `build_order` until default target is reached
+void mace_set_default_target(char *name) {
+    uint64_t hash = mace_hash(name);
+    for (int i = 0; i < target_num; i++){
+        if (hash == targets[i]._hash) {
+            mace_default_target = i;
+            break;
+        }
+    }
+    printf(stderr, "Default target not found. Exiting");
+    exit(EPERM);
 }
 
 /********************************* mace_hash **********************************/
@@ -1459,7 +1481,7 @@ int mace_hash_order(uint64_t hash) {
             order = i;
             break;
         }
-    }
+    } 
     return (order);
 }
 
@@ -1475,7 +1497,7 @@ void mace_build_order_add(size_t order) {
 
 /* - Depth first search through depencies - */
 // Builds all target dependencies before building target
-void mace_links_build_order(struct Target target, size_t *o_cnt) {
+void mace_deps_links_build_order(struct Target target, size_t *o_cnt) {
     /* o_cnt should never be geq to target_num */
     if ((*o_cnt) >= target_num)
         return;
@@ -1498,7 +1520,7 @@ void mace_links_build_order(struct Target target, size_t *o_cnt) {
 
         size_t next_target_order = mace_hash_order(target._deps_links[target._d_cnt]);
         /* Recursively search target's next dependency -> depth first search */
-        mace_links_build_order(targets[next_target_order], o_cnt);
+        mace_deps_links_build_order(targets[next_target_order], o_cnt);
     }
 
     /* Target already in build order, skip */
@@ -1553,11 +1575,18 @@ void mace_targets_build_order() {
         mace_build_order_add(0);
         return;
     }
-
-    /* Visit all targets */
-    while (o_cnt < target_num) {
-        mace_links_build_order(targets[o_cnt], &o_cnt);
-        o_cnt++;
+    
+    mace_isTargetinBuildOrder(order)
+    if (mace_default_target >= 0) {
+        /* Build dependencies of default target, and itself only */
+        o_cnt = mace_default_target;
+        mace_deps_links_build_order(targets[o_cnt], &o_cnt);
+    } else {
+        /* Visit all targets */
+        while (o_cnt < target_num) {
+            mace_deps_links_build_order(targets[o_cnt], &o_cnt);
+            o_cnt++;
+        }
     }
 }
 
@@ -1632,7 +1661,7 @@ void mace_post_build_order() {
     }
 }
 
-void mace_post_user() {
+void mace_post_user(struct Mace_Arguments args) {
     // Checks that user:
     //   1- Set compiler,
     //   2- Added at least one target,
@@ -1656,6 +1685,15 @@ void mace_post_user() {
         fprintf(stderr, "Circular dependency in linked library detected. Exiting\n");
         exit(ENXIO);
     }
+
+    /* Check which target user wants to compile */
+    if (args.target > 0) { 
+        mace_user_target = mace_hash_order(args.target_hash);
+        if (mace_user_target == -1) {
+            printf(stderr, "Target '%s' not found. Exiting." args.target);
+            exit(EPERM);
+        }
+    }
 }
 
 
@@ -1670,9 +1708,6 @@ void mace_init() {
     mace_reserved_targets[MACE_CLEAN_I] = mace_hash(MACE_CLEAN);
     mace_reserved_targets[MACE_ALL_I]   = mace_hash(MACE_ALL);
 
-    /* --- Default target --- */
-    mace_default_target = mace_reserved_targets[MACE_CLEAN_I];
-    
     /* --- Memory allocation --- */
     target_len      = MACE_DEFAULT_TARGET_LEN;
     object_len      = MACE_DEFAULT_OBJECT_LEN;
@@ -1682,6 +1717,7 @@ void mace_init() {
     targets     = calloc(target_len, sizeof(*targets));
     // commands    = calloc(target_len, sizeof(*commands));
     build_order = calloc(target_len, sizeof(*build_order));
+    build_order_all = calloc(target_len, sizeof(*build_order_all));
 
     /* --- Default output folders --- */
     mace_set_build_dir("build/");
@@ -1720,9 +1756,15 @@ void mace_free() {
         free(build_order);
         build_order = NULL;
     }
-    target_num      = 0;
-    object_len      = 0;
-    build_order_num = 0;
+    if (build_order_all != NULL) {
+        free(build_order_all);
+        build_order_all = NULL;
+    }
+
+    target_num              = 0;
+    object_len              = 0;
+    build_order_num         = 0;
+    build_order_all_num = 0;
 }
 
 void mace_Target_Deps_Grow(struct Target *target) {
@@ -4538,7 +4580,8 @@ static struct parg_opt longopts[] = {
 };
 
 struct Mace_Arguments {
-    uint64_t target;
+    char * target;
+    uint64_t target_hash;
     int reserved_target;
     uint64_t skip;
     char *macefile;
@@ -4578,7 +4621,8 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 } else if (strcmp(ps.optarg, MACE_ALL) == 0) {
                     out_args.reserved_target = MACE_ALL_I;
                 }
-                out_args.target = mace_hash(ps.optarg);
+                out_args.target = ps.optarg;
+                out_args.target_hash = mace_hash(ps.optarg);
                 break;
             case 'B':
                 if (out_args.reserved_target > 0) {
@@ -4660,7 +4704,7 @@ int main(int argc, char *argv[]) {
     
     /* --- Parse user arguments --- */
     struct Mace_Arguments args = mace_parse_args(argc, argv);
-    
+
     /* --- Get cwd, alloc memory, set defaults. --- */
     mace_init();
 
@@ -4669,7 +4713,7 @@ int main(int argc, char *argv[]) {
     mace(argc, argv);
 
     /* --- Post-user checks: compiler set, at least one target exists. --- */
-    mace_post_user();
+    mace_post_user(args);
 
     /* --- Make output directories. --- */
     mace_mkdir(obj_dir);
