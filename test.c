@@ -143,7 +143,6 @@ void test_target() {
 
     /* cleanup so that mace doesn't build targets */
     mace_free();
-    target_num = 0;
     mace_init();
 
     /* mace computing build order as a function of linking dependencies */
@@ -163,6 +162,13 @@ void test_target() {
         .kind               = MACE_EXECUTABLE,
     };
 
+    struct Target C = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
     struct Target D = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
@@ -171,12 +177,6 @@ void test_target() {
         .kind               = MACE_EXECUTABLE,
     };
 
-    struct Target C = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
 
     struct Target E = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -243,7 +243,111 @@ void test_target() {
     nourstest_true(build_order[target_num - 1] == A_order);
 
     mace_free();
-    target_num = 0; /* cleanup so that mace doesn't build targets */
+    mace_init();
+
+    /* mace computing build order as a function of linking dependencies */
+    struct Target AA = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "DD",
+        .dependencies       = "EE",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target BB = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "AA CC DD",
+        .dependencies       = "AA CC DD",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target CC = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target DD = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .dependencies       = "FF GG",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target EE = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "GG",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target FF = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target GG = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    MACE_ADD_TARGET(BB);
+    MACE_ADD_TARGET(EE);
+    MACE_ADD_TARGET(GG);
+    MACE_ADD_TARGET(CC);
+    MACE_ADD_TARGET(FF);
+    MACE_ADD_TARGET(AA);
+    MACE_ADD_TARGET(DD);
+    nourstest_true(target_num == 7);
+    nourstest_true(strcmp(targets[0]._name, "BB") == 0);
+    nourstest_true(strcmp(targets[1]._name, "EE") == 0);
+    nourstest_true(strcmp(targets[2]._name, "GG") == 0);
+    nourstest_true(strcmp(targets[3]._name, "CC") == 0);
+    nourstest_true(strcmp(targets[4]._name, "FF") == 0);
+    nourstest_true(strcmp(targets[5]._name, "AA") == 0);
+    nourstest_true(strcmp(targets[6]._name, "DD") == 0);
+
+    nourstest_true(targets[0]._hash == mace_hash("BB"));
+    nourstest_true(targets[1]._hash == mace_hash("EE"));
+    nourstest_true(targets[2]._hash == mace_hash("GG"));
+    nourstest_true(targets[3]._hash == mace_hash("CC"));
+    nourstest_true(targets[4]._hash == mace_hash("FF"));
+    nourstest_true(targets[5]._hash == mace_hash("AA"));
+    nourstest_true(targets[6]._hash == mace_hash("DD"));
+
+    nourstest_true(targets[0]._deps_links[0] == mace_hash("AA"));
+    nourstest_true(targets[0]._deps_links[1] == mace_hash("CC"));
+    nourstest_true(targets[0]._deps_links[2] == mace_hash("DD"));
+
+    mace_targets_build_order(targets, target_num);
+    assert(build_order != NULL);
+
+    // /* Print build order names */
+    // for (int i = 0; i < target_num; ++i) {
+    //     printf("%s ",  targets[build_order[i]]._name);
+    // }
+    // printf("\n");
+
+    /* A should be compiled last, has the most dependencies */
+    uint64_t BB_hash = mace_hash("BB");
+    int BB_order     = mace_hash_order(BB_hash);
+    assert(BB_order >= 0);
+
+    nourstest_true(target_num == 7);
+    nourstest_true(build_order[0]);
+    nourstest_true(build_order[target_num - 1] == BB_order);
+
+    mace_free();
 }
 
 void test_circular() {
@@ -626,10 +730,6 @@ void test_separator() {
     nourstest_true(WEXITSTATUS(status) == 0);
 }
 
-void test_links() {
-    // test LINKS and DEPENDENCIES
-}
-
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     MACE_SET_COMPILER(gcc);
@@ -642,7 +742,6 @@ int mace(int argc, char *argv[]) {
     nourstest_run("argv ",      test_argv);
     nourstest_run("post_user ", test_post_user);
     nourstest_run("separator ", test_separator);
-    // nourstest_run("links ",     test_links);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
