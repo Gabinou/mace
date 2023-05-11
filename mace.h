@@ -73,7 +73,7 @@ struct Command;
 // - MACE_ADD_COMMAND will add command to run before next target.
 //  - ONE command per build_order.
 #define MACE_ADD_COMMAND(command) mace_add_command(&command, #command, target_num)
-void mace_add_command(struct Command *command, char *name, int build_order);
+void mace_add_command(struct Command *restrict command, char *restrict name, int build_order);
 
 /* --- Targets --- */
 struct Target;
@@ -132,36 +132,36 @@ struct Target {
 
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
     /* --- all targets ---  */
-    char      *restrict _name;              /* target name set by user                 */
+    char *restrict _name;          /* target name set by user                 */
     uint64_t   _hash;              /* target name hash,                       */
     int        _order;             /* target order added by user              */
     /* --- all targets ---  */
 
     /* --- This is only for targets with compilation ---  */
-    char      **restrict _argv;             /* buffer for argv to exec build commands  */
+    char **restrict _argv;         /* buffer for argv to exec build commands  */
     int         _argc;             /* number of arguments in argv             */
     int         _arg_len;          /* alloced len of argv                     */
-    char      **restrict _argv_includes;    /* includes, in argv form                  */
+    char **restrict _argv_includes;/* includes, in argv form                  */
     int         _argc_includes;    /* number of arguments in argv_includes    */
-    char      **restrict _argv_links;       /* linked libraries, in argv form          */
+    char **restrict _argv_links;   /* linked libraries, in argv form          */
     int         _argc_links;       /* number of arguments in argv_links       */
-    char      **restrict _argv_flags;       /* user flags, in argv form                */
+    char **restrict _argv_flags;   /* user flags, in argv form                */
     int         _argc_flags;       /* number of arguments in argv_flags       */
 
-    char      **restrict _argv_sources;     /* sources, in argv form                   */
+    char **restrict _argv_sources; /* sources, in argv form                   */
     int         _argc_sources;     /* number of arguments in argv_sources     */
     int         _len_sources;      /* alloc len of arguments in argv_sources  */
 
-    uint64_t   *restrict _argv_objects_hash;/* sources, in argv form                   */
-    int        *restrict _argv_objects_cnt; /* sources, in argv form                   */
+    uint64_t *restrict _argv_objects_hash;/* sources, in argv form            */
+    int *restrict _argv_objects_cnt; /* sources, in argv form                 */
     int         _argc_objects_hash;/* number of arguments in argv_sources     */
-    char      **restrict _argv_objects;     /* sources, in argv form                   */
+    char **restrict _argv_objects; /* sources, in argv form                   */
     int         _argc_objects;     /* number of arguments in argv_sources     */
     int         _len_objects;      /* alloc len of arguments in argv_sources  */
     /* --- This is only for targets with compilation ---  */
 
     /* --- This is only for targets with dependencies ---  */
-    uint64_t  *restrict _deps_links;        /* target or libs hashes                   */
+    uint64_t *restrict _deps_links;/* target or libs hashes                  */
     size_t     _deps_links_num;    /* target or libs hashes                   */
     size_t     _deps_links_len;    /* target or libs hashes                   */
     size_t     _d_cnt;             /* dependency count, for build order       */
@@ -188,8 +188,8 @@ struct Command {
 
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
-    char       *_name;             /* target name set by user                 */
-    char      **_argv;             /* buffer for argv to exec build commands  */
+    char  *restrict _name;         /* target name set by user                 */
+    char **restrict _argv;         /* buffer for argv to exec build commands  */
     int         _argc;             /* number of arguments in argv             */
     int         _arg_len;          /* alloced len of argv                     */
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
@@ -249,59 +249,59 @@ uint64_t mace_hash(const char *str);
 /* --- mace_utils --- */
 /* -- str -- */
 char  *mace_str_buffer(const char *const strlit);
-char  *mace_str_copy(char *restrict buffer, const char *str);
+char  *mace_str_copy(char *restrict buffer, const char *restrict str);
 
 /* -- argv -- */
-char **mace_argv_flags(int *len, int *argc, char **argv, const char *includes,
-                       const char *flag, bool path);
+char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
+                       const char *restrict includes, const char *restrict flag, bool path);
 
-char **mace_argv_grow(char **argv, int *argc, int *arg_len);
-void   mace_argv_free(char **argv, int argc);
+char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict arg_len);
+void   mace_argv_free(char **restrict argv, int argc);
 
 /* --- mace_setters --- */
 char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
 
 /* --- mace_Target --- */
-void mace_add_target(struct Target   *target,  char *name);
-void mace_add_command(struct Command *command, char *name, int build_order);
+void mace_add_target(struct Target   *restrict target,  char *restrict name);
+void mace_add_command(struct Command *restrict command, char *restrict name, int build_order);
 
 /* -- Command OOP -- */
 void mace_Command_Free(struct Command       *command);
 void mace_Command_Free_argv(struct Command  *command);
 
 /* -- Target OOP -- */
-void mace_Target_Free(struct Target              *target);
-bool mace_Target_hasDep(struct Target            *target, uint64_t hash);
-void mace_Target_compile(struct Target           *target);
-void Target_Free_notargv(struct Target           *target);
-void mace_Target_Free_argv(struct Target         *target);
-void mace_Target_Deps_Hash(struct Target         *target);
-void mace_Target_argv_init(struct Target         *target);
-void mace_Target_argv_grow(struct Target         *target);
-bool mace_Target_Source_Add(struct Target        *target, char    *token);
-void mace_Target_Object_Add(struct Target        *target, char    *token);
-void mace_Target_Parse_User(struct Target        *target);
-void mace_Target_argv_allatonce(struct Target    *target);
-void mace_Target_compile_allatonce(struct Target *target);
+void mace_Target_Free(struct Target                *target);
+bool mace_Target_hasDep(struct Target              *target, uint64_t hash);
+void mace_Target_compile(struct Target             *target);
+void Target_Free_notargv(struct Target             *target);
+void mace_Target_Free_argv(struct Target           *target);
+void mace_Target_Deps_Hash(struct Target           *target);
+void mace_Target_argv_init(struct Target           *target);
+void mace_Target_argv_grow(struct Target           *target);
+bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token);
+void mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
+void mace_Target_Parse_User(struct Target          *target);
+void mace_Target_argv_allatonce(struct Target      *target);
+void mace_Target_compile_allatonce(struct Target   *target);
 
 /* --- mace_glob --- */
 int     mace_globerr(const char *path, int eerrno);
 glob_t  mace_glob_sources(const char *path);
 
 /* --- mace_exec --- */
-pid_t mace_exec(const char *exec, char *const arguments[]);
+pid_t mace_exec(const char *restrict exec, char *const arguments[]);
 void  mace_wait_pid(int pid);
 
 /* --- mace_build --- */
 /* -- linking -- */
-void mace_link_static_library(char *target, char **av_o, int ac_o);
-void mace_link_dynamic_library(char *target, char *objects);
-void mace_link_executable(char *target, char **av_o, int ac_o, char **av_l,
-                          int ac_l, char **av_f, int ac_f);
+void mace_link_static_library(char  *restrict target, char **restrict av_o, int ac_o);
+void mace_link_dynamic_library(char *restrict target, char *restrict objects);
+void mace_link_executable(char *restrict target, char **restrict av_o, int ac_o,
+                          char **restrict av_l,int ac_l, char **restrict av_f, int ac_f);
 
 /* -- compiling object files -> .o -- */
-void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags);
+void mace_compile_glob(struct Target *restrict target, char *restrict globsrc, const char *restrict flags);
 void mace_build_targets();
 
 /* -- build_order -- */
@@ -340,24 +340,24 @@ uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
 uint64_t mace_default_target = 0;
 
 /* -- build order -- */
-size_t *build_order     = NULL;
+size_t *restrict build_order         = NULL;
 size_t  build_order_num = 0;
 
 /* -- list of commands added by user -- */
-struct Command *commands    = NULL;   /* [order] is as added by user      */
+struct Command *restrict commands    = NULL;   /* [order] is as added by user */
 
 /* -- list of targets added by user -- */
-struct Target  *targets    = NULL;   /* [order] is as added by user      */
+struct Target  *restrict targets     = NULL;   /* [order] is as added by user */
 size_t          target_num = 0;
 size_t          target_len = 0;
 
 /* -- buffer to write object -- */
-char           *object     = NULL;
+char           *restrict object      = NULL;
 size_t          object_len = 0;
 
 /* -- directories -- */
-char           *obj_dir    = NULL;   /* intermediary .o files            */
-char           *build_dir  = NULL;   /* linked libraries, executables    */
+char           *restrict obj_dir     = NULL;   /* intermediary .o files       */
+char           *restrict build_dir   = NULL;   /* linked libraries, execs*/
 
 /* -- mace_globals control -- */
 void mace_object_grow();
@@ -670,7 +670,7 @@ char *mace_set_build_dir(char *build) {
     return (build_dir = mace_str_copy(build_dir, build));
 }
 
-char *mace_str_copy(char *restrict buffer, const char *str) {
+char *mace_str_copy(char *restrict buffer, const char *restrict str) {
     if (buffer != NULL)
         free(buffer);
     size_t len  = strlen(str);
@@ -692,7 +692,7 @@ void argv_free(int argc, char **argv) {
     argv = NULL;
 }
 
-char **argv_grows(int *len, int *argc, char **argv) {
+char **argv_grows(int *restrict len, int *restrict argc, char **restrict argv) {
     if ((*argc) >= (*len)) {
         (*len) *= 2;
         argv = realloc(argv, (*len) * sizeof(*argv));
@@ -710,8 +710,8 @@ void mace_argv_free(char **argv, int argc) {
     free(argv);
 }
 
-char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, 
-                       const char *flag, bool path) {
+char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
+                       const char *restrict user_str, const char *restrict flag, bool path) {
     assert(argc != NULL);
     assert(len != NULL);
     assert((*len) > 0);
@@ -809,7 +809,7 @@ void mace_Target_argv_grow(struct Target *target) {
 }
 
 
-char **mace_argv_grow(char **argv, int *argc, int *arg_len) {
+char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict arg_len) {
     if (*argc >= *arg_len) {
         (*arg_len) *= 2;
         argv = realloc(argv, *arg_len * sizeof(*argv));
@@ -954,7 +954,7 @@ void mace_exec_print(char *const arguments[], size_t argnum) {
     printf("\n");
 }
 
-pid_t mace_exec(const char *exec, char *const arguments[]) {
+pid_t mace_exec(const char *restrict exec, char *const arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
         fprintf(stderr, "Error: forking issue.\n");
@@ -990,11 +990,11 @@ void mace_wait_pid(int pid) {
 
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
-void mace_link_static_library(char *target, char **argv_objects, int argc_objects) {
+void mace_link_static_library(char *restrict target, char **restrict argv_objects, int argc_objects) {
     vprintf("Linking \t%s \n", target);
     int arg_len = 8;
     int argc = 0;
-    char **argv = calloc(arg_len, sizeof(*argv));
+    char **argv         = calloc(arg_len, sizeof(*argv));
 
     argv[argc++] = ar;
     /* --- Adding -rcs flag --- */
@@ -1023,8 +1023,9 @@ void mace_link_static_library(char *target, char **argv_objects, int argc_object
 }
 
 
-void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links,
-                          int argc_links, char **argv_flags, int argc_flags) {
+void mace_link_executable(char *restrict target, char **restrict argv_objects, int argc_objects,
+                          char **restrict argv_links, int argc_links,
+                          char **restrict argv_flags, int argc_flags) {
     vprintf("Linking \t%s \n", target);
 
     int arg_len = 8;
@@ -1081,7 +1082,7 @@ void mace_link_executable(char *target, char **argv_objects, int argc_objects, c
     free(argv);
 }
 
-void mace_link_dynamic_library(char *target, char *objects) {
+void mace_link_dynamic_library(char *restrict target, char *restrict objects) {
     // NOTE: -fPIC is needed on all object files in a shared library
     // command: gcc -shared -fPIC ...
     //
@@ -1147,7 +1148,7 @@ int Target_hasObjectHash(struct Target *target, uint64_t hash) {
     return (-1);
 }
 
-void mace_Target_Object_Add(struct Target *target, char *token) {
+void mace_Target_Object_Add(struct Target *restrict target, char *restrict token) {
     if (target->_argv_objects == NULL) {
         target->_len_objects = 8;
         target->_argv_objects = calloc(target->_len_objects, sizeof(*target->_argv_objects));
@@ -1204,7 +1205,7 @@ void mace_Target_Object_Add(struct Target *target, char *token) {
     target->_argv_objects[target->_argc_objects++] = arg;
 }
 
-bool mace_Target_Source_Add(struct Target *target, char *token) {
+bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token) {
     bool excluded = false;
 
     if (target->_argv_sources == NULL) {
@@ -1239,7 +1240,7 @@ bool mace_Target_Source_Add(struct Target *target, char *token) {
 
 
 /* Compile globbed files to objects */
-void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags) {
+void mace_compile_glob(struct Target *restrict target, char *restrict globsrc, const char *restrict flags) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
         assert(mace_isSource(globbed.gl_pathv[i]));
@@ -1657,27 +1658,27 @@ void Target_Free_notargv(struct Target *target) {
 
 void mace_Target_Free_argv(struct Target *target) {
     mace_argv_free(target->_argv_includes, target->_argc_includes);
-    target->_argv_includes = NULL;
-    target->_argc_includes = 0;
+    target->_argv_includes  = NULL;
+    target->_argc_includes  = 0;
     mace_argv_free(target->_argv_sources, target->_argc_sources);
-    target->_argv_sources = NULL;
-    target->_argc_sources = 0;
+    target->_argv_sources   = NULL;
+    target->_argc_sources   = 0;
     mace_argv_free(target->_argv_links, target->_argc_links);
-    target->_argv_links = NULL;
-    target->_argc_links = 0;
+    target->_argv_links     = NULL;
+    target->_argc_links     = 0;
     mace_argv_free(target->_argv_flags, target->_argc_flags);
-    target->_argv_flags = NULL;
-    target->_argc_flags = 0;
+    target->_argv_flags     = NULL;
+    target->_argc_flags     = 0;
     mace_argv_free(target->_argv_sources, target->_argc_sources);
-    target->_argv_sources = NULL;
-    target->_argc_sources = 0;
+    target->_argv_sources   = NULL;
+    target->_argc_sources   = 0;
     mace_argv_free(target->_argv_objects, target->_argc_objects);
-    target->_argv_objects = NULL;
-    target->_argc_objects = 0;
+    target->_argv_objects   = NULL;
+    target->_argc_objects   = 0;
     free(target->_argv_objects_cnt);
-    target->_argv_objects_cnt = NULL;
+    target->_argv_objects_cnt   = NULL;
     free(target->_argv_objects_hash);
-    target->_argv_objects_hash = NULL;
+    target->_argv_objects_hash  = NULL;
     if ((target->_argv != NULL) && (target->_argc > 0))  {
         if (target->_argv[target->_argc - 1] != NULL) {
             free(target->_argv[target->_argc - 1]);
