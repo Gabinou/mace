@@ -48,11 +48,7 @@ extern int mace(int argc, char *argv[]);
 *           MACE FUNCTION             /
 * int mace(int argc, char *argv[]) {  /
 *   MACE_SET_COMPILER(gcc);           /
-*   MACE_ADD_COMMAND(before_foo1);    /
 *   MACE_ADD_TARGET(foo1);            /
-*   MACE_ADD_COMMAND(after_foo1);     /
-*   MACE_ADD_TARGET(foo2);            /
-*   MACE_ADD_COMMAND(after_foo2);     /
 * };                                  /
 /*-----------------------------------*/
 
@@ -67,13 +63,6 @@ char *mace_set_build_dir(char *build);
 
 /* -- Separator -- */
 void mace_set_separator(char *sep);
-
-/* --- Commands --- */
-struct Command;
-// - MACE_ADD_COMMAND will add command to run before next target.
-//  - ONE command per build_order.
-#define MACE_ADD_COMMAND(command) mace_add_command(&command, #command, target_num)
-void mace_add_command(struct Command *restrict command, char *restrict name, int build_order);
 
 /* --- Targets --- */
 struct Target;
@@ -170,32 +159,6 @@ struct Target {
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
 };
 
-/******************************* COMMAND STRUCT *******************************/
-struct Command {
-    /*---------------------------- PUBLIC MEMBERS ----------------------------*/
-    char *commands;                 /* commands string, split commands with &&*/
-
-    /*-----------------------------------------------------------------*/
-    /*                            EXAMPLE                               /
-    /*                      COMMAND DEFINITION                          /
-    *                                                                   /
-    * struct Command mycommand = {                                      /
-    *     .command = "install -T foo    /usr/local/bin/foo &&"          /
-    *                "install -T mace.h /usr/local/include/mace.h"      /
-    * };                                                                /
-    * NOTE: command separator is "&&"                                   /
-    /*-----------------------------------------------------------------*/
-
-    /*---------------------------- PRIVATE MEMBERS ---------------------------*/
-    /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
-    char  *restrict _name;         /* target name set by user                 */
-    char **restrict _argv;         /* buffer for argv to exec build commands  */
-    int         _argc;             /* number of arguments in argv             */
-    int         _arg_len;          /* alloced len of argv                     */
-    /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
-};
-
-
 /*----------------------------------------------------------------------------*/
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
@@ -264,11 +227,6 @@ char *mace_set_build_dir(char  *build);
 
 /* --- mace_Target --- */
 void mace_add_target(struct Target   *restrict target,  char *restrict name);
-void mace_add_command(struct Command *restrict command, char *restrict name, int build_order);
-
-/* -- Command OOP -- */
-void mace_Command_Free(struct Command       *command);
-void mace_Command_Free_argv(struct Command  *command);
 
 /* -- Target OOP -- */
 void mace_Target_Free(struct Target                *target);
@@ -342,9 +300,6 @@ uint64_t mace_default_target = 0;
 /* -- build order -- */
 size_t *restrict build_order         = NULL;
 size_t  build_order_num = 0;
-
-/* -- list of commands added by user -- */
-struct Command *restrict commands    = NULL;   /* [order] is as added by user */
 
 /* -- list of targets added by user -- */
 struct Target  *restrict targets     = NULL;   /* [order] is as added by user */
@@ -611,15 +566,8 @@ extern int parg_getopt_long(struct parg_state * ps, int c, char * const v[],
 void mace_grow_targets() {
     target_len *= 2;
     targets     = realloc(targets,     target_len * sizeof(*targets));
-    commands    = realloc(commands,    target_len * sizeof(*commands));
+    // commands    = realloc(commands,    target_len * sizeof(*commands));
     build_order = realloc(build_order, target_len * sizeof(*build_order));
-}
-
-void mace_add_command(struct Command *command, char *name, int build_order) {
-    if (build_order >= target_len)
-        mace_grow_targets();
-    commands[build_order]        = *command;
-    commands[build_order]._name  =  name;
 }
 
 void mace_add_target(struct Target *target, char *name) {
@@ -1382,41 +1330,41 @@ char *mace_str_buffer(const char *strlit) {
     return (buffer);
 }
 
-void mace_run_command(struct Command *command) {
-    if (command->commands == NULL)
-        return;
+// void mace_run_command(struct Command *command) {
+//     if (command->commands == NULL)
+//         return;
 
-    assert(chdir(cwd) == 0);
-    int len, bytesize;
+//     assert(chdir(cwd) == 0);
+//     int len, bytesize;
 
-    /* -- Copy sources into modifiable buffer -- */
-    char *buffer = mace_str_buffer(command->commands);
+//     /* -- Copy sources into modifiable buffer -- */
+//     char *buffer = mace_str_buffer(command->commands);
 
-    /* --- Split sources into tokens --- */
-    char *token = strtok(buffer, mace_command_separator);
-    do {
-        mace_Command_Free_argv(command);
+//     /* --- Split sources into tokens --- */
+//     char *token = strtok(buffer, mace_command_separator);
+//     do {
+//         mace_Command_Free_argv(command);
 
-        len = 8;
-        command->_argc = 0;
-        command->_argv = calloc(len, sizeof(*command->_argv));
-        command->_argv = mace_argv_flags(&len, &command->_argc, command->_argv,
-                                         token, NULL, false);
+//         len = 8;
+//         command->_argc = 0;
+//         command->_argv = calloc(len, sizeof(*command->_argv));
+//         command->_argv = mace_argv_flags(&len, &command->_argc, command->_argv,
+//                                          token, NULL, false);
 
-        if ((command->_argc + 1) < len) {
-            bytesize       = (command->_argc + 1) * sizeof(*command->_argv);
-            command->_argv = realloc(command->_argv, bytesize);
-        }
+//         if ((command->_argc + 1) < len) {
+//             bytesize       = (command->_argc + 1) * sizeof(*command->_argv);
+//             command->_argv = realloc(command->_argv, bytesize);
+//         }
 
-        mace_exec_print(command->_argv, command->_argc);
-        pid_t pid = mace_exec(command->_argv[0], command->_argv);
-        mace_wait_pid(pid);
+//         mace_exec_print(command->_argv, command->_argc);
+//         pid_t pid = mace_exec(command->_argv[0], command->_argv);
+//         mace_wait_pid(pid);
 
-        token = strtok(NULL, mace_command_separator);
-    } while (token != NULL);
+//         token = strtok(NULL, mace_command_separator);
+//     } while (token != NULL);
 
-    free(buffer);
-}
+//     free(buffer);
+// }
 
 /******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
@@ -1622,27 +1570,15 @@ void mace_targets_build_order() {
 void mace_build_targets() {
     int z = 0;
     for (z = 0; z < build_order_num; z++) {
-        mace_run_command(&commands[z]);
+        // mace_run_command(&commands[z]);
         mace_build_target(&targets[build_order[z]]);
     }
-    mace_run_command(&commands[z]);
+    // mace_run_command(&commands[z]);
 }
 
 /*----------------------------------------------------------------------------*/
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
-
-void mace_Command_Free(struct Command *command) {
-    if (command == NULL)
-        return;
-    mace_Command_Free_argv(command);
-}
-
-void mace_Command_Free_argv(struct Command *command) {
-    mace_argv_free(command->_argv, command->_argc);
-    command->_argv = NULL;
-    command->_argc = 0;
-}
 
 void mace_Target_Free(struct Target *target) {
     Target_Free_notargv(target);
@@ -1750,7 +1686,7 @@ void mace_init() {
 
     object      = calloc(object_len, sizeof(*object));
     targets     = calloc(target_len, sizeof(*targets));
-    commands    = calloc(target_len, sizeof(*commands));
+    // commands    = calloc(target_len, sizeof(*commands));
     build_order = calloc(target_len, sizeof(*build_order));
 
     /* --- Default output folders --- */
@@ -1762,18 +1698,18 @@ void mace_free() {
     for (int i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
     }
-    for (int i = 0; i < target_num + 1; i++) {
-        mace_Command_Free(&commands[i]);
-    }
+    // for (int i = 0; i < target_num + 1; i++) {
+    //     mace_Command_Free(&commands[i]);
+    // }
 
     if (targets != NULL) {
         free(targets);
         targets = NULL;
     }
-    if (commands != NULL) {
-        free(commands);
-        commands = NULL;
-    }
+    // if (commands != NULL) {
+    //     free(commands);
+    //     commands = NULL;
+    // }
     if (object != NULL) {
         free(object);
         object = NULL;
