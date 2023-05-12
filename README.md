@@ -1,29 +1,31 @@
 
 ## About
 
-Mace is a single-header build system for C, which uses C.
+Single-header build system for C.
+Uses C to exclusively build C.
 
 Specificity, reduced scope, everything in service of *simplicity*. 
 
 ## Features
 - C syntax.
     - Macefiles are `.c` files.
-    - Targets are `structs` (including phony/command targets). 
+    - Targets are `structs`. 
     - Function `mace` is user entry point.
 - Single header build system : `mace.h` is all you need.
     - Compiling macefile as easy as compiling `hello_world.c`, or easier!
     - Build project by running resulting executable.
-- Convenience executable for make-like behavior
+- Convenience executable for `make`-like behavior
     - Build and run macefile `installer.c` to install `mace` and `mace.h`
     - `mace macefile.c` to build!
 - Simple API
+- `make`-like interface
 
 ## Usage
 1. Get `mace.h`
 2. Write your own macefile e.g. `macefile.c`
 3. Compile builder executable `gcc macefile.c -o build`
 4. Build `./build` 
-    1. Same as `./build all` by default, change it with `MACE_DEFAULT_TARGET`
+    1. Same as `./build all` by default.
     2. Remove all objects and targets: `./build clean`
     3. Usage mostly the same as `make`
 
@@ -71,13 +73,14 @@ int mace(int argc, char *argv[]) {
 Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DPREFIX=\"<path>\"` to change install path. Defaults to `/usr/local`.
 - `-DDEFAULT_MACEFILE=\"<file>\"` to change default macefile name. Defaults to `macefile.c`.
+- `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
 
 ## Why?
 - To build my personal C projects with.
     - Tried: make, premake, please, cmake...
     - Couldn't find anything that uses C to build C.
-- I want it simple.
-    - I'm dumb. Complexity bad. Simplicity good.
+- I want it simple to use, with simple internals.
+    - Complexity bad. Simplicity good.
 - No well known build system for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
     - Proof 2: Modern programming languages devs implement their own build systems: Rust, Zig, Go, etc.

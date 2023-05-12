@@ -16,24 +16,24 @@
     #define CC gcc
 #endif
 
+/* -- Default macefile. -- */
+#ifndef DEFAULT_MACEFILE
+    #define DEFAULT_MACEFILE "macefile.c"
+#endif /* DEFAULT_MACEFILE */
+
 /* -- Name of the builder executable to compile macefile into. -- */
 #ifndef BUILDER
     #define BUILDER build
 #endif
 
 int main(int argc, char *argv[]) {
-    /* -- Inputs only one argument: a macefile -- */
-    printf("CC %s\n", MACE_STRINGIFY(CC));
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <file> -CC <compiler>\n", argv[0]);
-        return EPERM;
-    }
+    /* -- Parse inputs -- */
+    struct Mace_Arguments args = mace_parse_args(argc, argv);
 
-    /* -- TODO: Get argv compiler -- */
-    /* -- TODO: Get argv target -- */
-
+    /* -- Build argv -- */
+    
+    
     /* -- Compile the macefile -- */
-    char *argv_compile[] = {MACE_STRINGIFY(CC), argv[1], "-o", MACE_STRINGIFY(BUILDER)};
     pid_t pid = mace_exec(MACE_STRINGIFY(CC), argv_compile);
     mace_wait_pid(pid);
 
