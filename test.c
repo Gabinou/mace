@@ -492,7 +492,7 @@ void test_argv() {
     nourstest_true(CodenameFiresaga._argc_flags == 0);
     nourstest_true(CodenameFiresaga._argc_links == 1);
     strncpy(buffer, "-I", 2);
-    strncpy(buffer+2, cwd, strlen(cwd));
+    strncpy(buffer + 2, cwd, strlen(cwd));
 
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[0],  buffer)                     == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[1],  "-Iinclude")                == 0);
@@ -743,7 +743,7 @@ int mace(int argc, char *argv[]) {
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
-        test_self_dependency();
+    test_self_dependency();
     printf("\n");
     printf("Tests done\n");
     return (0);
