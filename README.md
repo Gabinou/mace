@@ -53,16 +53,17 @@ int mace(int argc, char *argv[]) {
     MACE_SET_OBJ_DIR(obj);
 
     // Note: 'clean' and 'all' are reserved target names with expected behavior.
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
+    struct Target foo = { /* Unitialized values guaranteed to be 0 / NULL */
+        /* Default separator is ' ', but can be set with MACE_SET_SEPARATOR */
+        .includes           = "include include/sub/a.h",
+        .sources            = "src src/sub/*",
+        .base_dir           = "foo",
         .kind               = MACE_STATIC_LIBRARY,
     };
-    MACE_ADD_TARGET(tnecs);
+    MACE_ADD_TARGET(foo);
 
     // Change default target from 'all' to input.
-    MACE_DEFAULT_TARGET(tnecs);
+    MACE_DEFAULT_TARGET(foo);
 }
 
 ```

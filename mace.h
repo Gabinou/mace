@@ -70,9 +70,10 @@ char *mace_set_build_dir(char *build);
 #define MACE_SET_BUILD_DIR(dir) _MACE_SET_BUILD_DIR(dir)
 #define _MACE_SET_BUILD_DIR(dir) mace_set_build_dir(#dir)
 
-
 /* -- Separator -- */
 void mace_set_separator(char *sep);
+#define MACE_SET_SEPARATOR(sep) _MACE_SET_SEPARATOR(sep)
+#define _MACE_SET_SEPARATOR(sep) mace_set_separator(#sep)
 
 /* --- Targets --- */
 struct Target;
