@@ -26,7 +26,7 @@
 #endif /* PREFIX */
 /* -- Default macefile used by convenience executable -- */
 #ifndef DEFAULT_MACEFILE
-    #define DEFAULT_MACEFILE "macefile.c"
+    #define DEFAULT_MACEFILE macefile.c
 #endif /* DEFAULT_MACEFILE */
 /* -- Name of the builder executable to compile macefile into. -- */
 #ifndef BUILDER
