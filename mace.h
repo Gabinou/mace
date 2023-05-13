@@ -4640,7 +4640,7 @@ static struct parg_opt longopts[] = {
     {"old-file",    PARG_REQARG, 0, 'o', "FILE", "Skip target/file"},
     {"silent",      PARG_NOARG,  0, 's', NULL,   "Don't echo commands"},
     {"version",     PARG_NOARG,  0, 'v', NULL,   "display version and exit"},
-    {NULL,     PARG_NOARG,  0, NULL, NULL,   "Convenience executable options:"},
+    {NULL,          PARG_NOARG,  0,  0,  NULL,   "Convenience executable options:"},
     {"file",        PARG_REQARG, 0, 'f', "FILE", "Specify input macefile. Defaults to macefile.c)"},
 };
 
