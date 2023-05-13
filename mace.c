@@ -9,6 +9,7 @@
 *
 */
 
+#define MACE_CONVENCIENCE_EXECUTABLE
 #include "mace.h"
 
 /* -- Default compiler used by mace executable to compile macefiles. -- */
@@ -70,11 +71,11 @@ int main(int argc, char *argv[]) {
     pid_t pid = mace_exec(MACE_STRINGIFY(CC), argv_compile);
     mace_wait_pid(pid);
 
-    // /* --- Run the resulting executable --- */
-    // /* - Build argv_run - */
-    // char *argv_run[] = {MACE_STRINGIFY(BUILDER)};
+    /* --- Run the resulting executable --- */
+    /* - Build argv_run - */
+    char *argv_run[] = {"./"MACE_STRINGIFY(BUILDER), NULL};
 
-    // /* - Run it - */
-    // pid = mace_exec(MACE_STRINGIFY(BUILDER), argv_run);
-    // mace_wait_pid(pid);
+    /* - Run it - */
+    pid = mace_exec("./"MACE_STRINGIFY(BUILDER), argv_run);
+    mace_wait_pid(pid);
 }

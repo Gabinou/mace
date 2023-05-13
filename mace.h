@@ -974,6 +974,7 @@ pid_t mace_exec(const char *restrict exec, char *const arguments[]) {
         fprintf(stderr, "Error: forking issue.\n");
         exit(ENOENT);
     } else if (pid == 0) {
+        printf("NO ERROR: NO forking issue.\n");
         execvp(exec, arguments);
         exit(0);
     }

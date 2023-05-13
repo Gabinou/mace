@@ -9,6 +9,7 @@
 *
 */
 
+#define MACE_INSTALLER
 #include "mace.h"
 
 /* Compiler used to compile by 'mace' */
@@ -33,13 +34,6 @@
     #define BUILDER build
 #endif
 
-
-
-/******************************* WARNING ********************************/
-// 1. main is defined in mace.h                                         //
-// 2. arguments from main are passed to mace directly                   //
-// 3. mace function is declared in mace.h, MUST be implemented by user  //
-/*======================================================================*/
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC);
     MACE_SET_BUILD_DIR(BUILD_DIR);
@@ -51,7 +45,9 @@ int mace(int argc, char *argv[]) {
         .sources            = "mace.c",
         .kind               = MACE_EXECUTABLE,
         // Overrides main in mace.h with custom main.
-        .flags              = "-DMACE_OVERRIDE_MAIN -DCC="MACE_STRINGIFY(CC)" -DBUILDER="MACE_STRINGIFY(BUILDER)" -DDEFAULT_MACEFILE="MACE_STRINGIFY(DEFAULT_MACEFILE),
+        .flags              = "-DMACE_OVERRIDE_MAIN -DCC="MACE_STRINGIFY(CC)" "
+                              "-DBUILDER="MACE_STRINGIFY(BUILDER)" "
+                              "-DDEFAULT_MACEFILE="MACE_STRINGIFY(DEFAULT_MACEFILE),
         .command_post_build =
                 "install -T " MACE_STRINGIFY(BUILD_DIR) "/mace " MACE_STRINGIFY(PREFIX) "/bin/mace &&"
                 "install -T mace.h"          " " MACE_STRINGIFY(PREFIX) "/include/mace.h",
