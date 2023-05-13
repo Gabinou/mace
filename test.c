@@ -1046,6 +1046,21 @@ void test_build_order() {
     mace_user_target    = MACE_NULL_ORDER;  /* order */
 }
 
+void test_checksum() {
+    mace_init();
+    mace_set_obj_dir("obj");
+    char* allo = mace_checksum_filename("allo.c");
+    nourstest_true(strcmp(allo, "allo.sha1"));
+    free(allo);
+    allo = mace_checksum_filename("allo.h");
+    nourstest_true(strcmp(allo, "allo.sha1"));
+    free(allo);
+    allo = mace_checksum_filename("src/allo.h");
+    nourstest_true(strcmp(allo, "obj/allo.sha1"));
+    free(allo);
+    mace_free();
+}
+
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     MACE_SET_COMPILER(gcc);
@@ -1060,6 +1075,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("separator ",     test_separator);
     nourstest_run("parse_args ",    test_parse_args);
     nourstest_run("build_order ",   test_build_order);
+    nourstest_run("checksum ",      test_checksum);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
