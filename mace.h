@@ -48,6 +48,8 @@ extern int mace(int argc, char *argv[]);
 *           MACE FUNCTION             /
 * int mace(int argc, char *argv[]) {  /
 *   MACE_SET_COMPILER(gcc);           /
+*   MACE_SET_OBJ_DIR(obj);            /
+*   MACE_SET_BUILD_DIR(build);        /
 *   MACE_ADD_TARGET(foo1);            /
 * };                                  /
 /*-----------------------------------*/
@@ -57,9 +59,17 @@ extern int mace(int argc, char *argv[]);
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) cc = #compiler
 
-/* -- Directores -- */
+/* -- Directories -- */
+/* - obj_dir - */
 char *mace_set_obj_dir(char   *obj);
+#define MACE_SET_OBJ_DIR(dir) _MACE_SET_OBJ_DIR(dir)
+#define _MACE_SET_OBJ_DIR(dir) mace_set_obj_dir(#dir)
+
+/* - build_dir - */
 char *mace_set_build_dir(char *build);
+#define MACE_SET_BUILD_DIR(dir) _MACE_SET_BUILD_DIR(dir)
+#define _MACE_SET_BUILD_DIR(dir) mace_set_build_dir(#dir)
+
 
 /* -- Separator -- */
 void mace_set_separator(char *sep);
@@ -4607,6 +4617,10 @@ void Mace_Arguments_Free(struct Mace_Arguments * args) {
     if (args->macefile != NULL) {
         free(args->macefile);
         args->macefile = NULL;
+    }
+    if (args->target != NULL) {
+        free(args->target);
+        args->target = NULL;
     }
 }
 

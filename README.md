@@ -14,11 +14,14 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - Single header build system : `mace.h` is all you need.
     - Compiling macefile as easy as compiling `hello_world.c`, or easier!
     - Build project by running resulting executable.
-- Convenience executable for `make`-like behavior
+- Simple API
+    - Add target with `MACE_ADD_TARGET`
+    - Set compiler with `MACE_SET_COMPILER`
+    - Set output directories with `MACE_SET_BUILD_DIR`, `MACE_SET_OBJ_DIR`
+    - Set default target with `MACE_DEFAULT_TARGET`
+- Convenience executable for make-like behavior
     - Build and run macefile `installer.c` to install `mace` and `mace.h`
     - `mace macefile.c` to build!
-- Simple API
-- `make`-like interface
 
 ## Usage
 1. Get `mace.h`
@@ -34,7 +37,10 @@ Specificity, reduced scope, everything in service of *simplicity*.
 ```c
 #include "mace.h"
 
-#define CC gcc
+/* CC might be set when calling the compiler e.g. with "-DCC=tcc" */
+#ifndef CC
+    #define CC gcc
+#endif
 
 /******************************* WARNING ********************************/
 /* 1. main is defined in mace.h                                         */
@@ -43,8 +49,8 @@ Specificity, reduced scope, everything in service of *simplicity*.
 /*======================================================================*/
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC)
-    mace_set_build_dir("build");
-    mace_set_obj_dir("obj");
+    MACE_SET_BUILD_DIR(build);
+    MACE_SET_OBJ_DIR(obj);
 
     // Note: 'clean' and 'all' are reserved target names with expected behavior.
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -71,8 +77,8 @@ int mace(int argc, char *argv[]) {
     2. Usage mostly the same as `make`
 
 Use these macro definitions when compiling `installer` to customize `mace`:
-- `-DPREFIX=\"<path>\"` to change install path. Defaults to `/usr/local`.
-- `-DDEFAULT_MACEFILE=\"<file>\"` to change default macefile name. Defaults to `macefile.c`.
+- `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
+- `-DDEFAULT_MACEFILE=<file>` to change default macefile name. Defaults to `macefile.c`.
 - `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
 
 ## Why?
