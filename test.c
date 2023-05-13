@@ -556,6 +556,7 @@ void test_post_user() {
         .kind               = MACE_STATIC_LIBRARY,
     };
     MACE_ADD_TARGET(tnecs);
+    struct Mace_Arguments args;
 
     pid = fork();
     if (pid < 0) {
@@ -566,7 +567,7 @@ void test_post_user() {
         int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
-        mace_post_user();
+        mace_post_user(args);
         close(fd);
         exit(0);
     }
@@ -584,7 +585,7 @@ void test_post_user() {
         int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
-        mace_post_user();
+        mace_post_user(args);
         close(fd);
         exit(0);
     }

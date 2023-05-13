@@ -219,7 +219,7 @@ enum MACE_ARGV { // for various argv
 /* --- mace --- */
 void mace_init();
 void mace_free();
-void mace_post_user();
+void mace_post_user(struct Mace_Arguments args);
 void mace_exec_print(char *const arguments[], size_t argnum);
 
 /* --- mace_hashing --- */
@@ -281,6 +281,7 @@ void mace_compile_glob(struct Target *restrict target, char *restrict globsrc, c
 void mace_build_targets();
 
 /* -- build_order -- */
+void mace_default_target_order();
 /* build order of all targets */
 void mace_targets_build_order();
 /* build order of target links */
@@ -631,9 +632,9 @@ void mace_default_target_order() {
         return;
 
     for (int i = 0; i < target_num; i++){
-        if (hash == targets[i]._hash) {
+        if (mace_default_target_hash == targets[i]._hash) {
             mace_default_target = i;
-            break;
+            return;
         }
     }
 
