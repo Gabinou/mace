@@ -216,10 +216,7 @@ enum MACE_ARGV { // for various argv
     MACE_ARGV_CC         = 0,
     MACE_ARGV_SOURCE     = 1, // single source compilation
     MACE_ARGV_OBJECT     = 2, // single source compilation
-    MACE_ARGV_MM         = 3, // single source compilation
-    MACE_ARGV_MF         = 4, // single source compilation
-    MACE_ARGV_MF_FILE    = 5, // single source compilation
-    MACE_ARGV_OTHER      = 6, // single source compilation
+    MACE_ARGV_OTHER      = 3, // single source compilation
 };
 
 /******************************** DECLARATIONS ********************************/
@@ -269,6 +266,7 @@ void mace_Target_argv_init(struct Target           *target);
 void mace_Target_argv_grow(struct Target           *target);
 bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token);
 bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
+void mace_Target_precompile(struct Target             *target);
 void mace_Target_Parse_User(struct Target          *target);
 void mace_Target_argv_allatonce(struct Target      *target);
 void mace_Target_compile_allatonce(struct Target   *target);
@@ -315,7 +313,6 @@ int mace_isDir(const      char *path);
 void  mace_mkdir(const char     *path);
 void  mace_object_path(char     *source);
 char *mace_library_path(char    *target_name);
-char *mace_dependency_path(char *object);
 
 /********************************** GLOBALS ***********************************/
 bool verbose = false;
@@ -1136,6 +1133,30 @@ void mace_Target_compile_allatonce(struct Target *target) {
     assert(chdir(cwd) == 0);
 }
 
+void mace_Target_precompile(struct Target *target) {
+    // Compute latest object dependency
+    assert(target != NULL);
+    assert(target->_argv != NULL);
+    assert(target->_argv_sources[target->_argc_sources - 1] != NULL);
+    assert(target->_argv_objects[target->_argc_objects - 1] != NULL);
+
+    /* - Single source argv - */
+    printf("Pre-Compile %s\n", target->_argv_sources[target->_argc_sources - 1]);
+    target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[target->_argc_sources - 1];
+    target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
+    size_t len = strlen(target->_argv[MACE_ARGV_OBJECT]);
+    target->_argv[MACE_ARGV_OBJECT][len - 1] = 'd';
+    target->_argv[target->_argc++] = "-MM";
+
+    /* -- Actual pre-compilation -- */
+    mace_exec_print(target->_argv, target->_argc);
+    pid_t pid = mace_exec(cc, target->_argv);
+    mace_wait_pid(pid);
+
+    target->_argv[--target->_argc] = NULL;
+    target->_argv[MACE_ARGV_OBJECT][len - 1] = 'o';
+}
+
 void mace_Target_compile(struct Target *target) {
     // Compile latest object
     assert(target != NULL);
@@ -1145,17 +1166,9 @@ void mace_Target_compile(struct Target *target) {
 
     /* - Single source argv - */
     printf("Compile %s\n", target->_argv_sources[target->_argc_sources - 1]);
-
-
     target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[target->_argc_sources - 1];
-
     target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
-    target->_argv[MACE_ARGV_MM] = "-MM";
-    target->_argv[MACE_ARGV_MF] = "-MF";
     
-    // Copy object
-    target->_argv[MACE_ARGV_MF_FILE] = mace_dependency_path(target->_argv[MACE_ARGV_OBJECT]);
-
     /* -- Actual compilation -- */
     mace_exec_print(target->_argv, target->_argc);
     pid_t pid = mace_exec(cc, target->_argv);
@@ -1420,15 +1433,6 @@ void mace_object_grow() {
     object      = realloc(object,   object_len  * sizeof(*object));
 }
 
-char *mace_dependency_path(char *object) {
-    size_t len_oflag = 2;
-    size_t len = strlen(object) - len_oflag;
-    char *dep = calloc(len + 1, sizeof(*dep));
-    strncpy(dep, object + len_oflag, len);
-    dep[len-1] = 'd';
-    return(dep);
-}
-
 void mace_object_path(char *source) {
     /* --- Expanding path --- */
     size_t cwd_len      = strlen(cwd);
@@ -1557,8 +1561,10 @@ void mace_build_target(struct Target *target) {
             mace_object_path(token);
             bool exist   = mace_Target_Object_Add(target, object);
             if (compile || !exist) {
-                if (!target->allatonce)
+                if (!target->allatonce) {
+                    mace_Target_precompile(target);
                     mace_Target_compile(target);
+                }
             }
 
         } else {
