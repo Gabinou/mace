@@ -896,11 +896,13 @@ void mace_Target_Parse_User(struct Target *target) {
 
     /* -- Make _argv_flags to argv -- */
     if (target->flags != NULL) {
+        printf("target->flags %s \n", target->flags);
         len = 8;
         target->_argc_flags = 0;
         target->_argv_flags = calloc(len, sizeof(*target->_argv_flags));
         target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags,
                                               target->flags, NULL, false);
+        printf("target->_argc_flags %d \n",target->_argc_flags);
         bytesize            = target->_argc_flags * sizeof(*target->_argv_flags);
         target->_argv_flags = realloc(target->_argv_flags, bytesize);
     }
@@ -2130,7 +2132,6 @@ char *mace_checksum_filename(char *file) {
     strncpy(sha1 + total, file + slash_i, file_len);
     total += file_len;
     strncpy(sha1 + total, ".sha1", 5);
-    printf("sha1 %s\n",sha1);
     return (sha1);
 }
 
