@@ -53,6 +53,7 @@ int mace(int argc, char *argv[]) {
                 "install -T mace.h"          " " MACE_STRINGIFY(PREFIX) "/include/mace.h",
 
     };
+
     // Add target with different name, i.e. "mace"
     mace_add_target(&MACE, "mace");
 }

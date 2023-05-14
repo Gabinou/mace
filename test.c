@@ -1049,7 +1049,7 @@ void test_build_order() {
 void test_checksum() {
     mace_init();
     mace_set_obj_dir("obj");
-    char* allo = mace_checksum_filename("allo.c");
+    char *allo = mace_checksum_filename("allo.c");
     nourstest_true(strcmp(allo, "allo.sha1"));
     free(allo);
     allo = mace_checksum_filename("allo.h");
