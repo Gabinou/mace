@@ -15,6 +15,7 @@
 * See README for more details.
 */
 
+#define _XOPEN_SOURCE 500
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <ftw.h>
 
 /*----------------------------------------------------------------------------*/
 /*                                 PUBLIC API                                 */
@@ -285,6 +287,10 @@ void mace_link_static_library(char  *restrict target, char **restrict av_o, int 
 void mace_link_dynamic_library(char *restrict target, char *restrict objects);
 void mace_link_executable(char *restrict target, char **restrict av_o, int ac_o,
                           char **restrict av_l, int ac_l, char **restrict av_f, int ac_f);
+/* --- mace_clean --- */
+void mace_clean();
+int mace_rmrf(char *path);
+int mace_unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf);
 
 /* -- compiling object files -> .o -- */
 void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
@@ -292,6 +298,7 @@ void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
 void mace_build_targets();
 void mace_run_commands(const char *commands);
 void mace_print_message(const char *message);
+void mace_clean();
 
 /* -- build_order -- */
 void mace_default_target_order();
@@ -640,6 +647,9 @@ void mace_default_target_order() {
     if (mace_default_target_hash == 0)
         return;
 
+    if (mace_user_target == MACE_CLEAN_ORDER)
+        return;
+
     for (int i = 0; i < target_num; i++) {
         if (mace_default_target_hash == targets[i]._hash) {
             mace_default_target = i;
@@ -655,6 +665,11 @@ void mace_user_target_order(uint64_t hash) {
     if (hash == 0)
         return;
 
+    if (hash == mace_hash(MACE_CLEAN)) {
+        mace_user_target = MACE_CLEAN_ORDER;
+        return;
+    }
+    
     for (int i = 0; i < target_num; i++) {
         if (hash == targets[i]._hash) {
             mace_user_target = i;
@@ -662,7 +677,7 @@ void mace_user_target_order(uint64_t hash) {
         }
     }
 
-    fprintf(stderr, "Default target not found. Exiting");
+    fprintf(stderr, "User target not found. Exiting");
     exit(EPERM);
 
 }
@@ -1168,7 +1183,7 @@ void mace_Target_compile(struct Target *target) {
     printf("Compile %s\n", target->_argv_sources[target->_argc_sources - 1]);
     target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[target->_argc_sources - 1];
     target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
-    
+
     /* -- Actual compilation -- */
     mace_exec_print(target->_argv, target->_argc);
     pid_t pid = mace_exec(cc, target->_argv);
@@ -1477,7 +1492,30 @@ void mace_print_message(const char *message) {
 
     printf("%s\n", message);
 }
+/********************************* mace_clean *********************************/
+int mace_unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+    int rv = remove(fpath);
 
+    if (rv)
+        fprintf(stderr, "Could not remove '%s'.\n", fpath);
+
+    return rv;
+}
+
+int mace_rmrf(char *path) {
+    return nftw(path, mace_unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
+}
+
+void mace_clean() {
+    printf("Cleaning\n");
+    printf("Removing '%s'\n", obj_dir);
+    mace_rmrf(obj_dir);
+    printf("Removing '%s'\n", build_dir);
+    mace_rmrf(build_dir);
+}
+
+
+/******************************** mace_build **********************************/
 void mace_run_commands(const char *commands) {
     if (commands == NULL)
         return;
@@ -1515,7 +1553,6 @@ void mace_run_commands(const char *commands) {
     free(buffer);
 }
 
-/******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
     /* --- Move to target base_dir, compile there --- */
     printf("Build target %s\n", target->_name);
@@ -1853,8 +1890,8 @@ void mace_post_user(struct Mace_Arguments args) {
     }
 
     /* Check which target user wants to compile */
-    mace_default_target_order();
     mace_user_target_order(args.user_target_hash);
+    mace_default_target_order();
 }
 
 
@@ -4944,8 +4981,11 @@ int main(int argc, char *argv[]) {
     /* --- Compute build order using targets links list. --- */
     mace_targets_build_order();
 
-    /* --- Perform compilation with buil_order --- */
-    mace_build_targets();
+    /* --- Perform compilation with build_order --- */
+    if (mace_user_target == MACE_CLEAN_ORDER)
+        mace_clean();
+    else
+        mace_build_targets();
 
     /* --- Finish --- */
     mace_free();
