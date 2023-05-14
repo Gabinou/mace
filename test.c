@@ -1050,14 +1050,40 @@ void test_checksum() {
     mace_init();
     mace_set_obj_dir("obj");
     char *allo = mace_checksum_filename("allo.c");
-    nourstest_true(strcmp(allo, "allo.sha1"));
+    nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
     free(allo);
     allo = mace_checksum_filename("allo.h");
-    nourstest_true(strcmp(allo, "allo.sha1"));
+    nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
     free(allo);
     allo = mace_checksum_filename("src/allo.h");
-    nourstest_true(strcmp(allo, "obj/allo.sha1"));
+    nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
     free(allo);
+    mace_free();
+}
+void test_excludes() {
+    mace_init();
+    char *rpath = calloc(PATH_MAX, sizeof(*rpath));
+    char *token = "tnecs.c";
+    realpath(token, rpath);
+    FILE *fd = fopen(rpath, "w");
+    fclose(fd);
+    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
+        .excludes           = "tnecs.c obj",
+    };
+
+    mace_Target_excludes(&tnecs);
+    nourstest_true(tnecs._excl_files_num == 1);
+    nourstest_true(tnecs._excl_files[0] == mace_hash(rpath));
+    remove(rpath);
+
+    nourstest_true(tnecs._excl_dirs_num == 1);
+    memset(rpath, 0, PATH_MAX);
+    char *token2 = "obj";
+    realpath(token2, rpath);
+    nourstest_true(tnecs._excl_dirs[0] == mace_hash(rpath));
+
+    mace_Target_Free(&tnecs);
+    free(rpath);
     mace_free();
 }
 
@@ -1076,6 +1102,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("parse_args ",    test_parse_args);
     nourstest_run("build_order ",   test_build_order);
     nourstest_run("checksum ",      test_checksum);
+    nourstest_run("excludes ",      test_excludes);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");

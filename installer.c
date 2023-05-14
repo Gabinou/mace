@@ -51,8 +51,8 @@ int mace(int argc, char *argv[]) {
                               "-DBUILDER="STRINGIFY(BUILDER)" "
                               "-DDEFAULT_MACEFILE="STRINGIFY(DEFAULT_MACEFILE),
         .command_post_build =
-                "install -T " MACE_STRINGIFY(BUILD_DIR) "/mace " MACE_STRINGIFY(PREFIX) "/bin/mace &&"
-                "install -T mace.h"          " " MACE_STRINGIFY(PREFIX) "/include/mace.h",
+                "install -T " STRINGIFY(BUILD_DIR) "/mace " STRINGIFY(PREFIX) "/bin/mace &&"
+                "install -T mace.h"          " " STRINGIFY(PREFIX) "/include/mace.h",
     };
 
     // Add target with different name, i.e. "mace"

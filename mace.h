@@ -96,7 +96,7 @@ struct Target {
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
     const char *includes;          /* directories,           ' ' separated    */
     const char *sources;           /* files, glob patterns,  ' ' separated    */
-    const char *sources_exclude;   /* files, glob patterns,  ' ' separated    */
+    const char *excludes;          /* sources, glob patterns,  ' ' separated  */
     const char *base_dir;          /* directory,                              */
     /* Links are targets or libraries, are be built before. */
     const char *links;             /* libraries or targets   ' ' separated    */
@@ -160,15 +160,19 @@ struct Target {
     int             _len_objects;    /* alloc len of arguments in argv_sources*/
 
     /* -- Exclusions --  */
-    uint64_t *restrict _excluded_files;
-    uint64_t *restrict _excluded_folders;
-    char **restrict _excluded_folders_path;
+    uint64_t  *restrict _excl_files;
+    uint64_t  *restrict _excl_dirs;
+    char     **restrict _excl_dirs_path;
+    int _excl_files_num;
+    int _excl_files_len;
+    int _excl_dirs_num;
+    int _excl_dirs_len;
 
     /* --- Dependencies ---  */
-    uint64_t *restrict _deps_links;/* target or libs hashes                       */
-    size_t     _deps_links_num;    /* target or libs hashes                       */
-    size_t     _deps_links_len;    /* target or libs hashes                       */
-    size_t     _d_cnt;             /* dependency count, for build order           */
+    uint64_t *restrict _deps_links;/* target or libs hashes                   */
+    size_t     _deps_links_num;    /* target or libs hashes                   */
+    size_t     _deps_links_len;    /* target or libs hashes                   */
+    size_t     _d_cnt;             /* dependency count, for build order       */
 
 };
 #endif /* MACE_CONVENCIENCE_EXECUTABLE */
@@ -253,37 +257,38 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
                        const char *restrict includes, const char *restrict flag, bool path);
 #ifndef MACE_CONVENCIENCE_EXECUTABLE
 
-char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict arg_len);
-void   mace_argv_free(char **restrict argv, int argc);
+    char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict arg_len);
+    void   mace_argv_free(char **restrict argv, int argc);
 
-/* --- mace_setters --- */
-char *mace_set_obj_dir(char    *obj);
-char *mace_set_build_dir(char  *build);
+    /* --- mace_setters --- */
+    char *mace_set_obj_dir(char    *obj);
+    char *mace_set_build_dir(char  *build);
 
-/* --- mace_Target --- */
-void mace_add_target(struct Target   *restrict target,  char *restrict name);
+    /* --- mace_Target --- */
+    void mace_add_target(struct Target   *restrict target,  char *restrict name);
 
-/* -- Target OOP -- */
-void mace_Target_Free(struct Target                *target);
-bool mace_Target_hasDep(struct Target              *target, uint64_t hash);
-void mace_Target_compile(struct Target             *target);
-void Target_Free_notargv(struct Target             *target);
-void mace_Target_Deps_Add(struct Target            *target, uint64_t hash);
-void mace_Target_Free_argv(struct Target           *target);
-void mace_Target_Deps_Hash(struct Target           *target);
-void mace_Target_Deps_Grow(struct Target           *target);
-void mace_Target_argv_init(struct Target           *target);
-void mace_Target_argv_grow(struct Target           *target);
-bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token);
-bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
-void mace_Target_precompile(struct Target             *target);
-void mace_Target_Parse_User(struct Target          *target);
-void mace_Target_argv_allatonce(struct Target      *target);
-void mace_Target_compile_allatonce(struct Target   *target);
+    /* -- Target OOP -- */
+    void mace_Target_Free(struct Target                *target);
+    bool mace_Target_hasDep(struct Target              *target, uint64_t hash);
+    void mace_Target_compile(struct Target             *target);
+    void mace_Target_Deps_Add(struct Target            *target, uint64_t hash);
+    void mace_Target_Free_argv(struct Target           *target);
+    void mace_Target_Deps_Hash(struct Target           *target);
+    void mace_Target_Deps_Grow(struct Target           *target);
+    void mace_Target_argv_init(struct Target           *target);
+    void mace_Target_argv_grow(struct Target           *target);
+    bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token);
+    bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
+    void mace_Target_precompile(struct Target          *target);
+    void mace_Target_Parse_User(struct Target          *target);
+    void mace_Target_Free_notargv(struct Target        *target);
+    void mace_Target_Free_excludes(struct Target       *target);
+    void mace_Target_argv_allatonce(struct Target      *target);
+    void mace_Target_compile_allatonce(struct Target   *target);
 
-/* --- mace_glob --- */
-int     mace_globerr(const char *path, int eerrno);
-glob_t  mace_glob_sources(const char *path);
+    /* --- mace_glob --- */
+    int     mace_globerr(const char *path, int eerrno);
+    glob_t  mace_glob_sources(const char *path);
 
 #endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /* --- mace_exec --- */
@@ -340,38 +345,38 @@ char *mace_separator = " ";
 char *mace_command_separator = "&&";
 #ifndef MACE_CONVENCIENCE_EXECUTABLE
 
-/* -- Compiler -- */
-char *cc      = NULL; // DESIGN QUESTION: Should I set a default?
-char *ar      = "ar";
+    /* -- Compiler -- */
+    char *cc      = NULL; // DESIGN QUESTION: Should I set a default?
+    char *ar      = "ar";
 
-/* -- current working directory -- */
-char cwd[MACE_CWD_BUFFERSIZE];
+    /* -- current working directory -- */
+    char cwd[MACE_CWD_BUFFERSIZE];
 
-/* -- Reserved targets hashes -- */
-uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
-uint64_t mace_default_target_hash = 0;
-int mace_default_target = MACE_ALL_ORDER;   /* order */
-int mace_user_target    = MACE_NULL_ORDER;  /* order */
+    /* -- Reserved targets hashes -- */
+    uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
+    uint64_t mace_default_target_hash = 0;
+    int mace_default_target = MACE_ALL_ORDER;   /* order */
+    int mace_user_target    = MACE_NULL_ORDER;  /* order */
 
-/* -- build order for user target -- */
-int *restrict build_order     = NULL;
-int  build_order_num          = 0;
+    /* -- build order for user target -- */
+    int *restrict build_order     = NULL;
+    int  build_order_num          = 0;
 
-/* -- list of targets added by user -- */
-struct Target  *restrict targets     = NULL;   /* [order] is as added by user */
-size_t          target_num = 0;
-size_t          target_len = 0;
+    /* -- list of targets added by user -- */
+    struct Target  *restrict targets     = NULL;   /* [order] is as added by user */
+    size_t          target_num = 0;
+    size_t          target_len = 0;
 
-/* -- buffer to write object -- */
-char           *restrict object      = NULL;
-size_t          object_len = 0;
+    /* -- buffer to write object -- */
+    char           *restrict object      = NULL;
+    size_t          object_len = 0;
 
-/* -- directories -- */
-char           *restrict obj_dir     = NULL;   /* intermediary .o files       */
-char           *restrict build_dir   = NULL;   /* linked libraries, execs     */
+    /* -- directories -- */
+    char           *restrict obj_dir     = NULL;   /* intermediary .o files       */
+    char           *restrict build_dir   = NULL;   /* linked libraries, execs     */
 
-/* -- mace_globals control -- */
-void mace_object_grow();
+    /* -- mace_globals control -- */
+    void mace_object_grow();
 #endif /* MACE_CONVENCIENCE_EXECUTABLE */
 
 /***************************** SHA1DC DECLARATION *****************************/
@@ -681,7 +686,7 @@ void mace_user_target_order(uint64_t hash) {
         mace_user_target = MACE_CLEAN_ORDER;
         return;
     }
-    
+
     for (int i = 0; i < target_num; i++) {
         if (hash == targets[i]._hash) {
             mace_user_target = i;
@@ -762,6 +767,7 @@ void mace_argv_free(char **argv, int argc) {
     }
     free(argv);
 }
+
 char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
                        const char *restrict user_str, const char *restrict flag, bool path) {
     assert(argc != NULL);
@@ -816,6 +822,49 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
 }
 #ifndef MACE_CONVENCIENCE_EXECUTABLE
 
+void mace_Target_excludes(struct Target *target) {
+    if (target->excludes == NULL)
+        return;
+    mace_Target_Free_excludes(target);
+
+    target->_excl_files_num = 0;
+    target->_excl_files_len = 8;
+    target->_excl_dirs_num  = 0;
+    target->_excl_dirs_len  = 8;
+    target->_excl_dirs      = calloc(target->_excl_dirs_len, sizeof(*target->_excl_files));
+    target->_excl_files     = calloc(target->_excl_files_len, sizeof(*target->_excl_files));
+    target->_excl_dirs_path = calloc(target->_excl_dirs_len, sizeof(*target->_excl_dirs_path));
+
+    /* -- Copy user_str into modifiable buffer -- */
+    char *buffer = mace_str_buffer(target->excludes);
+    /* --- Split sources into tokens --- */
+    char *token = strtok(buffer, mace_separator);
+    do {
+        size_t token_len = strlen(token);
+        char *arg = calloc(token_len + 1, sizeof(*arg));
+        strncpy(arg, token, token_len);
+        assert(arg != NULL);
+
+        char *rpath = calloc(PATH_MAX, sizeof(*rpath));
+        if (realpath(token, rpath) == NULL)
+            printf("Warning! excluded source '%s' does not exist\n", arg);
+        rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
+ 
+        if (mace_isDir(rpath)) {
+            target->_excl_dirs[target->_excl_dirs_num] = mace_hash(rpath);
+            target->_excl_dirs_path[target->_excl_dirs_num] = rpath;
+            target->_excl_dirs_num++;
+        } else {
+            target->_excl_files[target->_excl_files_num++] = mace_hash(rpath);
+            free(rpath);
+        }
+        free(arg);
+        token = strtok(NULL, mace_command_separator);
+    } while (token != NULL);
+
+    free(buffer);
+}
+
 void mace_Target_Parse_User(struct Target *target) {
     // Makes flags for target includes, links libraries, and flags
     //  NOT sources: they can be folders, so need to be globbed
@@ -855,6 +904,9 @@ void mace_Target_Parse_User(struct Target *target) {
         bytesize            = target->_argc_flags * sizeof(*target->_argv_flags);
         target->_argv_flags = realloc(target->_argv_flags, bytesize);
     }
+
+    /* -- Exclusions -- */
+    mace_Target_excludes(target);
 }
 
 void mace_Target_argv_grow(struct Target *target) {
@@ -1308,7 +1360,7 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
     assert(arg != NULL);
 
     /* - Expand path - */
-    char *rpath = calloc(PATH_MAX, sizeof(*target->_argv_sources));
+    char *rpath = calloc(PATH_MAX, sizeof(*rpath));
     if (realpath(arg, rpath) == NULL) {
         printf("Warning! realpath error : %s '%s'\n", strerror(errno), arg);
         target->_argv_sources[target->_argc_sources++] = arg;
@@ -1579,7 +1631,7 @@ void mace_build_target(struct Target *target) {
     assert(target->kind != 0);
     /* --- Compile sources --- */
     /* --- Preliminaries --- */
-    Target_Free_notargv(target);
+    mace_Target_Free_notargv(target);
 
     /* -- Copy sources into modifiable buffer -- */
     char *buffer = mace_str_buffer(target->sources);
@@ -1813,11 +1865,32 @@ void mace_build_targets() {
 }
 
 void mace_Target_Free(struct Target *target) {
-    Target_Free_notargv(target);
     mace_Target_Free_argv(target);
+    mace_Target_Free_notargv(target);
+    mace_Target_Free_excludes(target);
 }
 
-void Target_Free_notargv(struct Target *target) {
+void mace_Target_Free_excludes(struct Target *target) {
+    if (target->_excl_dirs_path != NULL) {
+        for (int i = 0; i < target->_excl_dirs_num; i++) {
+            if (target->_excl_dirs_path[i] != NULL) {
+                free(target->_excl_dirs_path[i]);
+                target->_excl_dirs_path[i] = NULL;
+            }
+            free(target->_excl_dirs_path);
+        }
+        if (target->_excl_files != NULL) {
+            free(target->_excl_files);
+            target->_excl_files = NULL;
+        }
+        if (target->_excl_dirs != NULL) {
+            free(target->_excl_dirs);
+            target->_excl_dirs = NULL;
+        }
+    }
+}
+
+void mace_Target_Free_notargv(struct Target *target) {
     if (target->_deps_links != NULL) {
         free(target->_deps_links);
         target->_deps_links = NULL;
@@ -2043,7 +2116,7 @@ char *mace_checksum_filename(char *file) {
     }
 
     int dot_i   = (int)(dot   - file);
-    int slash_i = (slash == NULL) ? 0 : (int)(slash - file);
+    int slash_i = (slash == NULL) ? 0 : (int)(slash - file + 1);
     size_t obj_dir_len  = strlen(obj_dir);
     size_t file_len  = dot_i - slash_i;
 
@@ -2052,6 +2125,8 @@ char *mace_checksum_filename(char *file) {
     char *sha1  = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
+    strncpy(sha1 + total, "/", 1);
+    total += 1;
     strncpy(sha1 + total, file + slash_i, file_len);
     total += file_len;
     strncpy(sha1 + total, ".sha1", 5);
