@@ -2120,7 +2120,7 @@ char *mace_checksum_filename(char *file) {
     size_t obj_dir_len  = strlen(obj_dir);
     size_t file_len  = dot_i - slash_i;
 
-    size_t checksum_len  = (file_len + 5) + obj_dir_len + 1;
+    size_t checksum_len  = (file_len + 6) + obj_dir_len + 1;
 
     char *sha1  = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
@@ -2130,6 +2130,7 @@ char *mace_checksum_filename(char *file) {
     strncpy(sha1 + total, file + slash_i, file_len);
     total += file_len;
     strncpy(sha1 + total, ".sha1", 5);
+    printf("sha1 %s\n",sha1);
     return (sha1);
 }
 

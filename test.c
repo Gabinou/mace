@@ -1060,6 +1060,7 @@ void test_checksum() {
     free(allo);
     mace_free();
 }
+
 void test_excludes() {
     mace_init();
     char *rpath = calloc(PATH_MAX, sizeof(*rpath));
