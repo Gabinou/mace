@@ -265,7 +265,7 @@ void mace_Target_Deps_Grow(struct Target           *target);
 void mace_Target_argv_init(struct Target           *target);
 void mace_Target_argv_grow(struct Target           *target);
 bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token);
-void mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
+bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
 void mace_Target_Parse_User(struct Target          *target);
 void mace_Target_argv_allatonce(struct Target      *target);
 void mace_Target_compile_allatonce(struct Target   *target);
@@ -289,6 +289,7 @@ void mace_link_executable(char *restrict target, char **restrict av_o, int ac_o,
 void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
                        const char *restrict flags);
 void mace_build_targets();
+void mace_run_commands(const char *commands);
 
 /* -- build_order -- */
 void mace_default_target_order();
@@ -981,7 +982,6 @@ pid_t mace_exec(const char *restrict exec, char *const arguments[]) {
         fprintf(stderr, "Error: forking issue.\n");
         exit(ENOENT);
     } else if (pid == 0) {
-        printf("NO ERROR: NO forking issue.\n");
         execvp(exec, arguments);
         exit(0);
     }
@@ -1143,7 +1143,7 @@ void mace_Target_compile(struct Target *target) {
     // argv[0] is always cc
     // argv[1] is always source
     target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[target->_argc_sources - 1];
-
+    
     // argv[2] is always object (includeing -o flag)
     target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
     // rest of argv should be set previously by mace_Target_argv_init
@@ -1171,7 +1171,11 @@ int Target_hasObjectHash(struct Target *target, uint64_t hash) {
     return (-1);
 }
 
-void mace_Target_Object_Add(struct Target *restrict target, char *restrict token) {
+bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token) {
+    if (token == NULL)
+        return(false);
+
+    /* -- Alloc memory for argv stuff -- */
     if (target->_argv_objects == NULL) {
         target->_len_objects = 8;
         target->_argv_objects = calloc(target->_len_objects, sizeof(*target->_argv_objects));
@@ -1183,8 +1187,7 @@ void mace_Target_Object_Add(struct Target *restrict target, char *restrict token
         target->_argv_objects_hash = calloc(target->_len_objects, sizeof(*target->_argv_objects_hash));
     }
 
-    if (token == NULL)
-        return;
+    /* -- Alloc memory for argv stuff -- */
     target->_argv_objects = argv_grows(&target->_len_objects, &target->_argc_objects,
                                        target->_argv_objects);
 
@@ -1209,6 +1212,7 @@ void mace_Target_Object_Add(struct Target *restrict target, char *restrict token
         }
     }
 
+    /* -- Append object to arg -- */
     size_t token_len = strlen(token);
     char *flag = "-o";
     size_t flag_len = strlen(flag);
@@ -1225,7 +1229,12 @@ void mace_Target_Object_Add(struct Target *restrict target, char *restrict token
         *(pos + 1) = '.';
         *(pos + 2) = 'o';
     }
+
+    /* -- Actualling adding object here -- */
     target->_argv_objects[target->_argc_objects++] = arg;
+
+    // Does object file exist
+    return(access(arg+2, F_OK) == 0);
 }
 
 bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token) {
@@ -1255,6 +1264,7 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
         free(rpath);
     } else {
         rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
+        /* -- Actualling adding source here -- */
         target->_argv_sources[target->_argc_sources++] = rpath;
         free(arg);
     }
@@ -1263,12 +1273,11 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
     /* - Compute current checksum - */
     uint8_t hash_current[SHA1_LEN];
     mace_sha1cd(rpath, hash_current);
-    bool changed = true;
 
     /* - Read existing checksum file - */
-    char *checksum_path = mace_checksum_filename(rpath);
+    bool changed = true; // set to false only if checksum file exists, changed
     uint8_t hash_previous[SHA1_LEN] = {0};
-    bool exists = (access(checksum_path, F_OK) == 0);
+    char *checksum_path = mace_checksum_filename(rpath);
     FILE *fd = fopen(checksum_path, "r");
     if (fd != NULL) {
         fseek(fd, 0, SEEK_SET);
@@ -1284,14 +1293,14 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
         fclose(fd);
     }
 
-    /* - Write existing checksum file - */
+    /* - Write checksum file, if changed or didn't exist - */
     if (changed) {
         fd = fopen(checksum_path, "w");
         fwrite(hash_current, 1, SHA1_LEN, fd); // SHA1_LEN
         fclose(fd);
     }
     
-    return (!changed || excluded);
+    return (changed && !excluded);
 }
 
 
@@ -1303,10 +1312,13 @@ void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
         assert(mace_isSource(globbed.gl_pathv[i]));
         char *pos = strrchr(globbed.gl_pathv[i], '/');
         char *source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos + 1;
-        if (mace_Target_Source_Add(target, globbed.gl_pathv[i]))
-            continue;
+        /* - Compute source and object filenames - */
+        bool changed = mace_Target_Source_Add(target, globbed.gl_pathv[i]);
         mace_object_path(source_file);
-        mace_Target_Object_Add(target, object);
+        bool exists  = mace_Target_Object_Add(target, object);
+        if (!changed && exists)
+            continue;
+
         if (!target->allatonce)
             mace_Target_compile(target);
     }
@@ -1438,41 +1450,42 @@ char *mace_str_buffer(const char *strlit) {
     return (buffer);
 }
 
-// void mace_run_command(struct Command *command) {
-//     if (command->commands == NULL)
-//         return;
+void mace_run_commands(const char *commands) {
+    if (commands == NULL)
+        return;
 
-//     assert(chdir(cwd) == 0);
-//     int len, bytesize;
+    assert(chdir(cwd) == 0);
+    int argc, len = 8, bytesize;
+    char **argv = calloc(len, sizeof(*argv));
 
-//     /* -- Copy sources into modifiable buffer -- */
-//     char *buffer = mace_str_buffer(command->commands);
+    /* -- Copy sources into modifiable buffer -- */
+    char *buffer = mace_str_buffer(commands);
 
-//     /* --- Split sources into tokens --- */
-//     char *token = strtok(buffer, mace_command_separator);
-//     do {
-//         mace_Command_Free_argv(command);
+    /* --- Split sources into tokens --- */
+    char *token = strtok(buffer, mace_command_separator);
 
-//         len = 8;
-//         command->_argc = 0;
-//         command->_argv = calloc(len, sizeof(*command->_argv));
-//         command->_argv = mace_argv_flags(&len, &command->_argc, command->_argv,
-//                                          token, NULL, false);
+    do {
+        for (int i = 0; i < argc; i++) {
+            if (argv[i] != NULL) {
+                free(argv[i]);
+                argv[i] = NULL;
+            }
+        }
 
-//         if ((command->_argc + 1) < len) {
-//             bytesize       = (command->_argc + 1) * sizeof(*command->_argv);
-//             command->_argv = realloc(command->_argv, bytesize);
-//         }
+        argc = 0;
+        argv = mace_argv_flags(&len, &argc, argv, token, NULL, false);
 
-//         mace_exec_print(command->_argv, command->_argc);
-//         pid_t pid = mace_exec(command->_argv[0], command->_argv);
-//         mace_wait_pid(pid);
+        mace_exec_print(argv, argc);
+        pid_t pid = mace_exec(argv[0], argv);
+        mace_wait_pid(pid);
 
-//         token = strtok(NULL, mace_command_separator);
-//     } while (token != NULL);
+        free(argv);
+        token = strtok(NULL, mace_command_separator);
+    } while (token != NULL);
 
-//     free(buffer);
-// }
+    free(argv);
+    free(buffer);
+}
 
 /******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
@@ -1516,10 +1529,11 @@ void mace_build_target(struct Target *target) {
         } else if (mace_isSource(token)) {
             /* token is a source file */
             // printf("isSource %s\n", token);
-
-            if (!mace_Target_Source_Add(target, token)) {
-                mace_object_path(token);
-                mace_Target_Object_Add(target, object);
+            bool compile = mace_Target_Source_Add(target, token);
+            mace_object_path(token);
+            bool exist   = mace_Target_Object_Add(target, object);
+            printf("object exists? %d\n",exist);
+            if (compile || !exist) {
                 if (!target->allatonce)
                     mace_Target_compile(target);
             }
@@ -1708,10 +1722,10 @@ void mace_targets_build_order() {
 void mace_build_targets() {
     int z = 0;
     for (z = 0; z < build_order_num; z++) {
-        // mace_run_command(&commands[z]);
+        mace_run_commands(targets[build_order[z]].command_pre_build);
         mace_build_target(&targets[build_order[z]]);
+        mace_run_commands(targets[build_order[z]].command_post_build);
     }
-    // mace_run_command(&commands[z]);
 }
 
 /*----------------------------------------------------------------------------*/
