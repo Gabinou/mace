@@ -336,29 +336,20 @@ void  mace_mkdir(const char     *path);
 void  mace_object_path(char     *source);
 char *mace_library_path(char    *target_name);
 
+
+/* --- mace_pqueue --- */
+void mace_pqueue_put(pid_t pid);
+pid_t mace_pqueue_pop();
+
 /********************************** GLOBALS ***********************************/
 bool verbose = false;
 
 /* --- Processes --- */
 // Compile objects in parallel.
 // Compile targets in series.
-pid_t *pqueue;
-int pnum = -1;
-int plen = -1;
-void mace_pqueue_put(pid_t pid);
-pid_t mace_pqueue_pop();
-
-pid_t mace_pqueue_pop() {
-    assert(pnum > 0);
-    return(pqueue[--pnum]);
-}
-
-void mace_pqueue_put(pid_t pid) {
-    assert(pnum < plen);
-    size_t bytes = pnum * sizeof(*pqueue);
-    memmove(pqueue, pqueue + 1, bytes);
-    pqueue[0] = pid;
-}
+pid_t *pqueue   = NULL;
+int pnum        = -1;
+int plen        = -1;
 
 #endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /* -- separator -- */
@@ -636,7 +627,7 @@ extern int parg_getopt_long(struct parg_state *ps, int c, char *const v[],
 /**************************** PARG DECLARATION END ****************************/
 
 /*----------------------------------------------------------------------------*/
-
+/*                                MACE SOURCE                                 */
 /*----------------------------------------------------------------------------*/
 #ifndef MACE_CONVENCIENCE_EXECUTABLE
 #define vprintf(format, ...) do {\
@@ -1048,6 +1039,20 @@ void mace_set_separator(char *sep) {
         exit(EPERM);
     }
     mace_separator = sep;
+}
+
+/******************************** mace_pqueue *********************************/
+
+pid_t mace_pqueue_pop() {
+    assert(pnum > 0);
+    return(pqueue[--pnum]);
+}
+
+void mace_pqueue_put(pid_t pid) {
+    assert(pnum < plen);
+    size_t bytes = pnum * sizeof(*pqueue);
+    memmove(pqueue, pqueue + 1, bytes);
+    pqueue[0] = pid;
 }
 
 /****************************** mace_glob_sources *****************************/
@@ -1979,6 +1984,7 @@ void mace_post_user(struct Mace_Arguments args) {
     //   4- Checks that there are no circular dependency.
     //   5- Compute user_target order.
     //   6- Computes default target order from default target_hash.
+    //   7- Alloc queue for processes.
     // If not exit with error.
 
     if (args.dir != NULL) {
@@ -2006,6 +2012,10 @@ void mace_post_user(struct Mace_Arguments args) {
     /* Check which target user wants to compile */
     mace_user_target_order(args.user_target_hash);
     mace_default_target_order();
+
+    /* Process queue alloc */
+    if(args.jobs > 1)
+        pqueue = calloc(args.jobs, sizeof(*pqueue));
 }
 
 
@@ -2040,6 +2050,10 @@ void mace_free() {
     for (int i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
     }
+    if (pqueue != NULL) {
+        free(pqueue);
+        pqueue = NULL;
+    }    
     if (targets != NULL) {
         free(targets);
         targets = NULL;
