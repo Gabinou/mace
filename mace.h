@@ -339,6 +339,30 @@ char *mace_library_path(char    *target_name);
 /********************************** GLOBALS ***********************************/
 bool verbose = false;
 
+/* --- Processes --- */
+// Compile objects in parallel.
+// Compile targets in series.
+pid_t *pqueue;
+int pnum = -1;
+int plen = -1;
+void mace_pqueue_put(pid_t pid);
+pid_t mace_pqueue_pop();
+
+pid_t mace_pqueue_pop() {
+    assert(pnum > 0);
+    return(pqueue[--pnum]);
+}
+
+void mace_pqueue_put(pid_t pid) {
+    if (pnum <= plen) {
+        plen *= 2;
+        pqueue = realloc(pqueue);
+    }
+    size_t bytes = pnum * sizeof(*pqueue);
+    memmove(pqueue, pqueue + 1, bytes);
+    pqueue[0] = pid;
+}
+
 #endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /* -- separator -- */
 char *mace_separator = " ";
