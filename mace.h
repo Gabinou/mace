@@ -977,7 +977,7 @@ char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict ar
         (*arg_len) *= 2;
         size_t bytesize = *arg_len * sizeof(*argv);
         argv = realloc(argv, bytesize);
-        memset(argv + (*arg_len)/2, 0, bytesize / 2);
+        memset(argv + (*arg_len) / 2, 0, bytesize / 2);
     }
     return (argv);
 }
@@ -1465,7 +1465,7 @@ bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token
     return (exists);
 }
 
-bool mace_Target_Checksum(struct Target *target, char *source_path, char * obj_path) {
+bool mace_Target_Checksum(struct Target *target, char *source_path, char *obj_path) {
     /* -- Checksum -- */
     /* - Compute current checksum - */
     uint8_t hash_current[SHA1_LEN];
@@ -1494,7 +1494,7 @@ bool mace_Target_Checksum(struct Target *target, char *source_path, char * obj_p
     if (changed) {
         fd = fopen(checksum_path, "w");
         if (fd == NULL) {
-            fprintf(stderr, "Error:%d %s\n",errno, strerror(errno));
+            fprintf(stderr, "Error:%d %s\n", errno, strerror(errno));
             exit(EPERM);
         }
         fwrite(hash_current, 1, SHA1_LEN, fd); // SHA1_LEN
@@ -1505,7 +1505,7 @@ bool mace_Target_Checksum(struct Target *target, char *source_path, char * obj_p
     if (target->base_dir != NULL)
         assert(chdir(target->base_dir) == 0);
 
-    return(changed);
+    return (changed);
 }
 
 bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token) {
@@ -1518,7 +1518,7 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
     char *arg = calloc(token_len + 1, sizeof(*arg));
     strncpy(arg, token, token_len);
     assert(arg != NULL);
-    
+
     /* - Expand path - */
     char *rpath = calloc(PATH_MAX, sizeof(*rpath));
     if (realpath(arg, rpath) == NULL) {
@@ -1529,22 +1529,22 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
         rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
         free(arg);
     }
-    
+
     /* - Check if file is excluded - */
     uint64_t rpath_hash = mace_hash(rpath);
-    for (int i = 0; i < target->_excludes_num; i++){
+    for (int i = 0; i < target->_excludes_num; i++) {
         if (target->_excludes[i] == rpath_hash)
-            return(true);
+            return (true);
     }
 
     /* -- Actually adding source here -- */
     // printf("Adding source: %s\n", rpath);
     target->_argv_sources[target->_argc_sources++] = rpath;
-    
+
     return (false);
 }
 
-void mace_Target_Parse_Source(struct Target *restrict target, char *path, char * src) {
+void mace_Target_Parse_Source(struct Target *restrict target, char *path, char *src) {
     bool excluded = mace_Target_Source_Add(target, path);
     if (!excluded) {
         mace_object_path(src);
@@ -1609,6 +1609,7 @@ void mace_mkdir(const char *path) {
     struct stat st = {0};
     if (stat(path, &st) == -1) {
         mkdir(path, 0777);
+        chmod(path, 0777);
     }
 }
 
@@ -1743,7 +1744,6 @@ void mace_run_commands(const char *commands) {
     do {
         for (int i = 0; i < argc; i++) {
             if (argv[i] != NULL) {
-                printf("argv[i] %s \n", argv[i]);
                 free(argv[i]);
                 argv[i] = NULL;
             }
@@ -1922,7 +1922,7 @@ void mace_deps_links_build_order(struct Target target, size_t *restrict o_cnt) {
 
 bool mace_Target_hasDep(struct Target *target, uint64_t hash) {
     if (target->_deps_links == NULL)
-        return(false);
+        return (false);
 
     for (int i = 0; i < target->_deps_links_num; i++) {
         if (target->_deps_links[i] == hash)
@@ -1944,7 +1944,7 @@ bool mace_circular_deps(struct Target *targs, size_t len) {
             /* Dependency is not in list of targets */
             if (j < 0)
                 continue;
-     
+
             /* Dependency is self */
             if (i == j) {
                 printf("Warning: Target '%s' depends on itself.\n", targs[i]._name);
@@ -2271,7 +2271,7 @@ char *mace_checksum_filename(char *file) {
 
     size_t checksum_len  = (file_len + 6) + obj_dir_len + 1;
 
-    char *sha1  = calloc(checksum_len, sizeof(*sha1));
+    char *sha1   = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
     strncpy(sha1 + total, "/", 1);

@@ -33,7 +33,7 @@
 int main(int argc, char *argv[]) {
     /* -- Parse inputs -- */
     struct Mace_Arguments args = mace_parse_args(argc, argv);
-    
+
     /* -- Override c compiler-- */
     char *cc;
     if (args.cc != NULL) {
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     size_t len_total    = len_cc + 1 + len_macefile + 1 + len_flag + 1 + len_builder + 1;
     char *compile_cmd   = calloc(len_total, sizeof(compile_cmd));
     size_t i = 0;
-    strncpy(compile_cmd + i, STRINGIFY(CC),         len_cc );
+    strncpy(compile_cmd + i, STRINGIFY(CC),         len_cc);
     i += len_cc;
     strncpy(compile_cmd + i, " ",         1);
     i += 1;
@@ -81,9 +81,8 @@ int main(int argc, char *argv[]) {
     mace_wait_pid(pid);
 
     /* --- Run the resulting executable --- */
-    /* - Build argv_run - */
-    char *argv_run[] = {"./"STRINGIFY(BUILDER), NULL};
-
+    /* - Build argv_run:  pass target to builder - */
+    char *argv_run[] = {"./"STRINGIFY(BUILDER), argv[1], NULL};
     /* - Run it - */
     pid = mace_exec("./"STRINGIFY(BUILDER), argv_run);
     mace_wait_pid(pid);
