@@ -4725,66 +4725,68 @@ int is_argv_end(const struct parg_state *ps, int argc, char *const argv[]) {
 }
 
 
+// *INDENT-OFF*
 /* Match string at nextchar against longopts. */
 int match_long(struct parg_state *ps, int argc, char *const argv[], const char *optstring,
                    const struct parg_opt *longopts, int *longindex) {
-        int i, match = -1, num_match = 0;
-        size_t len = strcspn(ps->nextchar, "=");
+    int i, match = -1, num_match = 0;
+    size_t len = strcspn(ps->nextchar, "=");
 
-        for (i = 0; longopts[i].name; ++i) {
-            if (strncmp(ps->nextchar, longopts[i].name, len) == 0) {
-                match = i;
-                num_match++;
-                /* Take if exact match */
-                if (longopts[i].name[len] == '\0') {
-                    num_match = 1;
-                    break;
-                }
+    for (i = 0; longopts[i].name; ++i) {
+        if (strncmp(ps->nextchar, longopts[i].name, len) == 0) {
+            match = i;
+            num_match++;
+            /* Take if exact match */
+            if (longopts[i].name[len] == '\0') {
+                num_match = 1;
+                break;
             }
         }
-
-        /* Return '?' on no or ambiguous match */
-        if (num_match != 1) {
-            ps->optopt = 0;
-            ps->nextchar = NULL;
-            return '?';
-        }
-
-        assert(match != -1);
-
-        if (longindex != NULL) {
-            *longindex = match;
-        }
-
-        if (ps->nextchar[len] == '=') {
-            /* Option argument present, check if extraneous */
-            if (longopts[match].has_arg == PARG_NOARG) {
-                ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
-                ps->nextchar = NULL;
-                return optstring[0] == ':' ? ':' : '?';
-            } else {
-                ps->optarg = &ps->nextchar[len + 1];
-            }
-        } else if (longopts[match].has_arg == PARG_REQARG) {
-            /* Option argument required, so return next argv element */
-            if (is_argv_end(ps, argc, argv)) {
-                ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
-                ps->nextchar = NULL;
-                return optstring[0] == ':' ? ':' : '?';
-            }
-
-            ps->optarg = argv[ps->optind++];
-        }
-
-        ps->nextchar = NULL;
-
-        if (longopts[match].flag != NULL) {
-            *longopts[match].flag = longopts[match].val;
-            return 0;
-        }
-
-        return longopts[match].val;
     }
+
+    /* Return '?' on no or ambiguous match */
+    if (num_match != 1) {
+        ps->optopt = 0;
+        ps->nextchar = NULL;
+        return '?';
+    }
+
+    assert(match != -1);
+
+    if (longindex != NULL) {
+        *longindex = match;
+    }
+
+    if (ps->nextchar[len] == '=') {
+        /* Option argument present, check if extraneous */
+        if (longopts[match].has_arg == PARG_NOARG) {
+            ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
+            ps->nextchar = NULL;
+            return optstring[0] == ':' ? ':' : '?';
+        } else {
+            ps->optarg = &ps->nextchar[len + 1];
+        }
+    } else if (longopts[match].has_arg == PARG_REQARG) {
+        /* Option argument required, so return next argv element */
+        if (is_argv_end(ps, argc, argv)) {
+            ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
+            ps->nextchar = NULL;
+            return optstring[0] == ':' ? ':' : '?';
+        }
+
+        ps->optarg = argv[ps->optind++];
+    }
+
+    ps->nextchar = NULL;
+
+    if (longopts[match].flag != NULL) {
+        *longopts[match].flag = longopts[match].val;
+        return 0;
+    }
+
+    return longopts[match].val;
+}
+// *INDENT-ON*
 
 
 /* Match nextchar against optstring */
@@ -4828,55 +4830,54 @@ int match_short(struct parg_state *ps, int argc, char *const argv[], const char 
  * Check GNU getopt_long example for details:
  * https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html
  */
+// *INDENT-OFF*
 int parg_getopt_long(struct parg_state *ps, int argc, char *const argv[],
-                         const char *optstring,
-                         const struct parg_opt *longopts, int *longindex) {
-        assert(ps != NULL);
-        assert(argv != NULL);
-        assert(optstring != NULL);
+                     const char *optstring, const struct parg_opt *longopts, int *longindex) {
+    assert(ps != NULL);
+    assert(argv != NULL);
+    assert(optstring != NULL);
 
-        ps->optarg = NULL;
+    ps->optarg = NULL;
 
-        if (argc < 2) {
+    if (argc < 2) {
+        return -1;
+    }
+
+    /* Advance to next element if needed */
+    if (ps->nextchar == NULL || *ps->nextchar == '\0') {
+        if (is_argv_end(ps, argc, argv)) {
             return -1;
         }
 
-        /* Advance to next element if needed */
-        if (ps->nextchar == NULL || *ps->nextchar == '\0') {
-            if (is_argv_end(ps, argc, argv)) {
+        ps->nextchar = argv[ps->optind++];
+
+        /* Check for nonoption element (including '-') */
+        if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
+            ps->optarg = ps->nextchar;
+            ps->nextchar = NULL;
+            return 1;
+        }
+
+        /* Check for '--' */
+        if (ps->nextchar[1] == '-') {
+            if (ps->nextchar[2] == '\0') {
+                ps->nextchar = NULL;
                 return -1;
             }
 
-            ps->nextchar = argv[ps->optind++];
-
-            /* Check for nonoption element (including '-') */
-            if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
-                ps->optarg = ps->nextchar;
-                ps->nextchar = NULL;
-                return 1;
+            if (longopts != NULL) {
+                ps->nextchar += 2;
+                return match_long(ps, argc, argv, optstring, longopts, longindex);
             }
-
-            /* Check for '--' */
-            if (ps->nextchar[1] == '-') {
-                if (ps->nextchar[2] == '\0') {
-                    ps->nextchar = NULL;
-                    return -1;
-                }
-
-                if (longopts != NULL) {
-                    ps->nextchar += 2;
-
-                    return match_long(ps, argc, argv, optstring,
-                                      longopts, longindex);
-                }
-            }
-
-            ps->nextchar++;
         }
 
-        /* Match nextchar */
-        return match_short(ps, argc, argv, optstring);
+        ps->nextchar++;
     }
+
+    /* Match nextchar */
+    return match_short(ps, argc, argv, optstring);
+}
+// *INDENT-ON*
 
 /*
  * Reorder elements of `argv` with no special cases.
@@ -5019,52 +5020,54 @@ int parg_reorder(int argc, char *argv[], const char *optstring,
     return optend;
 }
 
-int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[], const char *optstring,
-                          const struct parg_opt *longopts, int *longindex) {
-        assert(ps != NULL);
-        assert(argv != NULL);
-        assert(optstring != NULL);
+// *INDENT-OFF*
+int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[], 
+                      const char *optstring,const struct parg_opt *longopts, int *longindex) {
+    assert(ps != NULL);
+    assert(argv != NULL);
+    assert(optstring != NULL);
 
-        ps->optarg = NULL;
+    ps->optarg = NULL;
 
-        if (argc < 2) {
+    if (argc < 2) {
+        return -1;
+    }
+
+    /* Advance to next element if needed */
+    if (ps->nextchar == NULL || *ps->nextchar == '\0') {
+        if (is_argv_end(ps, argc, argv)) {
             return -1;
         }
 
-        /* Advance to next element if needed */
-        if (ps->nextchar == NULL || *ps->nextchar == '\0') {
-            if (is_argv_end(ps, argc, argv)) {
+        ps->nextchar = argv[ps->optind++];
+
+        /* Check for argument element (including '-') */
+        if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
+            ps->optarg = ps->nextchar;
+            ps->nextchar = NULL;
+            return 1;
+        }
+
+        /* Check for '--' */
+        if (ps->nextchar[1] == '-') {
+            if (ps->nextchar[2] == '\0') {
+                ps->nextchar = NULL;
                 return -1;
             }
 
-            ps->nextchar = argv[ps->optind++];
+            if (longopts != NULL) {
+                ps->nextchar += 2;
 
-            /* Check for argument element (including '-') */
-            if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
-                ps->optarg = ps->nextchar;
-                ps->nextchar = NULL;
-                return 1;
+                return match_long(ps, argc, argv, optstring, longopts, longindex);
             }
-
-            /* Check for '--' */
-            if (ps->nextchar[1] == '-') {
-                if (ps->nextchar[2] == '\0') {
-                    ps->nextchar = NULL;
-                    return -1;
-                }
-
-                if (longopts != NULL) {
-                    ps->nextchar += 2;
-
-                    return match_long(ps, argc, argv, optstring, longopts, longindex);
-                }
-            }
-            ps->nextchar++;
         }
-
-        /* Match nextchar */
-        return match_short(ps, argc, argv, optstring);
+        ps->nextchar++;
     }
+
+    /* Match nextchar */
+    return match_short(ps, argc, argv, optstring);
+}
+// *INDENT-ON*
 
 /******************************* PARG SOURCE END ******************************/
 
