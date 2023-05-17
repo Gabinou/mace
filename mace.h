@@ -177,6 +177,7 @@ struct Mace_Arguments {
     char        *user_target;
     char        *macefile;
     char        *dir;
+    char        *cc;
     uint64_t     user_target_hash;
     uint64_t     skip;
     int          jobs;
@@ -899,13 +900,11 @@ void mace_Target_Parse_User(struct Target *target) {
 
     /* -- Make _argv_flags to argv -- */
     if (target->flags != NULL) {
-        printf("target->flags %s \n", target->flags);
         len = 8;
         target->_argc_flags = 0;
         target->_argv_flags = calloc(len, sizeof(*target->_argv_flags));
         target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags,
                                               target->flags, NULL, false);
-        printf("target->_argc_flags %d \n", target->_argc_flags);
         bytesize            = target->_argc_flags * sizeof(*target->_argv_flags);
         target->_argv_flags = realloc(target->_argv_flags, bytesize);
     }
@@ -5068,6 +5067,7 @@ static struct parg_opt longopts[] = {
     // {NULL,          PARG_NOARG,  0,  0,  NULL,   "Debug options:"},
     {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build targers without checking checksums."},
     {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else."},
+    {"cc",          PARG_REQARG, 0, 'c', "CC",   "Override C compiler."},
     {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
     {"help",        PARG_NOARG,  0, 'h', NULL,   "display help and exit"},
     {"jobs",        PARG_REQARG, 0, 'j', "INT",  "Allow N jobs at once"},
@@ -5083,6 +5083,7 @@ struct Mace_Arguments Mace_Arguments_default = {
     .user_target        = NULL,
     .user_target_hash   = 0,
     .jobs               = 1,
+    .cc                 = NULL,
     .macefile           = NULL,
     .dir                = NULL,
     .debug              = false,
