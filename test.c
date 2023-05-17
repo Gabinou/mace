@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define MACE_TEST_OBJ_DIR "obj"
+#define MACE_TEST_OBJ_DIR   "obj"
 #define MACE_TEST_BUILD_DIR "build"
 #define MACE_TEST_BUFFER_SIZE 128
 
@@ -103,6 +103,7 @@ void test_object() {
 }
 
 void test_target() {
+    mace_init();
     nourstest_true(target_num                           == 0);
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -126,6 +127,8 @@ void test_target() {
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(firesaga);
+
+    nourstest_true(target_num                           == 2);
     nourstest_true(targets[1]._hash                     == mace_hash("firesaga"));
     nourstest_true(targets[1]._deps_links_num           == 12);
     nourstest_true(targets[1]._deps_links[0]            == mace_hash("SDL2"));
@@ -1068,19 +1071,13 @@ void test_excludes() {
     FILE *fd = fopen(rpath, "w");
     fclose(fd);
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .excludes           = "tnecs.c obj",
+        .excludes           = "tnecs.c",
     };
 
     mace_Target_excludes(&tnecs);
-    nourstest_true(tnecs._excl_files_num == 1);
-    nourstest_true(tnecs._excl_files[0] == mace_hash(rpath));
+    nourstest_true(tnecs._excludes_num == 1);
+    nourstest_true(tnecs._excludes[0] == mace_hash(rpath));
     remove(rpath);
-
-    nourstest_true(tnecs._excl_dirs_num == 1);
-    memset(rpath, 0, PATH_MAX);
-    char *token2 = "obj";
-    realpath(token2, rpath);
-    nourstest_true(tnecs._excl_dirs[0] == mace_hash(rpath));
 
     mace_Target_Free(&tnecs);
     free(rpath);
