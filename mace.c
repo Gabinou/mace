@@ -36,12 +36,12 @@ int main(int argc, char *argv[]) {
     
     /* -- Override c compiler-- */
     char *cc;
-    if (args.cc == NULL) {
+    if (args.cc != NULL) {
         cc = args.cc;
     } else {
         cc = STRINGIFY(CC);
     }
-  
+
     /* --- Compile the macefile --- */
     /* - Read macefile name from args - */
     char *builder = STRINGIFY(BUILDER);
