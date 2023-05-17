@@ -36,11 +36,15 @@ int main(int argc, char *argv[]) {
 
     /* -- Override c compiler-- */
     char *cc;
+    printf("args.cc %s \n", args.cc);
     if (args.cc != NULL) {
+        printf("SET\n");
         cc = args.cc;
     } else {
+        printf("DEFAULT\n");
         cc = STRINGIFY(CC);
     }
+    printf("cc %s \n", cc);
 
     /* --- Compile the macefile --- */
     /* - Read macefile name from args - */
@@ -62,7 +66,7 @@ int main(int argc, char *argv[]) {
     size_t len_total    = len_cc + 1 + len_macefile + 1 + len_flag + 1 + len_builder + 1;
     char *compile_cmd   = calloc(len_total, sizeof(compile_cmd));
     size_t i = 0;
-    strncpy(compile_cmd + i, STRINGIFY(CC),         len_cc);
+    strncpy(compile_cmd + i, cc,         len_cc);
     i += len_cc;
     strncpy(compile_cmd + i, " ",         1);
     i += 1;
@@ -77,6 +81,7 @@ int main(int argc, char *argv[]) {
     argv_compile = mace_argv_flags(&len, &argc_compile, argv_compile, compile_cmd, NULL, false);
 
     /* - Compile it - */
+    mace_exec_print(argv_compile, argc_compile);
     pid_t pid = mace_exec(cc, argv_compile);
     mace_wait_pid(pid);
 
