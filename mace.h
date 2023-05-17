@@ -622,6 +622,7 @@ extern int parg_getopt(struct parg_state *ps, int c, char *const v[], const char
 extern int parg_getopt_long(struct parg_state *ps, int c, char *const v[],
                             const char *os, const struct parg_opt *lo, int *li);
 
+
 #endif /* PARG_INCLUDED */
 /**************************** PARG DECLARATION END ****************************/
 
@@ -1781,11 +1782,9 @@ void mace_build_target(struct Target *target) {
     /* --- Parse sources --- */
     char *token = strtok(buffer, mace_separator);
     do {
-        // printf("token %s\n", token);
 
         if (mace_isDir(token)) {
             /* Glob all sources recursively */
-            // printf("isDir %s\n", token);
 
             size_t srclen  = strlen(token);
             char  *globstr = calloc(srclen + 6, sizeof(*globstr));
@@ -1799,12 +1798,10 @@ void mace_build_target(struct Target *target) {
 
         } else if (mace_isWildcard(token)) {
             /* token has a wildcard in it */
-            // printf("isWildcard %s\n", token);
             mace_compile_glob(target, token, target->flags);
 
         } else if (mace_isSource(token)) {
             /* token is a source file */
-            // printf("isSource %s\n", token);
             mace_Target_Parse_Source(target, token, token);
 
         } else {
@@ -2089,6 +2086,7 @@ void mace_post_user(struct Mace_Arguments args) {
     //   5- Compute user_target order.
     //   6- Computes default target order from default target_hash.
     //   7- Alloc queue for processes.
+    //   8- Override compiler.
     // If not exit with error.
 
     if (args.dir != NULL) {
@@ -2122,6 +2120,9 @@ void mace_post_user(struct Mace_Arguments args) {
     plen = args.jobs;
     pqueue = calloc(plen, sizeof(*pqueue));
 
+    if (args.cc != NULL) {
+        cc = args.cc;
+    }
 }
 
 
@@ -2156,6 +2157,7 @@ void mace_free() {
     for (int i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
     }
+
     if (pqueue != NULL) {
         free(pqueue);
         pqueue = NULL;
@@ -4681,7 +4683,8 @@ struct parg_state parg_state_default = {
 
 /* Automatic usage/help printing */
 void mace_parg_usage(const char *name, const struct parg_opt *longopts) {
-    assert(longopts);
+    assert(name     != NULL);
+    assert(longopts != NULL);
     printf("\nmace builder executable: %s \n", name);
     printf("Usage: %s [TARGET] [OPTIONS]\n", name);
     for (int i = 0; longopts[i].doc; ++i) {
@@ -4749,7 +4752,7 @@ int match_long(struct parg_state *ps, int argc, char *const argv[], const char *
 
         assert(match != -1);
 
-        if (longindex) {
+        if (longindex != NULL) {
             *longindex = match;
         }
 
@@ -4825,7 +4828,8 @@ int match_short(struct parg_state *ps, int argc, char *const argv[], const char 
  * Check GNU getopt_long example for details:
  * https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html
  */
-int parg_getopt_long(struct parg_state *ps, int argc, char *const argv[], const char *optstring,
+int parg_getopt_long(struct parg_state *ps, int argc, char *const argv[],
+                         const char *optstring,
                          const struct parg_opt *longopts, int *longindex) {
         assert(ps != NULL);
         assert(argv != NULL);
@@ -4845,7 +4849,7 @@ int parg_getopt_long(struct parg_state *ps, int argc, char *const argv[], const 
 
             ps->nextchar = argv[ps->optind++];
 
-            /* Check for argument element (including '-') */
+            /* Check for nonoption element (including '-') */
             if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
                 ps->optarg = ps->nextchar;
                 ps->nextchar = NULL;
@@ -5108,19 +5112,23 @@ void Mace_Arguments_Free(struct Mace_Arguments *args) {
         free(args->dir);
         args->dir = NULL;
     }
+    if (args->cc != NULL) {
+        free(args->cc);
+        args->cc = NULL;
+    }
 }
 
 struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
+    printf("mace_parse_args\n");
     struct Mace_Arguments out_args = Mace_Arguments_default;
     struct parg_state ps = parg_state_default;
-    int *longindex;
-    int c;
+    int longindex, c;
     size_t len;
 
     if (argc <= 1)
         return (out_args);
 
-    while ((c = parg_getopt_long(&ps, argc, argv, "BC:df:hj:no:sv", longopts, longindex)) != -1) {
+    while ((c = parg_getopt_long(&ps, argc, argv, "Bc:C:df:hj:no:sv", longopts, &longindex)) != -1) {
         switch (c) {
             case 1:
                 len = strlen(ps.optarg);
@@ -5135,6 +5143,11 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 len = strlen(ps.optarg);
                 out_args.dir = calloc(len + 1, sizeof(*out_args.dir));
                 strncpy(out_args.dir, ps.optarg, len);
+                break;
+            case 'c':
+                len = strlen(ps.optarg);
+                out_args.cc = calloc(len + 1, sizeof(*out_args.dir));
+                strncpy(out_args.cc, ps.optarg, len);
                 break;
             case 'd':
                 out_args.debug      = true;
