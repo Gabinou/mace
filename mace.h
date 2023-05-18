@@ -2110,23 +2110,63 @@ void mace_post_build_order() {
         exit(EDOM);
     }
 }
+        uint64_t **restrict _deps_obj;    /* header filename hashes               */
+        int       *restrict _deps_obj_num;/* number of dependencies in argv_deps  */
 
-void mace_parse_object_dependencies(struct Target *target) {
+void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj, int       *restrict _deps_obj_num) {
+    bool oflag = (objfile[0] == '-') && (objfile[1] == 'o');
+    int oflagl = 2;
+    if (!oflag)
+        oflagl = 0;
+
+    int len = 128;
+    char *file = calloc(len, sizeof(*file));
+    size_t objlen = strlen(objfile);
+    while (objlen >= len) {
+        len *= 2;
+        file = realloc(file, len * sizeof(*file));
+    }
+    memset(file, 0, len);
+    strncpy(file, objfile + oflagl, objlen - oflagl);
+
+    size_t ext = objlen - oflagl - 1;
+    do {
+
+        /* Check if .d exists */
+        file[ext] = 'd';    
+        file[ext + 1] = '\n';    
+        printf("file %s\n", file);
+        FILE *fd = fopen(file, "rb");
+        bool d_exists = (fd == NULL);
+        if (!d_exists) {
+            fprintf(stderr, "Object dependency file '%s' does not exist.\n", file);
+            break;
+        }
+        /* Parse all dependencies */
+
+        /* Write dependencies to .djb2 file */
+        strncpy(file + ext, "djb2", 4);
+        printf("file %s\n", file);
+        FILE *fdjb2 = fopen(file, "wb");
+        fwrite(_deps_obj, sizeof(*_deps_obj), *_deps_obj_num, fdjb2);
+
+    } while(false);
+
+    free(file);
+}
+
+void mace_Target_parse_object_dependencies(struct Target *target) {
     // TODO: save hashed filenames dependencies to .djb2
     //  test if faster to read: .djb2 vs .d 
     /* Loop over all _argv_sources */
     /* Check if .djb2 exists */
-    FILE *fdjb2 = fopen(file, "rb");
-    bool dbj2_exists = (fdjb2 == NULL);
-
-    /* Check if .d exists */
-    FILE *fd = fopen(file, "r");
-    bool d_exists = (fd == NULL);
+    for (int i = 0; i < target->_argc_sources; i++) {
+        mace_parse_object_dependencies(target->_argv_objects[i], target->_deps_obj[i], &target->_deps_obj_num[i]);
+    }
     /* read all files, starting from 3rd (check if .h) */
     /* hash name */
     /* Put hash into array */
     /* Write bytes to .djb2 */
-    
 }
 
 void mace_post_user(struct Mace_Arguments args) {
@@ -2310,17 +2350,17 @@ void mace_Target_Deps_Hash(struct Target *target) {
 char *mace_checksum_filename(char *file) {
     // Files should be .c or .h
     size_t path_len  = strlen(file);
-    char *dot   = strchr(file, '.'); // last dot in path
-    char *slash = strrchr(file, '/'); // last slash in path
+    char *dot        = strchr(file,  '.'); // last dot in path
+    char *slash      = strrchr(file, '/'); // last slash in path
     if (dot == NULL) {
         fprintf(stderr, "Could not find extension in filename");
         exit(EPERM);
     }
 
-    int dot_i   = (int)(dot   - file);
+    int dot_i   = (int)(dot - file);
     int slash_i = (slash == NULL) ? 0 : (int)(slash - file + 1);
     size_t obj_dir_len  = strlen(obj_dir);
-    size_t file_len  = dot_i - slash_i;
+    size_t file_len     = dot_i - slash_i;
 
     size_t checksum_len  = (file_len + 6) + obj_dir_len + 1;
 

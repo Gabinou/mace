@@ -1108,6 +1108,13 @@ void test_excludes() {
     mace_free();
 }
 
+void test_parse_d() {
+    uint64_t _deps_obj[1];
+    int _deps_obj_num = 1;
+    mace_parse_object_dependencies("-otnecs.o", _deps_obj, &_deps_obj_num);
+    mace_parse_object_dependencies("tnecs.o",   _deps_obj, &_deps_obj_num);
+}
+
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     MACE_SET_COMPILER(gcc);
@@ -1124,6 +1131,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("build_order ",   test_build_order);
     nourstest_run("checksum ",      test_checksum);
     nourstest_run("excludes ",      test_excludes);
+    nourstest_run("parse_d ",       test_parse_d);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
