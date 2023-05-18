@@ -1111,8 +1111,8 @@ void test_excludes() {
 void test_parse_d() {
     uint64_t _deps_obj[1];
     int _deps_obj_num = 1;
-    mace_parse_object_dependencies("-otnecs.o", _deps_obj, &_deps_obj_num);
-    mace_parse_object_dependencies("tnecs.o",   _deps_obj, &_deps_obj_num);
+    mace_parse_object_dependencies("-otest1.o", _deps_obj, &_deps_obj_num);
+    mace_parse_object_dependencies("test1.o",   _deps_obj, &_deps_obj_num);
 }
 
 int mace(int argc, char *argv[]) {
