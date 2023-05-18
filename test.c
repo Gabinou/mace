@@ -1109,10 +1109,30 @@ void test_excludes() {
 }
 
 void test_parse_d() {
-    uint64_t _deps_obj[1];
-    int _deps_obj_num = 1;
-    mace_parse_object_dependencies("-otest1.o", _deps_obj, &_deps_obj_num);
-    mace_parse_object_dependencies("test1.o",   _deps_obj, &_deps_obj_num);
+    int _deps_obj_num = 0;
+    int _deps_obj_len = 8;
+    uint64_t *_deps_obj = calloc(_deps_obj_len, sizeof(*_deps_obj));
+    mace_parse_object_dependencies("-otest1.o", _deps_obj, &_deps_obj_num, &_deps_obj_len);
+    printf("_deps_obj_num %d\n",_deps_obj_num);
+    nourstest_true(_deps_obj_num == 1);
+    nourstest_true(_deps_obj_len == 8);
+    nourstest_true(_deps_obj[0] == mace_hash("tnecs.h"));
+
+    _deps_obj_num = 0;
+    mace_parse_object_dependencies("test1.o", _deps_obj, &_deps_obj_num, &_deps_obj_len);
+    nourstest_true(_deps_obj_num == 1);
+    nourstest_true(_deps_obj_len == 8);
+    nourstest_true(_deps_obj[0] == mace_hash("tnecs.h"));
+    
+    _deps_obj_num = 0;
+    mace_parse_object_dependencies("test2.o", _deps_obj, &_deps_obj_num, &_deps_obj_len);
+    nourstest_true(_deps_obj_num == 72);
+    nourstest_true(_deps_obj_len == 128);
+    // nourstest_true(_deps_obj[0] == mace_hash("tnecs.h"));
+    
+
+
+    free(_deps_obj);
 }
 
 int mace(int argc, char *argv[]) {
