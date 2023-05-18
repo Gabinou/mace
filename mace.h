@@ -9,7 +9,7 @@
 * Usage:
 *  - Write a macefile.c
 *       - Implement the function mace.
-*       - Set compiler, add targets, add commands, etc.
+*       - Set compiler, add targets, etc.
 *       - Compile and run to build. Manually, or with the convenience executable.
 *
 * See README for more details.
