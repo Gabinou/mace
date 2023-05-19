@@ -141,7 +141,7 @@ struct Target {
     char **restrict _argv;         /* buffer for argv to exec build commands  */
     int             _argc;         /* number of arguments in argv             */
     int             _arg_len;      /* alloced len of argv                     */
-    char **restrict _argv_includes;/* includes, in argv form                  */
+    char **restrict _argv_includes;/* user includes, in argv form             */
     int             _argc_includes;/* number of arguments in argv_includes    */
     char **restrict _argv_links;   /* linked libraries, in argv form          */
     int             _argc_links;   /* number of arguments in argv_links       */
@@ -169,6 +169,9 @@ struct Target {
     size_t     _deps_links_len;    /* target or libs hashes                   */
     size_t     _d_cnt;             /* dependency count, for build order       */
     /* -- Object dependencies --  */
+    char **restrict _headers;    /* header filename hashes               */
+    int       *restrict _headers_num;/* len of headers */
+    int       *restrict _headers_len;/* number of headers  */
     uint64_t **restrict _deps_obj;    /* header filename hashes               */
     int       *restrict _deps_obj_num;/* number of dependencies in argv_deps  */
     int       *restrict _deps_obj_len;/* len of dependencies array argv_deps  */
@@ -928,6 +931,13 @@ void mace_Target_argv_grow(struct Target *target) {
     target->_argv = mace_argv_grow(target->_argv, &target->_argc, &target->_arg_len);
 }
 
+void mace_Target_headers_grow(struct Target *target) {
+    if (target->_deps_obj_name == NULL) {
+        bytesize = sizeof(*target->_deps_obj_name);
+        target->_deps_obj_name  = calloc(target->_len_headers, bytesize);
+    }
+    
+}
 void mace_Target_sources_grow(struct Target *target) {
     size_t bytesize;
 
@@ -962,6 +972,7 @@ void mace_Target_sources_grow(struct Target *target) {
         bytesize = sizeof(*target->_deps_obj);
         target->_deps_obj  = calloc(target->_len_sources, bytesize);
     }
+    
     if (target->_deps_obj_num == NULL) {
         bytesize = sizeof(*target->_deps_obj_num);
         target->_deps_obj_num  = calloc(target->_len_sources, bytesize);
