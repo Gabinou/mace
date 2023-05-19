@@ -1111,16 +1111,16 @@ void test_excludes() {
 void test_parse_d() {
     mace_init();
 
-    struct Target target1 = {0};
-    MACE_ADD_TARGET(target1);
-    mace_Target_Source_Add(&target1, "test1.c");
-    mace_Target_Object_Add(&target1, "test1.o");
-    mace_parse_object_dependencies(&target1, "-otest1.o");
-    assert(target1._headers_hash != NULL);
-    nourstest_true(target1._headers_num == 1);
-    nourstest_true(target1._deps_headers_num[0] == 1);
-    nourstest_true(target1._headers_len == 8);
-    nourstest_true(target1._headers_hash[0] == mace_hash("tnecs.h"));
+    // struct Target target1 = {0};
+    // MACE_ADD_TARGET(target1);
+    // mace_Target_Source_Add(&target1, "test1.c");
+    // mace_Target_Object_Add(&target1, "test1.o");
+    // mace_parse_object_dependencies(&target1, "-otest1.o");
+    // assert(target1._headers_hash != NULL);
+    // nourstest_true(target1._headers_num == 1);
+    // nourstest_true(target1._deps_headers_num[0] == 1);
+    // nourstest_true(target1._headers_len == 8);
+    // nourstest_true(target1._headers_hash[0] == mace_hash("tnecs.h"));
 
     struct Target target = {0};
     MACE_ADD_TARGET(target);

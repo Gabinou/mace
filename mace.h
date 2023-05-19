@@ -2198,6 +2198,7 @@ void mace_grow_headers(struct Target *target) {
         target->_headers_len *= 2;
         size_t bytesize = target->_headers_len * sizeof(*target->_headers);
         target->_headers = realloc(target->_headers, bytesize);
+        memset(target->_headers + target->_headers_len / 2, 0, bytesize / 2);
     }
 }
 
@@ -2235,10 +2236,12 @@ uint64_t mace_Target_add_header(struct Target *target, char *header) {
     uint64_t hash = mace_hash(header);
 
     /* Add header name to _headers */
+    mace_grow_headers(target);
     if (mace_Target_hasHeader(target, hash) == -1) {
-        mace_grow_headers(target);
         target->_headers_hash[target->_headers_num] = hash;
         size_t len = strlen(header);
+        printf("target->_headers_num %d %d\n", target->_headers_num,  target->_headers_len);
+        assert(target->_headers[target->_headers_num] == NULL);
         target->_headers[target->_headers_num] = calloc(len + 1, sizeof(**target->_headers));
         strncpy(target->_headers[target->_headers_num], header, len);
         target->_headers_num++;
@@ -2312,9 +2315,9 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
                 int last_space = (int)(last_ptr - buffer) - size;
                 fseek(fd, last_space, SEEK_CUR);
             }
-            fclose(fd);
         }
 
+        fclose(fd);
         // /* Write dependencies to .djb2 file */
         // strncpy(file + ext, "djb2", 4);
         // printf("file %s\n", file);
