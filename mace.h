@@ -170,9 +170,12 @@ struct Target {
     size_t     _d_cnt;             /* dependency count, for build order       */
     /* -- Object dependencies --  */
     char     **restrict _headers;     /* header filename hashes               */
-    uint64_t **restrict _headers_hash;/* header filename hashes               */
-    int       *restrict _headers_num; /* len of headers                       */
-    int       *restrict _headers_len; /* number of headers                    */
+    uint64_t  *restrict _headers_hash;/* [hdr_order] header filename hashes   */
+    int                 _headers_num; /* len of headers                       */
+    int                 _headers_len; /* number of headers                    */
+    uint64_t **restrict _deps_headers; /* [num_sources][dep_order] == hdr_order */
+    int       *restrict _deps_headers_num;   /* len of object header deps     */
+    int       *restrict _deps_headers_len;   /* num of object header deps     */
 
     /* --- Recompile switches ---  */
     bool *_recompiles; /* [argc_source] */
@@ -261,6 +264,13 @@ char  *mace_str_buffer(const char *const strlit);
 char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
                        const char *restrict includes, const char *restrict flag, bool path);
 #ifndef MACE_CONVENIENCE_EXECUTABLE
+    /* --- mace_obj_dependencies --- */
+    uint64_t mace_Target_add_header(struct Target *target, char *header);
+    void mace_Target_read_obj_deps(struct Target *target, char *deps, int obj_hash_id);
+    void mace_grow_headers(struct Target      *target);
+    void mace_grow_deps_headers(struct Target *target, int obj_hash_id);
+    int mace_Target_header_order(struct Target *target, uint64_t hash);
+    void mace_Target_add_header_dep(struct Target *target, int header_order, int obj_hash_id);
 
     char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict arg_len);
     void   mace_argv_free(char **restrict argv, int argc);
@@ -929,19 +939,6 @@ void mace_Target_argv_grow(struct Target *target) {
     target->_argv = mace_argv_grow(target->_argv, &target->_argc, &target->_arg_len);
 }
 
-void mace_Target_headers_grow(struct Target *target) {
-    /* -- Alloc headers -- */
-    if (target->_headers == NULL) {
-        target->_headers  = calloc(target->_len_headers, sizeof(*target->_headers));
-    }
-
-    /* -- Realloc headers -- */
-    if (target->_headers_num >= target->_headers_len) {
-        bytesize = target->_headers_len * 2 * sizeof(*target->_headers);
-        target->_headers = realloc(target->_headers, bytesize);
-    }
-}
-
 void mace_Target_sources_grow(struct Target *target) {
     size_t bytesize;
 
@@ -950,6 +947,17 @@ void mace_Target_sources_grow(struct Target *target) {
         target->_len_sources  = 8;
         bytesize = target->_len_sources * sizeof(*target->_argv_sources);
         target->_argv_sources = malloc(bytesize);
+    }
+
+    /* -- Alloc deps_headers -- */
+    if (target->_deps_headers == NULL) {
+        target->_deps_headers  = calloc(target->_len_sources, sizeof(*target->_deps_headers));
+    }
+    if (target->_deps_headers_num == NULL) {
+        target->_deps_headers_num  = calloc(target->_len_sources, sizeof(*target->_deps_headers_num));
+    }
+    if (target->_deps_headers_len == NULL) {
+        target->_deps_headers_len  = calloc(target->_len_sources, sizeof(*target->_deps_headers_len));
     }
 
     /* -- Alloc recompiles -- */
@@ -972,20 +980,6 @@ void mace_Target_sources_grow(struct Target *target) {
         target->_argv_objects_hash  = calloc(target->_len_sources, bytesize);
     }
     /* -- Alloc object dependencies -- */
-    if (target->_headers_hash == NULL) {
-        bytesize = sizeof(*target->_headers_hash);
-        target->_headers_hash  = calloc(target->_len_sources, bytesize);
-    }
-
-    if (target->_headers_num == NULL) {
-        bytesize = sizeof(*target->_headers_num);
-        target->_headers_num  = calloc(target->_len_sources, bytesize);
-    }
-    if (target->_headers_len == NULL) {
-        bytesize = sizeof(*target->_headers_len);
-        target->_headers_len  = calloc(target->_len_sources, bytesize);
-    }
-
     if (target->_argc_sources >= target->_len_sources) {
         /* -- Realloc recompiles -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_recompiles);
@@ -994,15 +988,16 @@ void mace_Target_sources_grow(struct Target *target) {
         /* -- Realloc objects -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_argv_objects);
         target->_argv_objects = realloc(target->_argv_objects, bytesize);
+    }
 
-        /* -- Realloc object dependencies -- */
-        bytesize = target->_len_sources * 2 * sizeof(*target->_headers_hash);
-        target->_headers_hash = realloc(target->_headers_hash, bytesize);
-        bytesize = target->_len_sources * 2 * sizeof(*target->_headers_hash);
-        target->_headers_num = realloc(target->_headers_num, bytesize);
-        bytesize = target->_len_sources * 2 * sizeof(*target->_headers_hash);
-        target->_headers_len = realloc(target->_headers_len, bytesize);
-
+    /* -- Realloc deps_headers -- */
+    if (target->_argc_sources >= target->_len_sources) {
+        size_t bytesize = target->_len_sources * 2 * sizeof(*target->_deps_headers);
+        target->_deps_headers = realloc(target->_deps_headers, bytesize);
+        bytesize = target->_len_sources * 2 * sizeof(*target->_deps_headers_num);
+        target->_deps_headers_num = realloc(target->_deps_headers_num, bytesize);
+        bytesize = target->_len_sources * 2 * sizeof(*target->_deps_headers_len);
+        target->_deps_headers_len = realloc(target->_deps_headers_len, bytesize);
     }
 
     /* -- Realloc sources -- */
@@ -2077,23 +2072,23 @@ void mace_Target_Free_notargv(struct Target *target) {
         free(target->_recompiles);
         target->_recompiles = NULL;
     }
-    if (target->_headers_hash != NULL) {
+    if (target->_deps_headers != NULL) {
         for (int i = 0; i < target->_argc_sources; i++) {
-            if (target->_headers_hash[i] != NULL) {
-                free(target->_headers_hash[i]);
-                target->_headers_hash[i] = NULL;
+            if (target->_deps_headers[i] != NULL) {
+                free(target->_deps_headers[i]);
+                target->_deps_headers[i] = NULL;
             }
         }
-        free(target->_headers_hash);
-        target->_headers_hash = NULL;
+        free(target->_deps_headers);
+        target->_deps_headers = NULL;
     }
-    if (target->_headers_num != NULL) {
-        free(target->_headers_num);
-        target->_headers_num = NULL;
+    if (target->_deps_headers_len != NULL) {
+        free(target->_deps_headers_len);
+        target->_deps_headers_len = NULL;
     }
-    if (target->_headers_len != NULL) {
-        free(target->_headers_len);
-        target->_headers_len = NULL;
+    if (target->_deps_headers_num != NULL) {
+        free(target->_deps_headers_num);
+        target->_deps_headers_num = NULL;
     }
 
 }
@@ -2140,64 +2135,121 @@ void mace_post_build_order() {
     }
 }
 
-void mace_grow_headers(uint64_t **restrict _headers_hash, int *restrict _headers_num,
-                    int       *restrict _headers_len) {
-    if (*_headers_num >= *_headers_len) {
-        (*_headers_len) *= 2;
-        size_t bytesize = (*_headers_len) * sizeof(**_headers_hash);
-        *_headers_hash = realloc(*_headers_hash, bytesize);
+int mace_Target_header_order(struct Target *target, uint64_t hash) {
+    for (int i = 0; i < target->_headers_num; ++i) {
+        if (target->_headers_hash[i] == hash)
+            return (i);
+    }
+    return (-1);
+}
+
+void mace_grow_deps_headers(struct Target *target, int obj_hash_id) {
+    if (target->_deps_headers[obj_hash_id] == NULL) {
+        target->_deps_headers_num[obj_hash_id] = 0;
+        target->_deps_headers_len[obj_hash_id] = 0;
+        target->_deps_headers[obj_hash_id] = calloc(target->_deps_headers_len[obj_hash_id],
+                                                    sizeof(**target->_deps_headers));
+    }
+    if (target->_deps_headers_num[obj_hash_id] >= target->_deps_headers_len[obj_hash_id]) {
+        target->_deps_headers_len[obj_hash_id] *= 2;
+        size_t bytesize = target->_deps_headers_len[obj_hash_id] * sizeof(**target->_deps_headers);
+        target->_deps_headers[obj_hash_id] = realloc(target->_deps_headers[obj_hash_id], bytesize);
     }
 }
 
-void mace_read_obj_deps(char *deps, uint64_t **restrict _headers_hash,
-                        int       *restrict _headers_num, int       *restrict _headers_len) {
-    /* --- Split links into tokens, --- */
-    char *token = strtok(deps, " ");
+void mace_grow_headers(struct Target *target) {
+    /* -- Alloc headers -- */
+    if (target->_headers == NULL) {
+        target->_headers_len = 8;
+        target->_headers_num = 0;
+        target->_headers  = calloc(target->_headers_len, sizeof(*target->_headers));
+    }
+    if (target->_headers_hash == NULL) {
+        target->_headers_hash  = calloc(target->_headers_len, sizeof(*target->_headers_hash));
+    }
+    /* -- Realloc headers -- */
+    if (target->_headers_num >= target->_headers_len) {
+        size_t bytesize = target->_headers_len * 2 * sizeof(*target->_headers_hash);
+        target->_headers_hash = realloc(target->_headers_hash, bytesize);
+    }
+    if (target->_headers_num >= target->_headers_len) {
+        target->_headers_len *= 2;
+        size_t bytesize = target->_headers_len * sizeof(*target->_headers);
+        target->_headers = realloc(target->_headers, bytesize);
+    }
+}
 
-    /* --- Hash tokens into _deps_links --- */
+void mace_Target_read_obj_deps(struct Target *target, char *deps, int obj_hash_id) {
+    /* --- Split links into tokens, --- */
+    char *header = strtok(deps, " ");
+
+    /* --- Hash headers into _deps_links --- */
     do {
-        size_t len = strlen(token);
-        if (token[len - 1] == 'h') {
-         
-            mace_Target_add_header(target, token);
+        size_t len = strlen(header);
+        if (header[len - 1] == 'h') {
+            /* add header to list of all headers */
+            uint64_t hash = mace_Target_add_header(target, header);
+
+            /* Add header to list of header_deps of object */
+            int header_order = mace_Target_header_order(target, hash);
+            mace_Target_add_header_dep(target, header_order, obj_hash_id);
         }
-        token = strtok(NULL, " ");
-    } while (token != NULL);
+
+        header = strtok(NULL, " ");
+    } while (header != NULL);
 }
 
 int mace_Target_hasHeader(struct Target *target, uint64_t hash) {
-    for (int i = 0; i < count; i++){
+    for (int i = 0; i < target->_headers_num; i++) {
         if (target->_headers_hash[i] == hash)
-            return(i)
+            return (i);
     }
-    return(-1);
+    return (-1);
 }
 
-void mace_Target_add_header(struct Target *target, char *header) {
+uint64_t mace_Target_add_header(struct Target *target, char *header) {
     /* Check if header hash already in _headers_hash */
     /* Add header hash to _headers_hash */
-    uint64_t hash = mace_hash(token);
+    uint64_t hash = mace_hash(header);
 
     /* Add header name to _headers */
-    if (mace_Target_hasHeader(target)　== -1) {
-        mace_grow_headers(target->_headers_hash, target->_headers_num, target->_headers_len);
+    if (mace_Target_hasHeader(target, hash) == -1) {
+        mace_grow_headers(target);
         target->_headers_hash[target->_headers_num] = hash;
-        mace_Target_headers_grow(target);
-        len = 
-        target->_header = calloc()
-        
+        size_t len = strlen(header);
+        target->_headers[target->_headers_num] = calloc(len + 1, sizeof(**target->_headers));
+        strncpy(target->_headers[target->_headers_num], header, len);
+        target->_headers_num++;
     }
-
+    return (hash);
 }
 
+void mace_Target_add_header_dep(struct Target *target, int header_order, int obj_hash_id) {
+    bool found = false;
+    /* Check if header_order in _deps_headers */
+    for (int i = 0; i < target->_deps_headers_num[obj_hash_id]; i++) {
+        if (target->_deps_headers[obj_hash_id][i] == header_order) {
+            found == true;
+            break;
+        }
+    }
+
+    if (!found) {
+        mace_grow_deps_headers(target, obj_hash_id);
+        target->_deps_headers[obj_hash_id][target->_deps_headers_num[obj_hash_id]++] = header_order;
+    }
+}
+
+
 /* - Parse .d file, recording all header files - */
-void mace_parse_object_dependencies(char *objfile, uint64_t **restrict _headers_hash,
-                                    int       *restrict _headers_num, int       *restrict _headers_len) {
+void mace_parse_object_dependencies(struct Target *target, char *objfile) {
+    /* objfile should start with "-o" */
+    if ((objfile[0] != '-') || (objfile[1] != 'o')) {
+        /* error? */
+    }
     
-    bool oflag = (objfile[0] == '-') && (objfile[1] == 'o');
     int oflagl = 2;
-    if (!oflag)
-        oflagl = 0;
+
 
     int len = 128;
     char *file = calloc(len, sizeof(*file));
@@ -2230,8 +2282,13 @@ void mace_parse_object_dependencies(char *objfile, uint64_t **restrict _headers_
                 buffer[len - 1] = '\0';
             }
 
+            /* Check that target has object */
+            uint64_t obj_hash = mace_hash(buffer);
+            int obj_hash_id = Target_hasObjectHash(target, obj_hash);
+            assert(obj_hash_id > -1);
+
             /* - Parsing here - */
-            mace_read_obj_deps(buffer, _headers_hash, _headers_num, _headers_len);
+            mace_Target_read_obj_deps(target, buffer, obj_hash_id);
 
             if (!line_end) {
                 /* - Go back to last ' ', to read line more - */
@@ -2261,8 +2318,7 @@ void mace_Target_parse_object_dependencies(struct Target *target) {
     /* Loop over all _argv_sources */
     /* Check if .djb2 exists */
     for (int i = 0; i < target->_argc_sources; i++) {
-        mace_parse_object_dependencies(target->_argv_objects[i], &target->_headers_hash[i],
-                                       &target->_headers_num[i], &target->_headers_len[i]);
+        mace_parse_object_dependencies(target, target->_argv_objects[i]);
     }
     /* read all files, starting from 3rd (check if .h) */
     /* hash name */
