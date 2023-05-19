@@ -2055,6 +2055,7 @@ void mace_build_targets() {
 }
 
 void mace_Target_Free(struct Target *target) {
+    printf("mace_Target_Free\n");
     mace_Target_Free_argv(target);
     mace_Target_Free_notargv(target);
     mace_Target_Free_excludes(target);
@@ -2074,7 +2075,7 @@ void mace_Target_Free_deps_headers(struct Target *target) {
     }
 
     if (target->_deps_headers != NULL) {
-        for (int i = 0; i < target->_argc_sources; i++) {
+        for (int i = 0; i < target->_len_sources; i++) {
             if (target->_deps_headers[i] != NULL) {
                 free(target->_deps_headers[i]);
                 target->_deps_headers[i] = NULL;
@@ -2171,11 +2172,16 @@ void mace_grow_deps_headers(struct Target *target, int obj_hash_id) {
         target->_deps_headers_len[obj_hash_id] = 8;
         target->_deps_headers[obj_hash_id] = calloc(target->_deps_headers_len[obj_hash_id],
                                                     sizeof(**target->_deps_headers));
+        assert(target->_deps_headers[obj_hash_id] != NULL);
     }
     if (target->_deps_headers_num[obj_hash_id] >= target->_deps_headers_len[obj_hash_id]) {
         target->_deps_headers_len[obj_hash_id] *= 2;
+        printf("target->_deps_headers_len[obj_hash_id] %d \n", target->_deps_headers_len[obj_hash_id]);
         size_t bytesize = target->_deps_headers_len[obj_hash_id] * sizeof(**target->_deps_headers);
+
+        printf("bytesize %d \n", bytesize);
         target->_deps_headers[obj_hash_id] = realloc(target->_deps_headers[obj_hash_id], bytesize);
+        assert(target->_deps_headers[obj_hash_id] != NULL);
     }
 }
 
@@ -2194,7 +2200,9 @@ void mace_grow_headers(struct Target *target) {
         size_t bytesize = target->_headers_len * 2 * sizeof(*target->_headers_hash);
         target->_headers_hash = realloc(target->_headers_hash, bytesize);
     }
+    printf("%d %d\n", target->_headers_num, target->_headers_len);
     if (target->_headers_num >= target->_headers_len) {
+        printf("REALLOC\n");
         target->_headers_len *= 2;
         size_t bytesize = target->_headers_len * sizeof(*target->_headers);
         target->_headers = realloc(target->_headers, bytesize);
@@ -2240,7 +2248,7 @@ uint64_t mace_Target_add_header(struct Target *target, char *header) {
     if (mace_Target_hasHeader(target, hash) == -1) {
         target->_headers_hash[target->_headers_num] = hash;
         size_t len = strlen(header);
-        printf("target->_headers_num %d %d\n", target->_headers_num,  target->_headers_len);
+        // printf("target->_headers_num %d %d\n", target->_headers_num,  target->_headers_len);
         assert(target->_headers[target->_headers_num] == NULL);
         target->_headers[target->_headers_num] = calloc(len + 1, sizeof(**target->_headers));
         strncpy(target->_headers[target->_headers_num], header, len);
