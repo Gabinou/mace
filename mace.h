@@ -932,12 +932,18 @@ void mace_Target_argv_grow(struct Target *target) {
 }
 
 void mace_Target_headers_grow(struct Target *target) {
-    if (target->_deps_obj_name == NULL) {
-        bytesize = sizeof(*target->_deps_obj_name);
-        target->_deps_obj_name  = calloc(target->_len_headers, bytesize);
+    /* -- Alloc headers -- */
+    if (target->_headers == NULL) {
+        target->_headers  = calloc(target->_len_headers, sizeof(*target->_headers));
     }
-    
+
+    /* -- Realloc headers -- */
+    if (target->_headers_num >= target->_headers_len) {
+        bytesize = target->_headers_len * 2 * sizeof(*target->_headers);
+        target->_headers = realloc(target->_headers, bytesize);
+    }
 }
+
 void mace_Target_sources_grow(struct Target *target) {
     size_t bytesize;
 
@@ -972,7 +978,7 @@ void mace_Target_sources_grow(struct Target *target) {
         bytesize = sizeof(*target->_deps_obj);
         target->_deps_obj  = calloc(target->_len_sources, bytesize);
     }
-    
+
     if (target->_deps_obj_num == NULL) {
         bytesize = sizeof(*target->_deps_obj_num);
         target->_deps_obj_num  = calloc(target->_len_sources, bytesize);
@@ -1713,7 +1719,7 @@ void mace_object_path(char *source) {
         exit(ENOENT);
     }
 
-    /* --- Grow object --- */
+    /* --- Grow object string --- */
     size_t source_len = strlen(source);
     size_t path_len;
     while (((path_len = strlen(path)) + source_len + 2) >= object_len)
@@ -2154,15 +2160,28 @@ void mace_read_obj_deps(char *deps, uint64_t **restrict _deps_obj,
     do {
         size_t len = strlen(token);
         if (token[len - 1] == 'h') {
-            mace_grow_deps(_deps_obj, _deps_obj_num, _deps_obj_len);
-            (*_deps_obj)[(*_deps_obj_num)++] = mace_hash(token);
+         
+            mace_Target_add_header(token);
         }
         token = strtok(NULL, " ");
     } while (token != NULL);
 }
 
+void mace_Target_add_header(char *header) {
+    /* Check if header hash already in _deps_obj */
+    /* Add header hash to _deps_obj */
+    mace_grow_deps(_deps_obj, _deps_obj_num, _deps_obj_len);
+    (*_deps_obj)[(*_deps_obj_num)++] = mace_hash(token);
+
+    /* Add header name to _headers */
+    mace_Target_headers_grow(target);
+
+}
+
+/* - Parse .d file, recording all header files - */
 void mace_parse_object_dependencies(char *objfile, uint64_t **restrict _deps_obj,
                                     int       *restrict _deps_obj_num, int       *restrict _deps_obj_len) {
+    
     bool oflag = (objfile[0] == '-') && (objfile[1] == 'o');
     int oflagl = 2;
     if (!oflag)
