@@ -32,49 +32,59 @@
 #include <ftw.h>
 
 #ifndef MACE_CONVENIENCE_EXECUTABLE
+
 /*----------------------------------------------------------------------------*/
-/*                                 PUBLIC API                                 */
+/*                                ENTRY POINT                                 */
 /*----------------------------------------------------------------------------*/
 
-/* --- MACE FUNCTION --- */
-// User entry point. Must be implemented by user.
-// Must:
-//   1- Set compiler    -> MACE_SET_COMPILER
-//   2- Add targets     -> MACE_ADD_TARGET
-// Optional:
-//   3- Set build_dir   -> mace_set_obj_dir
-//   4- Set obj_dir     -> mace_set_build_dir
 extern int mace(int argc, char *argv[]);
+// The 'mace' function must be implemented by the user.
+// Necessary:
+//   1- Add targets         -> MACE_ADD_TARGET
+//   2- Set compiler        -> MACE_SET_COMPILER
+// Optional:
+//   3- Set build_dir       -> mace_set_obj_dir
+//   4- Set obj_dir         -> mace_set_build_dir
+//   5- Set separator       -> mace_set_separator
+//   6- Set default target  -> mace_set_default_target
 
 /*-----------------------------------*/
 /*              EXAMPLE               /
-*           MACE FUNCTION             /
+*                                     /
 * int mace(int argc, char *argv[]) {  /
 *   MACE_SET_COMPILER(gcc);           /
 *   MACE_SET_OBJ_DIR(obj);            /
 *   MACE_SET_BUILD_DIR(build);        /
-*   MACE_ADD_TARGET(foo1);            /
+*   ...                               /
+*   MACE_ADD_TARGET(foo);             /
 * };                                  /
 *------------------------------------*/
 
+/*----------------------------------------------------------------------------*/
+/*                                 PUBLIC API                                 */
+/*----------------------------------------------------------------------------*/
 /* --- SETTERS --- */
 /* -- Compiler -- */
+// Tested with gcc, clang and tcc.
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) cc = #compiler
 
 /* -- Directories -- */
 /* - obj_dir - */
+// Folder for intermediary files: .o, .d .sha1, etc. 
 char *mace_set_obj_dir(char   *obj);
 #define MACE_SET_OBJ_DIR(dir) _MACE_SET_OBJ_DIR(dir)
 #define _MACE_SET_OBJ_DIR(dir) mace_set_obj_dir(#dir)
 
 /* - build_dir - */
+// Folder for targets: binaries, libraries.
 char *mace_set_build_dir(char *build);
 #define MACE_SET_BUILD_DIR(dir) _MACE_SET_BUILD_DIR(dir)
 #define _MACE_SET_BUILD_DIR(dir) mace_set_build_dir(#dir)
 
 /* -- Separator -- */
 void mace_set_separator(char *sep);
+// Separator for files/folders in target member variables. Default is " ".
 #define MACE_SET_SEPARATOR(sep) _MACE_SET_SEPARATOR(sep)
 #define _MACE_SET_SEPARATOR(sep) mace_set_separator(#sep)
 
@@ -83,12 +93,12 @@ struct Target;
 #define MACE_ADD_TARGET(target)     mace_add_target(&target, #target)
 #define MACE_DEFAULT_TARGET(target) mace_set_default_target(#target)
 
+// Use this to add targets with an arbitrary name.
 void mace_add_target(struct Target *restrict target, char *restrict name);
 
+// By default, mace builds all targets. 
+// When set by user, mace builds all only default target and its dependencies.
 void mace_set_default_target(char *name);
-// To compile default target:
-//  1- Compute build order starting from this target.
-//  2- Build all targets in `build_order` until default target is reached
 
 
 /******************************* TARGET STRUCT ********************************/
@@ -150,7 +160,6 @@ struct Target {
     char **restrict _argv_sources; /* sources, in argv form                   */
     int             _argc_sources; /* number of arguments in argv_sources     */
     int             _len_sources;  /* alloc len of arguments in argv_sources  */
-
 
     // DOES NOT include objects with number to prevent collisions!
     uint64_t *restrict _argv_objects_hash;/* objects, in argv form            */
@@ -250,6 +259,12 @@ enum MACE_ARGV { // for various argv
     MACE_ARGV_OTHER      = 3, // single source compilation
 };
 
+enum MACE_CHECKSUM_MODE {
+    MACE_CHECKSUM_MODE_NULL      = 0,
+    MACE_CHECKSUM_MODE_SRC       = 1,
+    MACE_CHECKSUM_MODE_INCLUDE   = 2,
+};
+
 /******************************** DECLARATIONS ********************************/
 /* --- mace --- */
 void mace_init();
@@ -259,7 +274,7 @@ void mace_exec_print(char *const arguments[], size_t argnum);
 
 /* --- mace_checksum --- */
 void mace_sha1cd(char *file, uint8_t hash2[SHA1_LEN]);
-char *mace_checksum_filename(char *file);
+char *mace_checksum_filename(char *file, int mode);
 bool mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]);
 
 /* --- mace_hashing --- */
@@ -372,7 +387,7 @@ int mace_isDir(const      char *path);
 void  mace_mkdir(const char     *path);
 void  mace_object_path(char     *source); // TODO: rename
 char *mace_library_path(char    *target_name);
-char *mace_checksum_filename(char *file);
+char *mace_checksum_filename(char *file, int mode);
 
 /* --- mace_pqueue --- */
 void mace_pqueue_put(pid_t pid);
@@ -385,7 +400,7 @@ bool verbose = false;
 // Compile objects in parallel.
 // Compile targets in series.
 pid_t *pqueue   = NULL;
-int pnum        = 0;
+int pnum        =  0;
 int plen        = -1;
 
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
@@ -3438,12 +3453,8 @@ void mace_add_target(struct Target *target, char *name) {
     }
 }
 
-// To compile default target:
-//  1- Compute build order starting from this target.
-//  2- Build all targets in `build_order` until default target is reached
 void mace_set_default_target(char *name) {
-    /* User function */
-    mace_default_target_hash = mace_hash(name);
+    mace_default_target_hash = (name == NULL) ? 0 : mace_hash(name);
 }
 
 void mace_default_target_order() {
@@ -4318,7 +4329,7 @@ bool mace_Target_Checksum(struct Target *target, char *source_path, char *obj_pa
     assert(chdir(cwd) == 0);
     bool changed = true; // set to false only if checksum file exists, changed
     uint8_t hash_previous[SHA1_LEN] = {0};
-    char *checksum_path = mace_checksum_filename(obj_path);
+    char *checksum_path = mace_checksum_filename(obj_path, MACE_CHECKSUM_MODE_SRC);
     FILE *fd = fopen(checksum_path, "r");
     if (fd != NULL) {
         fseek(fd, 0, SEEK_SET);
@@ -5093,7 +5104,7 @@ void mace_Target_Header_Add_Objpath(struct Target *restrict target, char *restri
         memset(target->_headers_checksum_cnt + target->_headers_checksum_len / 2, 0, bytesize / 2);
     }
 
-    char *header_checksum = mace_checksum_filename(header);
+    char *header_checksum = mace_checksum_filename(header, MACE_CHECKSUM_MODE_INCLUDE);
     uint64_t hash = mace_hash(header_checksum);
 
     /* Check if header_checksum already exists */
@@ -5425,7 +5436,7 @@ void mace_Target_Deps_Hash(struct Target *target) {
 }
 
 /********************************** checksums *********************************/
-char *mace_checksum_filename(char *file) {
+char *mace_checksum_filename(char *file, int mode) {
     // Files should be .c or .h
     size_t path_len  = strlen(file);
     char *dot        = strchr(file,  '.'); // last dot in path
@@ -5443,6 +5454,12 @@ char *mace_checksum_filename(char *file) {
 
     /* Alloc new file */
     size_t checksum_len  = (file_len + 6) + obj_dir_len + 1;
+    if (mode == MACE_CHECKSUM_MODE_SRC) {
+        checksum_len += 4;
+    } else if (mode == MACE_CHECKSUM_MODE_INCLUDE) {
+        checksum_len += 8;
+    }
+
     char *sha1   = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
@@ -5452,6 +5469,16 @@ char *mace_checksum_filename(char *file) {
         strncpy(sha1 + total, "/", 1);
         total += 1;
     }
+
+    /* Add mid folder */
+    if (mode == MACE_CHECKSUM_MODE_SRC) {
+        strncpy(sha1 + total, "src/", 4);
+        total += 4;
+    } else if (mode == MACE_CHECKSUM_MODE_INCLUDE) {
+        strncpy(sha1 + total, "include/", 8);
+        total += 8;
+    }
+
     /* Add file name */
     strncpy(sha1 + total, file + slash_i, file_len);
     total += file_len;
