@@ -173,7 +173,7 @@ struct Target {
     uint64_t  *restrict _headers_hash;/* [hdr_order] header filename hashes   */
     int                 _headers_num; /* len of headers                       */
     int                 _headers_len; /* number of headers                    */
-    uint64_t **restrict _deps_headers; /* [num_sources][dep_order] == hdr_order */
+    int      **restrict _deps_headers; /* [num_sources][dep_order] == hdr_order */
     int       *restrict _deps_headers_num;   /* len of object header deps     */
     int       *restrict _deps_headers_len;   /* num of object header deps     */
 
@@ -2275,8 +2275,9 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
     }
 
     int oflagl = 2;
+    int obj_hash_id;
     size_t obj_len = strlen(obj_file_flag);
-    char *obj_file = calloc(obj_len - oflagl + 1, sizeof(*obj_file));
+    char *obj_file = calloc(obj_len - oflagl + 5, sizeof(*obj_file));
     strncpy(obj_file, obj_file_flag + oflagl, obj_len - oflagl);
     char buffer[MACE_OBJDEP_BUFFER];
     size_t size;
@@ -2303,7 +2304,7 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
             /* Check that target has object */
             obj_file[ext] = 'o';
             uint64_t obj_hash = mace_hash(obj_file);
-            int obj_hash_id = Target_hasObjectHash(target, obj_hash);
+            obj_hash_id = Target_hasObjectHash(target, obj_hash);
             assert(obj_hash_id > -1);
 
             /* - Parsing here - */
@@ -2321,12 +2322,12 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
         }
 
         fclose(fd);
-        // /* Write dependencies to .djb2 file */
-        // strncpy(file + ext, "djb2", 4);
-        // printf("file %s\n", file);
-        // FILE *fdjb2 = fopen(file, "wb");
-        // fwrite(_headers_hash, sizeof(*_headers_hash), *_headers_num, fdjb2);
-
+        /* Write _deps_header to .djb2 file */
+        strncpy(obj_file + ext, "djb2", 4);
+        printf("obj_file %s\n", obj_file);
+        FILE *fdjb2 = fopen(obj_file, "wb");
+        fwrite(target->_deps_headers[obj_hash_id], sizeof(**target->_deps_headers), target->_deps_headers_num[obj_hash_id], fdjb2);
+        fclose(fdjb2);
     } while (false);
 
     free(obj_file);
