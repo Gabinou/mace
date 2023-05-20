@@ -3751,13 +3751,13 @@ void mace_Target_sources_grow(struct Target *target) {
     if (target->_argc_sources >= target->_len_sources) {
         size_t bytesize = target->_len_sources * 2 * sizeof(*target->_deps_headers);
         target->_deps_headers = realloc(target->_deps_headers, bytesize);
-        memset(target->_deps_headers + target->_len_sources, 0, bytesize/2);
+        memset(target->_deps_headers + target->_len_sources, 0, bytesize / 2);
         bytesize = target->_len_sources * 2 * sizeof(*target->_deps_headers_num);
         target->_deps_headers_num = realloc(target->_deps_headers_num, bytesize);
-        memset(target->_deps_headers_num + target->_len_sources, 0, bytesize/2);
+        memset(target->_deps_headers_num + target->_len_sources, 0, bytesize / 2);
         bytesize = target->_len_sources * 2 * sizeof(*target->_deps_headers_len);
         target->_deps_headers_len = realloc(target->_deps_headers_len, bytesize);
-        memset(target->_deps_headers_num + target->_len_sources, 0, bytesize/2);
+        memset(target->_deps_headers_num + target->_len_sources, 0, bytesize / 2);
     }
 
     /* -- Realloc sources -- */
@@ -3771,7 +3771,7 @@ void mace_Target_sources_grow(struct Target *target) {
         // memset(target->_argv_objects_hash + target->_len_sources/2, 0, bytesize/2);
         bytesize = target->_len_sources * sizeof(*target->_argv_objects_cnt);
         target->_argv_objects_cnt = realloc(target->_argv_objects_cnt, bytesize);
-        memset(target->_argv_objects_cnt + target->_len_sources/2, 0, bytesize/2);
+        memset(target->_argv_objects_cnt + target->_len_sources / 2, 0, bytesize / 2);
     }
 }
 
@@ -4215,7 +4215,7 @@ void Target_Object_Hash_Add_nocoll(struct Target *target, uint64_t hash) {
         target->_objects_hash_nocoll_len *= 2;
         size_t bytesize = target->_objects_hash_nocoll_len * sizeof(*target->_objects_hash_nocoll);
         target->_objects_hash_nocoll = realloc(target->_objects_hash_nocoll, bytesize);
-        memset(target->_objects_hash_nocoll + target->_objects_hash_nocoll_len/2, 0, bytesize/2);
+        memset(target->_objects_hash_nocoll + target->_objects_hash_nocoll_len / 2, 0, bytesize / 2);
     }
 
     target->_objects_hash_nocoll[target->_objects_hash_nocoll_num++] = hash;
@@ -4400,7 +4400,7 @@ void mace_Target_Parse_Source(struct Target *restrict target, char *path, char *
 
 /* Compile globbed files to objects */
 void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
-                       const char *restrict flags) {
+                           const char *restrict flags) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
         assert(mace_isSource(globbed.gl_pathv[i]));
@@ -4547,13 +4547,13 @@ void mace_print_message(const char *message) {
 }
 /********************************* mace_clean *********************************/
 int mace_unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
-    int rv = remove(fpath);
+        int rv = remove(fpath);
 
-    if (rv)
-        fprintf(stderr, "Could not remove '%s'.\n", fpath);
+        if (rv)
+            fprintf(stderr, "Could not remove '%s'.\n", fpath);
 
-    return rv;
-}
+        return rv;
+    }
 
 int mace_rmrf(char *path) {
     return nftw(path, mace_unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
@@ -4893,6 +4893,32 @@ void mace_Target_Free_deps_headers(struct Target *target) {
         free(target->_headers_hash);
         target->_headers_hash = NULL;
     }
+
+    if (target->_headers_checksum != NULL) {
+        for (int i = 0; i < target->_headers_checksum_num; i++) {
+            if (target->_headers_checksum[i] != NULL) {
+                free(target->_headers_checksum[i]);
+                target->_headers_checksum[i] = NULL;
+            }
+        }
+        free(target->_headers_checksum);
+        target->_headers_checksum = NULL;
+    }
+
+    if (target->_headers_checksum_hash != NULL) {
+        free(target->_headers_checksum_hash);
+        target->_headers_checksum_hash = NULL;
+    }
+
+    if (target->_headers_checksum_cnt != NULL) {
+        free(target->_headers_checksum_cnt);
+        target->_headers_checksum_cnt = NULL;
+    }
+
+    if (target->_objects_hash_nocoll != NULL) {
+        free(target->_objects_hash_nocoll);
+        target->_objects_hash_nocoll = NULL;
+    }
 }
 
 void mace_Target_Free_excludes(struct Target *target) {
@@ -4991,9 +5017,15 @@ void mace_grow_headers(struct Target *target) {
         target->_headers_hash  = calloc(target->_headers_len, sizeof(*target->_headers_hash));
     }
     /* -- Realloc headers -- */
-    if (target->_headers_num >= target->_headers_len) {
+    if (target->_headers_num >= (target->_headers_len - 1)) {
         size_t bytesize = target->_headers_len * 2 * sizeof(*target->_headers_hash);
         target->_headers_hash = realloc(target->_headers_hash, bytesize);
+    }
+    if (target->_headers_num >= (target->_headers_len - 1)) {
+        target->_headers_len *= 2;
+        size_t bytesize = target->_headers_len * sizeof(*target->_headers);
+        target->_headers = realloc(target->_headers, bytesize);
+        memset(target->_headers + target->_headers_len / 2, 0, bytesize / 2);
     }
 }
 
@@ -5030,25 +5062,35 @@ void mace_Target_Header_Add_Objpath(struct Target *restrict target, char *restri
     if (target->_headers_checksum == NULL) {
         target->_headers_checksum_len = 8;
         target->_headers_checksum_num = 0;
-        target->_headers_checksum  = calloc(target->_headers_checksum_len, sizeof(*target->_headers_checksum));
+        target->_headers_checksum  = calloc(target->_headers_checksum_len,
+                                            sizeof(*target->_headers_checksum));
     }
-
     if (target->_headers_checksum_hash == NULL) {
         // Always less hashes than _headers_checksum
-        target->_headers_checksum_hash  = calloc(target->_headers_checksum_len, sizeof(*target->_headers_checksum_hash));
+        target->_headers_checksum_hash = calloc(target->_headers_checksum_len,
+                                                sizeof(*target->_headers_checksum_hash));
     }
 
+    if (target->_headers_checksum_cnt == NULL) {
+        // Always less hashes than _headers_checksum
+        target->_headers_checksum_cnt = calloc(target->_headers_checksum_len,
+                                               sizeof(*target->_headers_checksum_cnt));
+    }
 
     /* realloc */
-    if (target->_headers_checksum_num >= target->_headers_checksum_len) {
+    if (target->_headers_checksum_num >= (target->_headers_checksum_len - 1)) {
         target->_headers_checksum_len *= 2;
         size_t bytesize = target->_headers_checksum_len * sizeof(*target->_headers_checksum);
         target->_headers_checksum = realloc(target->_headers_checksum, bytesize);
         memset(target->_headers_checksum + target->_headers_checksum_len / 2, 0, bytesize / 2);
 
+        bytesize = target->_headers_checksum_len * sizeof(*target->_headers_checksum_hash);
+        target->_headers_checksum_hash = realloc(target->_headers_checksum_hash, bytesize);
+        memset(target->_headers_checksum_hash + target->_headers_checksum_len / 2, 0, bytesize / 2);
+
         bytesize = target->_headers_checksum_len * sizeof(*target->_headers_checksum_cnt);
         target->_headers_checksum_cnt = realloc(target->_headers_checksum_cnt, bytesize);
-
+        memset(target->_headers_checksum_cnt + target->_headers_checksum_len / 2, 0, bytesize / 2);
     }
 
     char *header_checksum = mace_checksum_filename(header);
@@ -5065,13 +5107,15 @@ void mace_Target_Header_Add_Objpath(struct Target *restrict target, char *restri
 
     if (hash_id < 0) {
         /* header_checksum hash not found, adding it at same order */
+        assert(target->_headers_checksum_hash != NULL);
         target->_headers_checksum_hash[target->_headers_checksum_num] = hash;
     } else {
         /* header_checksum hash found, adding number to path */
-        header_checksum = realloc(header_checksum, (strlen(header_checksum) + 2) * sizeof(*header_checksum));
+        header_checksum = realloc(header_checksum,
+                                  (strlen(header_checksum) + 2) * sizeof(*header_checksum));
         char *pos = strrchr(header_checksum, '.');
         *(pos) = target->_headers_checksum_cnt[hash_id] + '0';
-        strncpy(pos + 1,".sha1", 4);
+        strncpy(pos + 1, ".sha1", 4);
         target->_headers_checksum_cnt[hash_id]++;
     }
 
@@ -5083,6 +5127,7 @@ uint64_t mace_Target_Header_Add(struct Target *restrict target, char *restrict h
     /* Check if header hash already in _headers_hash */
     /* Add header hash to _headers_hash */
     uint64_t hash = mace_hash(header);
+    printf("header %d %s \n", target->_headers_num, header);
 
     /* Add header name to _headers */
     mace_grow_headers(target);
@@ -5178,11 +5223,12 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
         }
 
         fclose(fd);
-        
+
         /* Write _deps_header to .ho file */
         strncpy(obj_file + ext, "ho", 2);
         FILE *fho = fopen(obj_file, "wb");
-        fwrite(target->_deps_headers[obj_hash_id], sizeof(**target->_deps_headers), target->_deps_headers_num[obj_hash_id], fho);
+        fwrite(target->_deps_headers[obj_hash_id], sizeof(**target->_deps_headers),
+               target->_deps_headers_num[obj_hash_id], fho);
         fclose(fho);
     } while (false);
 
@@ -5396,7 +5442,7 @@ char *mace_checksum_filename(char *file) {
     size_t file_len     = dot_i - slash_i;
 
     size_t checksum_len  = (file_len + 6) + obj_dir_len + 1;
-
+    printf("file %s \n", file);
     char *sha1   = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
