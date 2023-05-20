@@ -1214,7 +1214,6 @@ void test_parse_d() {
     nourstest_true(strcmp(target._headers[0],"/home/gabinours/Sync/Firesaga/include/unit.h") == 0);
     nourstest_true(strcmp(target._headers[71],"/home/gabinours/Sync/Firesaga/names/units_struct_stats.h") == 0);
 
-
 // *INDENT-ON*
     nourstest_true(target._deps_headers_num[0] == 72);
     for (int i = 0; i < target._deps_headers_num[0]; i++) {

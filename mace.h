@@ -271,6 +271,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void mace_grow_deps_headers(struct Target *target, int obj_hash_id);
     int mace_Target_header_order(struct Target *target, uint64_t hash);
     void mace_Target_add_header_dep(struct Target *target, int header_order, int obj_hash_id);
+    void mace_Target_parse_object_dependencies(struct Target *target);
 
     char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict arg_len);
     void   mace_argv_free(char **restrict argv, int argc);
@@ -1391,6 +1392,8 @@ void mace_Target_precompile(struct Target *target) {
             break;
     }
     target->_argv[--target->_argc] = NULL;
+
+    mace_Target_parse_object_dependencies(target);
 }
 
 void mace_Target_compile(struct Target *target) {
@@ -2268,6 +2271,7 @@ void mace_Target_add_header_dep(struct Target *target, int header_order, int obj
 
 
 /* - Parse .d file, recording all header files - */
+// Should only be called if source file changed
 void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) {
     /* obj_file_flag should start with "-o" */
     if ((obj_file_flag[0] != '-') || (obj_file_flag[1] != 'o')) {
@@ -2294,7 +2298,7 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
         while (fgets(buffer, MACE_OBJDEP_BUFFER, fd) != NULL) {
             size_t len = strlen(buffer);
 
-            /* - Repalce \n with \0 ' ' - */
+            /* - Replace \n with \0 ' ' - */
             bool line_end = false;
             if (buffer[len - 1] == '\n') {
                 line_end = true;
@@ -2322,6 +2326,7 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
         }
 
         fclose(fd);
+        
         /* Write _deps_header to .djb2 file */
         strncpy(obj_file + ext, "djb2", 4);
         printf("obj_file %s\n", obj_file);
@@ -2334,17 +2339,15 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
 }
 
 void mace_Target_parse_object_dependencies(struct Target *target) {
-    // TODO: save hashed filenames dependencies to .djb2
-    //  test if faster to read: .djb2 vs .d
+    // Save header order dependencies to .djb2
+    // .d should exist
+
     /* Loop over all _argv_sources */
-    /* Check if .djb2 exists */
     for (int i = 0; i < target->_argc_sources; i++) {
-        mace_parse_object_dependencies(target, target->_argv_objects[i]);
+        if (target->_recompiles[i])
+            mace_parse_object_dependencies(target, target->_argv_objects[i]);
     }
-    /* read all files, starting from 3rd (check if .h) */
-    /* hash name */
-    /* Put hash into array */
-    /* Write bytes to .djb2 */
+
 }
 
 void mace_post_user(struct Mace_Arguments args) {
