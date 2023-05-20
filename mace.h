@@ -5435,19 +5435,28 @@ char *mace_checksum_filename(char *file) {
         exit(EPERM);
     }
 
+    /* File length of just file without extension */
     int dot_i   = (int)(dot - file);
     int slash_i = (slash == NULL) ? 0 : (int)(slash - file + 1);
     size_t obj_dir_len  = strlen(obj_dir);
     size_t file_len     = dot_i - slash_i;
 
+    /* Alloc new file */
     size_t checksum_len  = (file_len + 6) + obj_dir_len + 1;
     char *sha1   = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
-    strncpy(sha1 + total, "/", 1);
-    total += 1;
+    
+    /* Add slash to obj_dir if not present */
+    if (sha1[obj_dir_len - 1] != '/') {
+        strncpy(sha1 + total, "/", 1);
+        total += 1;
+    }
+    /* Add file name */
     strncpy(sha1 + total, file + slash_i, file_len);
     total += file_len;
+
+    /* Add extension */
     strncpy(sha1 + total, ".sha1", 5);
     return (sha1);
 }
