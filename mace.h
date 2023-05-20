@@ -4455,7 +4455,9 @@ void mace_Target_Parse_Source(struct Target *restrict target, char *path, char *
         mace_object_path(src);
         bool exists  = mace_Target_Object_Add(target, object);
         size_t i = target->_argc_sources - 1;
-        bool changed = mace_Source_Checksum(target, target->_argv_sources[i], target->_argv_objects[i]);
+        bool changed_src  = mace_Source_Checksum(target, target->_argv_sources[i], target->_argv_objects[i]);
+        bool changed_hdrs = mace_Headers_Checksums(target);
+        bool changed = changed_src || changed_hdrs;
         mace_Target_Recompiles_Add(target, !excluded && (changed || !exists));
     }
 }
@@ -5180,8 +5182,6 @@ void mace_Target_Header_Add_Objpath(struct Target *restrict target, char *restri
     }
 
     /* Adding header_checksum*/
-    printf("target->_headers_num %d %d \n", target->_headers_len, target->_headers_num);
-    printf("header_checksum %s \n", header_checksum);
     assert(header_checksum != NULL);
     target->_headers_checksum[target->_headers_num] = header_checksum;
 }
