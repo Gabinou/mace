@@ -1212,7 +1212,9 @@ void test_parse_d() {
     nourstest_true(target._headers_hash[71] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_struct_stats.h"));
 // *INDENT-ON*
     nourstest_true(target._deps_headers_num[0] == 72);
-
+    for (int i = 0; i < target._deps_headers_num[0]; i++) {
+        nourstest_true(target._deps_headers[0][i] == i);
+    }
 
     mace_Target_Free(&target);
     mace_Target_Free(&target1);
