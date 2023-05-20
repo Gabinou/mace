@@ -1084,6 +1084,11 @@ void test_checksum() {
     allo = mace_checksum_filename("src/allo.h");
     nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
     free(allo);
+    
+    char *header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h");
+    nourstest_true(strcmp(header_objpath, "obj/combat.sha1") == 0);
+    free(header_objpath);
+
     mace_free();
 }
 
