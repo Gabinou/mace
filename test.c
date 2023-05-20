@@ -1225,6 +1225,8 @@ void test_parse_d() {
         nourstest_true(target._deps_headers[0][i] == i);
     }
 
+    printf("%s \n", target._headers_checksum[0]);
+
     mace_Target_Free(&target);
     mace_Target_Free(&target1);
     mace_free();

@@ -5127,7 +5127,6 @@ uint64_t mace_Target_Header_Add(struct Target *restrict target, char *restrict h
     /* Check if header hash already in _headers_hash */
     /* Add header hash to _headers_hash */
     uint64_t hash = mace_hash(header);
-    printf("header %d %s \n", target->_headers_num, header);
 
     /* Add header name to _headers */
     mace_grow_headers(target);
@@ -5442,7 +5441,6 @@ char *mace_checksum_filename(char *file) {
     size_t file_len     = dot_i - slash_i;
 
     size_t checksum_len  = (file_len + 6) + obj_dir_len + 1;
-    printf("file %s \n", file);
     char *sha1   = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
