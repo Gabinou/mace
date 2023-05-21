@@ -1085,14 +1085,17 @@ void test_checksum() {
     nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
     free(allo);
 
-    char *header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h", MACE_CHECKSUM_MODE_NULL);
+    char *header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
+                                                  MACE_CHECKSUM_MODE_NULL);
     nourstest_true(strcmp(header_objpath, "obj/combat.sha1") == 0);
     free(header_objpath);
 
-    header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h", MACE_CHECKSUM_MODE_INCLUDE);
+    header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
+                                            MACE_CHECKSUM_MODE_INCLUDE);
     nourstest_true(strcmp(header_objpath, "obj/include/combat.sha1") == 0);
     free(header_objpath);
-    header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h", MACE_CHECKSUM_MODE_SRC);
+    header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
+                                            MACE_CHECKSUM_MODE_SRC);
     nourstest_true(strcmp(header_objpath, "obj/src/combat.sha1") == 0);
     free(header_objpath);
 
