@@ -103,12 +103,13 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - C only, C99 and above, C++ not supported.
 
 ## Under the hood
-- Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
-    - Check is any dependent file changed to recompile.
 - User inputs target dependencies with `target.links` and `target.dependencies`
     - Build order determined by depth first search through all target dependencies.
 - Mace saves file checksums to `.sha1` files in `obj_dir`
-    - Checksum recorded and compared to know if file changed
+    - Checksum recorded to `.sha1` files in `src` and `include` and compared to know if file changed
+- Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
+    - Parsed into binary `.ho` file for faster reading.
+    - Check if any header file changed to recompile.
 
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
