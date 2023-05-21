@@ -99,6 +99,15 @@ void    mace_default_target(char *name);
 #define MACE_DEFAULT_TARGET(target) mace_default_target(#target)
 
 
+/* -- Target kinds -- */
+enum MACE_TARGET_KIND { /* for target.kind */
+    MACE_EXECUTABLE      = 1,
+    MACE_STATIC_LIBRARY  = 2,
+    MACE_SHARED_LIBRARY  = 3,
+    MACE_DYNAMIC_LIBRARY = 3,
+};
+
+
 /******************************* TARGET STRUCT ********************************/
 struct Target {
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
@@ -106,9 +115,9 @@ struct Target {
     const char *sources;           /* files, dirs, glob                       */
     const char *excludes;          /* files                                   */
     const char *base_dir;          /* dir                                     */
-    /* Links are targets or libraries, are be built before. */
+    /* Links are targets or libraries. If target, its built before self.      */
     const char *links;             /* libraries or targets                    */
-    /* Dependencies are targets, are built before.*/
+    /* Dependencies are targets, built before self.                           */
     const char *dependencies;      /* targets                                 */
     const char *flags;             /* passed as is to compiler                */
 
@@ -117,7 +126,7 @@ struct Target {
     const char *message_pre_build; /* message printed before building target  */
     const char *message_post_build;/* message printed after  building target  */
 
-    int         kind;              /* MACE_TARGET_KIND                        */
+    int kind;                      /* MACE_TARGET_KIND                        */
     /* allatonce: Compile all .o objects at once (calls gcc one time).        */
     /* Compiles slightly faster: gcc is called once per .c file when false.   */
     /* WARNING: Broken when multiple sources have the same filename.          */
@@ -141,8 +150,8 @@ struct Target {
     *------------------------------------------------------------------*/
 
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
-    char *restrict _name;          /* target name set by user                 */
-    uint64_t       _hash;          /* target name hash,                       */
+    char *restrict _name;          /* target name                             */
+    uint64_t       _hash;          /* target name hash                        */
     int            _order;         /* target order added by user              */
 
     /* --- Compilation --- */
@@ -159,7 +168,8 @@ struct Target {
     int             _argc_sources; /* number of arguments in argv_sources     */
     int             _len_sources;  /* alloc len of arguments in argv_sources  */
 
-    // DOES NOT include objects with number to prevent collisions!
+    // WARNING: _argv_objects_hash DOES NOT include objects with number
+    //          to prevent collisions!
     uint64_t *restrict _argv_objects_hash;/* objects, in argv form            */
     int                _argc_objects_hash;/* num of arguments in argv_sources */
     char    **restrict _argv_objects;     /* sources, in argv form            */
@@ -243,13 +253,6 @@ enum MACE_RESERVED_TARGETS {
     MACE_CLEAN_ORDER            =  -2,
     MACE_NULL_ORDER             =  -3,
     MACE_RESERVED_TARGETS_NUM   =   2,
-};
-
-enum MACE_TARGET_KIND { // for target.kind
-    MACE_EXECUTABLE      = 1,
-    MACE_STATIC_LIBRARY  = 2,
-    MACE_SHARED_LIBRARY  = 3,
-    MACE_DYNAMIC_LIBRARY = 3,
 };
 
 enum MACE_ARGV { // for various argv
