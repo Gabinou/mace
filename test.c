@@ -1130,7 +1130,7 @@ void test_parse_d() {
     MACE_ADD_TARGET(target1);
     mace_Target_Source_Add(&target1, "test1.c");
     mace_Target_Object_Add(&target1, "test1.o");
-    mace_parse_object_dependencies(&target1, 0);
+    mace_Target_Parse_Objdep(&target1, 0);
     assert(target1._headers_hash != NULL);
     nourstest_true(target1._headers_num == 1);
     nourstest_true(target1._deps_headers_num[0] == 1);
@@ -1146,7 +1146,7 @@ void test_parse_d() {
 
     mace_Target_Source_Add(&target, "test2.c");
     mace_Target_Object_Add(&target, "test2.o");
-    mace_parse_object_dependencies(&target, 0);
+    mace_Target_Parse_Objdep(&target, 0);
     assert(target._headers_hash != NULL);
     nourstest_true(target._headers_num == 72);
     nourstest_true(target._deps_headers_num[0] == 72);
