@@ -4054,7 +4054,7 @@ void mace_link_dynamic_library(char *restrict target, char **restrict argv_objec
     }
 
     mace_exec_print(argv, argc);
-    pid_t pid = mace_exec(ar, argv);
+    pid_t pid = mace_exec(cc, argv);
     mace_wait_pid(pid);
 
     free(argv[cfPICflag]);
