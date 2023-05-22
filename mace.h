@@ -83,7 +83,7 @@ char    *mace_set_build_dir(char *build);
 #define _MACE_SET_BUILD_DIR(dir)  mace_set_build_dir(#dir)
 
 /* -- Separator -- */
-// Separator for files/folders in target member variables. Default is " ".
+// Separator for files/folders in target member variables. Default is ",".
 void     mace_set_separator(char *sep);
 #define  MACE_SET_SEPARATOR(sep) _MACE_SET_SEPARATOR(sep)
 #define _MACE_SET_SEPARATOR(sep)  mace_set_separator(#sep)
@@ -136,14 +136,14 @@ struct Target {
     *  Designated Initializer -> unitialized values are set to 0/NULL   /
     *                                                                   /
     * struct Target mytarget = {                                        /
-    *     .includes           = "include include/foo",                  /
-    *     .sources            = "src/* src/bar.c",                      /
+    *     .includes           = "include,include/foo",                  /
+    *     .sources            = "src/*,src/bar.c",                      /
     *     .sources_exclude    = "src/main.c",                           /
     *     .dependencies       = "mytarget1",                            /
-    *     .links              = "lib1 lib2 mytarget2",                  /
+    *     .links              = "lib1,lib2,mytarget2",                  /
     *     .kind               = MACE_LIBRARY,                           /
     * };                                                                /
-    * NOTE: default separator is " ", set with 'mace_set_separator'     /
+    * NOTE: default separator is ",", set with 'mace_set_separator'     /
     *                                                                   /
     *------------------------------------------------------------------*/
 
@@ -208,6 +208,12 @@ struct Target {
     bool *_hdrs_changed; /*[hdr_order] */
 };
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
+
+struct Config {
+    char *name;
+    char *targets;
+    char *flags;
+};
 
 /********************************** STRUCTS *********************************/
 struct Mace_Arguments {
@@ -424,7 +430,9 @@ int plen        = -1;
 
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 /* -- separator -- */
-char *mace_separator = " ";
+char *mace_flag_separator = " ";
+char *mace_d_separator = " ";
+char *mace_separator = ",";
 char *mace_command_separator = "&&";
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
@@ -5264,7 +5272,7 @@ void mace_Target_Grow_Headers(struct Target *target) {
 void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
     // printf("mace_Target_Read_Objdeps\n");
     /* --- Split links into tokens, --- */
-    char *header = strtok(deps, " ");
+    char *header = strtok(deps, mace_d_separator);
 
     /* --- Hash headers into _deps_links --- */
     do {
@@ -5278,7 +5286,7 @@ void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
             mace_Target_Objdep_Add(target, header_order, source_i);
         }
 
-        header = strtok(NULL, " ");
+        header = strtok(NULL, mace_d_separator);
     } while (header != NULL);
 }
 
@@ -5681,12 +5689,12 @@ void mace_Target_Deps_Hash(struct Target *target) {
         char *buffer = mace_str_buffer(target->links);
 
         /* --- Split links into tokens, --- */
-        char *token = strtok(buffer, " ");
+        char *token = strtok(buffer, mace_separator);
 
         /* --- Hash tokens into _deps_links --- */
         do {
             mace_Target_Deps_Add(target, mace_hash(token));
-            token = strtok(NULL, " ");
+            token = strtok(NULL, mace_separator);
         } while (token != NULL);
         free(buffer);
     } while (false);
@@ -5700,12 +5708,12 @@ void mace_Target_Deps_Hash(struct Target *target) {
         char *buffer = mace_str_buffer(target->dependencies);
 
         /* --- Split links into tokens, --- */
-        char *token = strtok(buffer, " ");
+        char *token = strtok(buffer, mace_separator);
 
         /* --- Hash tokens into _deps_links --- */
         do {
             mace_Target_Deps_Add(target, mace_hash(token));
-            token = strtok(NULL, " ");
+            token = strtok(NULL, mace_separator);
         } while (token != NULL);
         free(buffer);
     } while (false);
