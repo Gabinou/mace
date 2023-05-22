@@ -314,7 +314,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void Target_Object_Hash_Add_nocoll(struct Target *target, uint64_t hash);
     
     /* - obj_deps - */
-    void mace_Target_Read_d(struct Target *target);
+    char *mace_Target_Read_d(struct Target *target, int source_i);
     void mace_Target_Read_ho(struct Target *target, int source_i);
     void mace_Target_Read_Objdeps(struct Target  *target, char *deps, int source_i);
     void mace_Target_Parse_Objdep(struct Target  *target, int source_i);
@@ -5364,7 +5364,7 @@ void mace_Target_Objdep_Add(struct Target *target, int header_order, int source_
     target->_deps_headers[source_i][i] = header_order;
 }
 
-void mace_Target_Read_d(char *filename, int source_i) {
+char *mace_Target_Read_d(struct Target* target, int source_i) {
     char *obj_file_flag = target->_argv_objects[source_i];
 
     /* obj_file_flag should start with "-o" */
@@ -5434,6 +5434,14 @@ void mace_Target_Read_d(char *filename, int source_i) {
         }
     }
     fclose(fd);
+
+    /* - Only need to compute .ho file if source changed OR fho doesn't exist - */
+    bool source_changed = target->_recompiles[source_i];
+    if ((!source_changed) && (fho_exists)) {
+        free(obj_file);
+        return(NULL);
+    }
+    return(obj_file);
 }
 
 
@@ -5444,18 +5452,14 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
     /* Set _deps_headers_num to invalid */
     target->_deps_headers_num[source_i] = -1;
 
-    mace_Target_Read_d(char *filename, int source_i)
-
-    /* - Only need to compute .ho file if source changed OR fho doesn't exist - */
-    bool source_changed = target->_recompiles[source_i];
-    if ((!source_changed) && (fho_exists)) {
-        free(obj_file);
+    char *obj_file = mace_Target_Read_d(target, source_i);
+    if (obj_file == NULL) {
         return;
     }
-
     /* Write _deps_header to .ho file */
+    size_t ext = strlen(obj_file) - 2; 
     strncpy(obj_file + ext, "ho", 2);
-    fho = fopen(obj_file, "wb");
+    FILE *fho = fopen(obj_file, "wb");
     fwrite(target->_deps_headers[source_i], sizeof(**target->_deps_headers),
            target->_deps_headers_num[source_i], fho);
     fclose(fho);
@@ -5491,20 +5495,20 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
 
     /* Check if .ho exists */
     strncpy(obj_file + ext, "ho", 2);
-    printf("obj_file %s \n", obj_file);
     FILE *fho = fopen(obj_file, "rb");
-    assert(fho != NULL);
+    if (fho == NULL) {
+        fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
+        exit(EPERM);
+    }
 
     /* Get total number of bytes in file */
     fseek(fho, 0L, SEEK_END);
     int bytesize = ftell(fho);
     fseek(fho, 0L, SEEK_SET);
-    printf("bytesize %d\n", bytesize);
 
     /* Realloc _deps_headers */
     target->_deps_headers_num[source_i] = bytesize / sizeof(**target->_deps_headers);
     target->_deps_headers_len[source_i] = target->_deps_headers_num[source_i];
-    printf("num %d %d \n", target->_deps_headers_num[source_i], target->_deps_headers_len[source_i]);
     if (target->_deps_headers[source_i] != NULL) {
         free(target->_deps_headers[source_i]);
         target->_deps_headers[source_i] = NULL;
@@ -5514,7 +5518,7 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
     target->_deps_headers[source_i] = calloc(1, bytesize);
     assert(target->_deps_headers[source_i] != NULL);
     fread(target->_deps_headers[source_i], bytesize, 1, fho);
-    printf("target->_deps_headers[source_i][0] %d \n", target->_deps_headers[source_i][0]);
+    fclose(fho);
 }
 
 void mace_Target_Parse_Objdeps(struct Target *target) {
@@ -5710,6 +5714,7 @@ void mace_Target_Deps_Hash(struct Target *target) {
 /********************************** checksums *********************************/
 char *mace_checksum_filename(char *file, int mode) {
     // Files should be .c or .h
+    assert(obj_dir != NULL);
     size_t path_len  = strlen(file);
     char *dot        = strchr(file,  '.'); // last dot in path
     char *slash      = strrchr(file, '/'); // last slash in path

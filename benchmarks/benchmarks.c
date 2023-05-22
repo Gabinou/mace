@@ -100,20 +100,18 @@ int bench_filereading() {
         sota._deps_headers_num[0] = 0;
     }
     t_1 = tnecs_get_ns();
-    printf("Read .ho file %d ms\n", (t_1-t_0)/100000);
+    printf("Read .ho file %d ms\n", (t_1-t_0)/1000000);
 
-    // Target_Object_Hash_Add_nocoll(&sota, mace_hash("-ounit1.o"));
     Target_Object_Hash_Add_nocoll(&sota, mace_hash("unit1.o"));
-    // mace_Target_Object_Add(&sota, "unit.c");
 
     for (int i = 0; i < ITERATIONS; i++) {
         mace_Target_Read_d(&sota, 0);
         sota._deps_headers_num[0] = 0;
     }
     t_1 = tnecs_get_ns();
-    printf("Read .d file %d ms\n", (t_1-t_0)/100000);
+    printf("Read .d file %d ms\n", (t_1-t_0)/1000000);
 
-    printf("Conclusion: reading .ho files is about 7x faster\n");
+    printf("Conclusion: reading .ho files is about 7x-11x faster\n");
 }
 
 int main(int argc, char *argv[]) {
