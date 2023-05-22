@@ -6,5 +6,8 @@
 !*.h
 !*.c
 !*.d
+!*.ho
 !*.md
 !*.txt
+!benchmarks
+!test

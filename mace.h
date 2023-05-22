@@ -294,7 +294,6 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
 
     /* --- mace_Target --- */
     void mace_add_target(struct Target   *restrict target,  char *restrict name);
-    void mace_Target_Read_ho(struct Target *target, int source_i);
 
     /* -- Target struct OOP -- */
     /* - Free - */
@@ -315,6 +314,8 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void Target_Object_Hash_Add_nocoll(struct Target *target, uint64_t hash);
     
     /* - obj_deps - */
+    void mace_Target_Read_d(struct Target *target);
+    void mace_Target_Read_ho(struct Target *target, int source_i);
     void mace_Target_Read_Objdeps(struct Target  *target, char *deps, int source_i);
     void mace_Target_Parse_Objdep(struct Target  *target, int source_i);
     void mace_Target_Parse_Objdeps(struct Target *target);
@@ -5363,14 +5364,7 @@ void mace_Target_Objdep_Add(struct Target *target, int header_order, int source_
     target->_deps_headers[source_i][i] = header_order;
 }
 
-
-/* - Parse .d file, recording all header files to .ho files - */
-// Only be called if source file changed
-void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
-    // printf("mace_Target_Parse_Objdep A\n");
-    /* Set _deps_headers_num to invalid */
-    target->_deps_headers_num[source_i] = -1;
-
+void mace_Target_Read_d(char *filename, int source_i) {
     char *obj_file_flag = target->_argv_objects[source_i];
 
     /* obj_file_flag should start with "-o" */
@@ -5390,6 +5384,7 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
 
     /* Check if .ho exists */
     strncpy(obj_file + ext, "ho", 2);
+
     FILE *fho = fopen(obj_file, "r");
     bool fho_exists = false;
     if (fho != NULL) {
@@ -5439,6 +5434,17 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
         }
     }
     fclose(fd);
+}
+
+
+/* - Parse .d file, recording all header files to .ho files - */
+// Only be called if source file changed
+void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
+    // printf("mace_Target_Parse_Objdep A\n");
+    /* Set _deps_headers_num to invalid */
+    target->_deps_headers_num[source_i] = -1;
+
+    mace_Target_Read_d(char *filename, int source_i)
 
     /* - Only need to compute .ho file if source changed OR fho doesn't exist - */
     bool source_changed = target->_recompiles[source_i];
