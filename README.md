@@ -111,6 +111,11 @@ Use these macro definitions when compiling `installer` to customize `mace`:
     - Parsed into binary `.ho` file for faster reading.
     - Check if any header file changed to recompile.
 
+### Running tests
+1. `cd` into test folder
+2. Compile test: `gcc test.c -o test -I..`
+3. Run tests `./test`
+
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)

@@ -21,6 +21,7 @@
 #define MACE_TEST_OBJ_DIR   "obj"
 #define MACE_TEST_BUILD_DIR "build"
 #define MACE_TEST_BUFFER_SIZE 128
+#define MACE_ROOT "../"
 
 static int test_num = 0, fail_num = 0;
 
@@ -51,7 +52,7 @@ void test_isFunc() {
     nourstest_true(mace_isSource("test.c"));
     nourstest_true(mace_isSource("doesnotexist.c"));
     nourstest_true(!mace_isDir("test.c"));
-    nourstest_true(mace_isDir("../mace"));
+    nourstest_true(mace_isDir(MACE_ROOT"../mace"));
     nourstest_true(mace_isWildcard("src/*"));
     nourstest_true(mace_isWildcard("src/**"));
     nourstest_true(!mace_isWildcard("src/"));
@@ -59,16 +60,15 @@ void test_isFunc() {
 
 void test_globbing() {
     glob_t globbed;
-    globbed = mace_glob_sources("../mace/*.c");
-    nourstest_true(globbed.gl_pathc == 3);
-    nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/installer.c") == 0);
-    nourstest_true(strcmp(globbed.gl_pathv[1], "../mace/mace.c") == 0);
-    nourstest_true(strcmp(globbed.gl_pathv[2], "../mace/test.c") == 0);
+    globbed = mace_glob_sources(MACE_ROOT"*.c");
+    nourstest_true(globbed.gl_pathc == 2);
+    nourstest_true(strcmp(globbed.gl_pathv[0], MACE_ROOT"installer.c") == 0);
+    nourstest_true(strcmp(globbed.gl_pathv[1], MACE_ROOT"mace.c") == 0);
     globfree(&globbed);
 
-    globbed = mace_glob_sources("../mace/*.h");
+    globbed = mace_glob_sources(MACE_ROOT"*.h");
     nourstest_true(globbed.gl_pathc == 1);
-    nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.h") == 0);
+    nourstest_true(strcmp(globbed.gl_pathv[0], MACE_ROOT"mace.h") == 0);
     globfree(&globbed);
 }
 
@@ -122,7 +122,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "SDL2,SDL2_image,SDL2_ttf,m,GLEW,cJSON,nmath "
+        .links              = "SDL2,SDL2_image,SDL2_ttf,m,GLEW,cJSON,nmath,"
                               "physfs,tinymt,tnecs,nstr,parg",
         .kind               = MACE_EXECUTABLE,
     };
@@ -940,13 +940,14 @@ void test_build_order() {
     /* cleanup so that mace doesn't build targets */
     mace_finish(NULL);
     mace_pre_user();
+    mace_set_separator(" ");
 
     /* mace computing build order as a function of linking dependencies */
     struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "B,C,D",
+        .links              = "B C D",
         .kind               = MACE_EXECUTABLE,
     };
 
