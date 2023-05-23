@@ -419,6 +419,7 @@ void  mace_pqueue_put(pid_t pid);
 pid_t mace_pqueue_pop();
 
 /********************************** GLOBALS ***********************************/
+bool silent  = false;
 bool verbose = false;
 
 /* --- Processes --- */
@@ -3447,8 +3448,19 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
 /*                                MACE SOURCE                                 */
 /*----------------------------------------------------------------------------*/
 #ifndef MACE_CONVENIENCE_EXECUTABLE
+
 #define vprintf(format, ...) do {\
         if (verbose)\
+            printf(format, ##__VA_ARGS__);\
+    } while(0)
+
+#define vsprintf(format, ...) do {\
+        if (verbose && !silent)\
+            printf(format, ##__VA_ARGS__);\
+    } while(0)
+
+#define sprintf(format, ...) do {\
+        if (!silent)\
             printf(format, ##__VA_ARGS__);\
     } while(0)
 
@@ -3607,7 +3619,6 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
             /* - Expand path - */
             rpath = calloc(PATH_MAX, sizeof(*rpath));
             if (realpath(token, rpath) == NULL) {
-                // printf("Warning! realpath error : %s '%s'\n", strerror(errno), token);
                 to_use = token;
                 free(rpath);
                 rpath = NULL;
@@ -3982,9 +3993,9 @@ int mace_globerr(const char *path, int eerrno) {
 // Execute command in forked process.
 void mace_exec_print(char *const arguments[], size_t argnum) {
     for (int i = 0; i < argnum; i++) {
-        printf("%s ", arguments[i]);
+        vsprintf("%s ", arguments[i]);
     }
-    printf("\n");
+    vsprintf("\n");
 }
 
 pid_t mace_exec(const char *restrict exec, char *const arguments[]) {
@@ -4024,7 +4035,7 @@ void mace_wait_pid(int pid) {
 /********************************* mace_build **********************************/
 void mace_link_dynamic_library(char *restrict target, char **restrict argv_objects,
                               int argc_objects) {
-    printf("Linking \t%s \n", target);
+    sprintf("Linking \t%s \n", target);
     int argc = 0, arg_len = 8;
     char **argv  = calloc(arg_len, sizeof(*argv));
     argv[argc++] = cc;
@@ -4071,7 +4082,7 @@ void mace_link_dynamic_library(char *restrict target, char **restrict argv_objec
 /* Build all sources from target to object */
 void mace_link_static_library(char *restrict target, char **restrict argv_objects,
                               int argc_objects) {
-    printf("Linking \t%s \n", target);
+    sprintf("Linking \t%s \n", target);
     int arg_len = 8;
     int argc = 0;
     char **argv       = calloc(arg_len, sizeof(*argv));
@@ -4098,7 +4109,7 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
         }
     }
 
-    // mace_exec_print(argv, argc);
+    mace_exec_print(argv, argc);
     pid_t pid = mace_exec(argv[0], argv);
     mace_wait_pid(pid);
 
@@ -4110,7 +4121,7 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
 void mace_link_executable(char *restrict target, char **restrict argv_objects, int argc_objects,
                           char **restrict argv_links, int argc_links,
                           char **restrict argv_flags, int argc_flags) {
-    printf("Linking \t%s \n", target);
+    sprintf("Linking \t%s \n", target);
 
     int arg_len = 16;
     int argc    = 0;
@@ -4158,7 +4169,7 @@ void mace_link_executable(char *restrict target, char **restrict argv_objects, i
     int ldirflag_i = argc++;
     argv[ldirflag_i] = ldirflag;
 
-    // mace_exec_print(argv, argc);
+    mace_exec_print(argv, argc);
     pid_t pid = mace_exec(argv[0], argv);
     mace_wait_pid(pid);
 
@@ -4178,7 +4189,7 @@ void mace_Target_compile_allatonce(struct Target *target) {
     mace_Target_argv_allatonce(target);
 
     /* -- Actual compilation -- */
-    // mace_exec_print(target->_argv, target->_argc);
+    mace_exec_print(target->_argv, target->_argc);
     pid_t pid = mace_exec(target->_argv[0], target->_argv);
     mace_wait_pid(pid);
 
@@ -4196,13 +4207,12 @@ void mace_Target_precompile(struct Target *target) {
     while (true) {
         /* - Skip if no recompiles - */
         if ((argc < target->_argc_sources) && (!target->_recompiles[argc])) {
-            // printf("Pre-Compile SKIP %s\n", target->_argv_sources[argc]);
             argc++;
             continue;
         }
         /* - Add process to queue - */
         if (argc < target->_argc_sources) {
-            // printf("Pre-Compile %s\n", target->_argv_sources[argc]);
+            vprintf("Pre-Compile %s\n", target->_argv_sources[argc]);
             target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[argc];
             target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[argc];
             size_t len = strlen(target->_argv[MACE_ARGV_OBJECT]);
@@ -4212,7 +4222,7 @@ void mace_Target_precompile(struct Target *target) {
             argc++;
 
             /* -- Actual pre-compilation -- */
-            // mace_exec_print(target->_argv, target->_argc);
+            mace_exec_print(target->_argv, target->_argc);
             pid_t pid = mace_exec(target->_argv[0], target->_argv);
             mace_pqueue_put(pid);
 
@@ -4256,21 +4266,20 @@ void mace_Target_compile(struct Target *target) {
     while (true) {
         /* - Skip if no recompiles - */
         if ((argc < target->_argc_sources) && (!target->_recompiles[argc])) {
-            // printf("Compile SKIP %s\n", target->_argv_sources[argc]);
             argc++;
             continue;
         }
 
         /* - Add process to queue - */
         if (argc < target->_argc_sources) {
-            printf("Compiling %s\n", target->_argv_sources[argc]);
+            sprintf("Compiling %s\n", target->_argv_sources[argc]);
             target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[argc];
             target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[argc];
             size_t len = strlen(target->_argv[MACE_ARGV_OBJECT]);
             argc++;
 
             /* -- Actual compilation -- */
-            // mace_exec_print(target->_argv, target->_argc);
+            mace_exec_print(target->_argv, target->_argc);
             pid_t pid = mace_exec(target->_argv[0], target->_argv);
             mace_pqueue_put(pid);
         }
@@ -4342,13 +4351,11 @@ int Target_hasObjectHash(struct Target *target, uint64_t hash) {
 }
 
 void mace_Target_Recompiles_Add(struct Target *target, bool add) {
-    // printf("recompiles: %d\n", add);
     target->_recompiles[target->_argc_sources - 1] = add;
 }
 
 bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token) {
     /* token is object path */
-    // printf("mace_Target_Object_Add\n");
     if (token == NULL)
         return (false);
 
@@ -4395,7 +4402,6 @@ bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token
 }
 
 void mace_Headers_Checksums_Checks(struct Target *target) {
-    // printf("mace_Headers_Checksums_Checks \n");
     assert(target->_hdrs_changed != NULL);
     // For every source file,
     for (int i = 0; i < target->_argc_sources; i++) {
@@ -4419,12 +4425,10 @@ void mace_Headers_Checksums(struct Target *target) {
     uint8_t hash_current[SHA1_LEN];
     uint8_t hash_previous[SHA1_LEN];
 
-    // printf("target->_headers_num %d \n", target->_headers_num);
     for (int i = 0; i < target->_headers_num; i++) {
         /* - Compute current checksum - */
         memset(hash_previous, 0, SHA1_LEN);
         char *checksum_path = target->_headers_checksum[i];
-        // printf("checksum_path %s \n", checksum_path);
         char *header_path = target->_headers[i];
         mace_sha1cd(header_path, hash_current);
 
@@ -4700,7 +4704,7 @@ void mace_print_message(const char *message) {
     if (message == NULL)
         return;
 
-    printf("%s\n", message);
+    sprintf("%s\n", message);
 }
 /********************************* mace_clean *********************************/
 int mace_unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
@@ -4717,10 +4721,10 @@ int mace_rmrf(char *path) {
 }
 
 void mace_clean() {
-    printf("Cleaning\n");
-    printf("Removing '%s'\n", obj_dir);
+    sprintf("Cleaning\n");
+    sprintf("Removing '%s'\n", obj_dir);
     mace_rmrf(obj_dir);
-    printf("Removing '%s'\n", build_dir);
+    sprintf("Removing '%s'\n", build_dir);
     mace_rmrf(build_dir);
 }
 
@@ -4751,7 +4755,7 @@ void mace_run_commands(const char *commands) {
         argc = 0;
         argv = mace_argv_flags(&len, &argc, argv, token, NULL, false);
 
-        // mace_exec_print(argv, argc);
+        mace_exec_print(argv, argc);
         pid_t pid = mace_exec(argv[0], argv);
         mace_wait_pid(pid);
 
@@ -4763,7 +4767,7 @@ void mace_run_commands(const char *commands) {
 }
 
 void mace_prebuild_target(struct Target *target) {
-    printf("Pre-Build target %s\n", target->_name);
+    sprintf("Pre-Build target %s\n", target->_name);
     // Check which sources don't need to be recompiled
     /* --- Move to target base_dir, compile there --- */
     if (target->base_dir != NULL)
@@ -4803,7 +4807,7 @@ void mace_prebuild_target(struct Target *target) {
             mace_Target_Parse_Source(target, token, token);
 
         } else {
-            printf("Error: source is neither a .c file, a folder, nor has a wildcard in it\n");
+            fprintf(stderr, "Error: source is neither a .c file, a folder, nor has a wildcard in it\n");
             exit(ENOENT);
         }
 
@@ -4816,7 +4820,7 @@ void mace_prebuild_target(struct Target *target) {
 }
 
 void mace_build_target(struct Target *target) {
-    printf("Building target %s\n", target->_name);
+    sprintf("Building target %s\n", target->_name);
     /* --- Compile now. --- */
 
     if (target->base_dir != NULL)
@@ -4919,7 +4923,7 @@ void mace_build_order_recursive(struct Target target, size_t *restrict o_cnt) {
 
     /* All dependencies of target were built, add it to build order */
     if (target._d_cnt != target._deps_links_num) {
-        printf("Error: Not all target dependencies before target in build order.");
+        fprintf(stderr, "Error: Not all target dependencies before target in build order.");
         exit(EPERM);
     }
 
@@ -5270,7 +5274,6 @@ void mace_Target_Grow_Headers(struct Target *target) {
 }
 
 void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
-    // printf("mace_Target_Read_Objdeps\n");
     /* --- Split links into tokens, --- */
     char *header = strtok(deps, mace_d_separator);
 
@@ -5456,7 +5459,6 @@ char *mace_Target_Read_d(struct Target* target, int source_i) {
 /* - Parse .d file, recording all header files to .ho files - */
 // Only be called if source file changed
 void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
-    // printf("mace_Target_Parse_Objdep A\n");
     /* Set _deps_headers_num to invalid */
     target->_deps_headers_num[source_i] = -1;
 
@@ -5476,7 +5478,6 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
 }
 
 void mace_Target_Read_ho(struct Target *target, int source_i) {
-    // printf("mace_Target_Read_ho\n");
     // Only read if .ho file was not created.
     if (target->_deps_headers_num[source_i] > 0)
         return;
@@ -5540,8 +5541,14 @@ void mace_Target_Parse_Objdeps(struct Target *target) {
     }
 }
 
-void mace_pre_user() {
+void mace_pre_user(struct Mace_Arguments args) {
     mace_finish(NULL);
+
+    /* --- Set switches --- */
+    silent  = args.silent;
+    verbose = args.debug;
+
+    /* --- Record cwd --- */
     if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
         fprintf(stderr, "getcwd() error\n");
         exit(errno);
@@ -5979,7 +5986,7 @@ int main(int argc, char *argv[]) {
     struct Mace_Arguments args = mace_parse_args(argc, argv);
 
     /* --- Pre-user ops: Get cwd, alloc memory, set defaults. --- */
-    mace_pre_user();
+    mace_pre_user(args);
 
     /* --- User function --- */
     mace(argc, argv); /* Sets compiler, add targets and commands. */
