@@ -322,7 +322,7 @@ uint64_t mace_hash(const char *str);
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 /* -- argv -- */
 char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
-                       const char *restrict includes, const char *restrict flag, bool path);
+                       const char *restrict includes, const char *restrict flag, bool path, const char * separator);
 #ifndef MACE_CONVENIENCE_EXECUTABLE
     /* --- mace_setters --- */
     char *mace_set_obj_dir(char    *obj);
@@ -3669,7 +3669,7 @@ void mace_argv_free(char **argv, int argc) {
 }
 
 char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
-                       const char *restrict user_str, const char *restrict flag, bool path) {
+                       const char *restrict user_str, const char *restrict flag, bool path, const char * separator) {
     assert(argc != NULL);
     assert(len != NULL);
     assert((*len) > 0);
@@ -3678,7 +3678,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     /* -- Copy user_str into modifiable buffer -- */
     char *buffer = mace_str_buffer(user_str);
     char *sav = NULL;
-    char *token = strtok_r(buffer, mace_separator, &sav);
+    char *token = strtok_r(buffer, separator, &sav);
     while (token != NULL) {
         argv = argv_grows(len, argc, argv);
         char *to_use = token;
@@ -3712,7 +3712,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
         i += to_use_len;
         argv[(*argc)++] = arg;
 
-        token = strtok_r(NULL, mace_separator, &sav);
+        token = strtok_r(NULL, separator, &sav);
         if (rpath != NULL) {
             free(rpath);
         }
@@ -3772,8 +3772,8 @@ void mace_Target_Parse_User(struct Target *target) {
         target->_argc_includes = 0;
         target->_argv_includes = calloc(len, sizeof(*target->_argv_includes));
         target->_argv_includes = mace_argv_flags(&len, &target->_argc_includes,
-                                                 target->_argv_includes,
-                                                 target->includes, "-I", true);
+                                                 target->_argv_includes, target->includes,
+                                                 "-I", true, mace_separator);
         bytesize               = target->_argc_includes * sizeof(*target->_argv_includes);
         target->_argv_includes = realloc(target->_argv_includes, bytesize);
     }
@@ -3784,7 +3784,7 @@ void mace_Target_Parse_User(struct Target *target) {
         target->_argc_links = 0;
         target->_argv_links = calloc(len, sizeof(*target->_argv_links));
         target->_argv_links = mace_argv_flags(&len, &target->_argc_links, target->_argv_links,
-                                              target->links, "-l", false);
+                                              target->links, "-l", false, mace_separator);
         bytesize            = target->_argc_links * sizeof(*target->_argv_links);
         target->_argv_links = realloc(target->_argv_links, bytesize);
     }
@@ -3795,7 +3795,7 @@ void mace_Target_Parse_User(struct Target *target) {
         target->_argc_flags = 0;
         target->_argv_flags = calloc(len, sizeof(*target->_argv_flags));
         target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags,
-                                              target->flags, NULL, false);
+                                              target->flags, NULL, false, mace_separator);
         bytesize            = target->_argc_flags * sizeof(*target->_argv_flags);
         target->_argv_flags = realloc(target->_argv_flags, bytesize);
     }
@@ -4840,7 +4840,7 @@ void mace_run_commands(const char *commands) {
         }
 
         argc = 0;
-        argv = mace_argv_flags(&len, &argc, argv, token, NULL, false);
+        argv = mace_argv_flags(&len, &argc, argv, token, NULL, false, mace_d_separator);
 
         mace_exec_print(argv, argc);
         if (!dry_run) {
@@ -6047,11 +6047,6 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 exit(EPERM);
                 break;
         }
-    }
-
-    /* Debugging */
-    for (c = ps.optind; c < argc; ++c) {
-        printf("argument '%s'\n", argv[c]);
     }
 
     return (out_args);
