@@ -1393,16 +1393,54 @@ void test_parse_d() {
 void test_config() {
     struct Config debug = {
         .targets = "sota,tnecs",
-        .flags = "-g -O0,-g",
+        .flags = "-g -O0,-g -O0",
     };
+    mace_pre_user(NULL);
 
+    mace_set_obj_dir(MACE_TEST_OBJ_DIR);
+    mace_set_build_dir(MACE_TEST_BUILD_DIR);
+    mace_mkdir(obj_dir);
+    mace_mkdir(build_dir);
+    
     mace_set_separator(",");
     MACE_ADD_CONFIG(debug);
-    mace_parse_config(&debug);
+    assert(config_num == 1);
+
+
+    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "H",
+        .kind               = MACE_EXECUTABLE,
+    };
+    MACE_ADD_TARGET(tnecs);
+
+    mace_parse_config(&configs[0]);
     nourstest_true(config_num == 1);
-    nourstest_true(debug._targets_len == 2);
-    nourstest_true(strcmp(debug._flags[0], "-g -O0") == 0);
-    nourstest_true(strcmp(debug._flags[1], "-g") == 0);
+    nourstest_true(configs[0]._targets_len == 2);
+    nourstest_true(strcmp(configs[0]._flags[0], "-g -O0") == 0);
+    nourstest_true(strcmp(configs[0]._flags[1], "-g -O0") == 0);
+
+    nourstest_true(configs[0]._targets_len == 2);
+    mace_Target_Parse_User(&tnecs);
+    nourstest_true(configs[0]._targets_len == 2);
+    mace_Target_argv_init(&tnecs);
+    nourstest_true(configs[0]._targets_len == 2);
+    assert(tnecs._argv != NULL);
+    nourstest_true(tnecs._arg_len == 16);
+    nourstest_true(tnecs._argc == 9);
+    nourstest_true(strcmp(tnecs._argv[MACE_ARGV_CC], "gcc") == 0);
+    nourstest_true(tnecs._argv[MACE_ARGV_SOURCE] == NULL);
+    nourstest_true(tnecs._argv[MACE_ARGV_OBJECT] == NULL);
+    nourstest_true(strcmp(tnecs._argv[3],  "-Itnecs.h")                == 0);
+    nourstest_true(strcmp(tnecs._argv[4],  "-lH")           == 0);
+    nourstest_true(strcmp(tnecs._argv[5],  "-Lbuild")           == 0);
+    nourstest_true(strcmp(tnecs._argv[6],  "-c")           == 0);
+    nourstest_true(strcmp(tnecs._argv[7],  "-g")           == 0);
+    nourstest_true(strcmp(tnecs._argv[8],  "-O0")           == 0);
+
+    mace_finish(NULL);
 }
 
 int mace(int argc, char *argv[]) {

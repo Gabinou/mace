@@ -4003,31 +4003,56 @@ void mace_Target_argv_init(struct Target *target) {
         target->_argv[target->_argc++] = fPICflag;
     }
     
-    mace_Target_argv_grow(target);
     /* -- config argv -- */
+    mace_Target_argv_grow(target);
     do {
-        if (config_num =< 0)
+        if (config_num <= 0)
             break;
 
-        int config_order = mace_Config_hasTarget(configs[user_config], target->_order);
+        int config_order = mace_Config_hasTarget(&configs[mace_user_config], target->_order);
         
         if (config_order <= 0)
             break;
 
-        char *flags = config->_flags[config_order]; 
+        char *flags = configs[mace_user_config]._flags[config_order]; 
 
         char *token = strtok(flags, mace_flag_separator);
         do {
             size_t len = strlen(token);
             char *flag = calloc(len + 1, sizeof(flag));
+            strncpy(flag, token, len);
             mace_Target_argv_grow(target);
             target->_argv[target->_argc++] = flag;
             token = strtok(NULL, mace_flag_separator);
         } while (token != NULL);
-    } while (false)
+    } while (false);
 
     target->_argv[target->_argc] = NULL;
 }
+
+// void mace_argv_add_config() {
+//     do {
+//         if (config_num <= 0)
+//             break;
+
+//         int config_order = mace_Config_hasTarget(&configs[mace_user_config], target->_order);
+        
+//         if (config_order <= 0)
+//             break;
+
+//         char *flags = configs[mace_user_config]._flags[config_order]; 
+
+//         char *token = strtok(flags, mace_flag_separator);
+//         do {
+//             size_t len = strlen(token);
+//             char *flag = calloc(len + 1, sizeof(flag));
+//             strncpy(flag, token, len);
+//             mace_Target_argv_grow(target);
+//             target->_argv[target->_argc++] = flag;
+//             token = strtok(NULL, mace_flag_separator);
+//         } while (token != NULL);
+//     } while (false);
+// }
 
 void mace_set_separator(char *sep) {
     if (sep == NULL) {
@@ -5104,7 +5129,6 @@ void mace_make_dirs() {
 }
 
 int mace_Config_hasTarget(struct Config *config, int target_order) {
-
     if (config->targets == NULL) {
         return(0);
     }
