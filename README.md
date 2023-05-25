@@ -29,9 +29,9 @@ Specificity, reduced scope, everything in service of *simplicity*.
 1. Get `mace.h`
 2. Write your own macefile e.g. `macefile.c`
 3. Compile builder executable `gcc macefile.c -o build`
-4. Build `./build` 
-    1. Same as `./build all` by default.
-    2. Remove all objects and targets: `./build clean`
+4. Build `./builder` 
+    1. Same as `./builder all` by default.
+    2. Remove all objects and targets: `./builder clean`
     3. Usage mostly the same as `make`
 
 ### Example macefile

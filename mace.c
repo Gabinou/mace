@@ -24,7 +24,7 @@
 
 /* -- Name of the builder executable to compile macefile into. -- */
 #ifndef BUILDER
-    #define BUILDER build
+    #define BUILDER builder
 #endif
 
 #define STRINGIFY(x) _STRINGIFY(x)
