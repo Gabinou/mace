@@ -9,26 +9,27 @@ Specificity, reduced scope, everything in service of *simplicity*.
 ## Features
 - C syntax.
     - Macefiles are `.c` files.
-    - Targets are `structs`. 
+    - Targets and configs are `structs`, 
     - Function `mace` is user entry point.
+- Single header build system : `mace.h` is all you need.
+    - Compiling macefile as easy as compiling `hello_world.c`, or even easier!
+    - Build project by running the resulting builder executable.
+    - Builder executable uses same flags as `make`: `-B`, `-C`, `-n`, `-j`...  
 - Simple API
-    - Add target with `MACE_ADD_TARGET`
+    - Add target with `MACE_ADD_TARGET`, configs with `MACE_ADD_CONFIG`
     - Set compiler with `MACE_SET_COMPILER`
     - Set output directories with `MACE_SET_BUILD_DIR`, `MACE_SET_OBJ_DIR`
     - Set default target with `MACE_DEFAULT_TARGET`
-- Single header build system : `mace.h` is all you need.
-    - Compiling macefile as easy as compiling `hello_world.c`, or even easier!
-    - Build project by running resulting executable.
 - Convenience executable for `make`-like behavior
     - Build and run macefile `installer.c` to install `mace` and `mace.h`
     - Run `mace` to build!
-- Similar performance to make
+- Similar performance to `make`
     - Faster at high `-j` count, using fewer resources.
 
 ## Usage
 1. Get `mace.h`
 2. Write your own macefile e.g. `macefile.c`
-3. Compile builder executable `gcc macefile.c -o build`
+3. Compile builder executable `gcc macefile.c -o builder`
 4. Build `./builder` 
     1. Same as `./builder all` by default.
     2. Remove all objects and targets: `./builder clean`
@@ -42,6 +43,9 @@ Specificity, reduced scope, everything in service of *simplicity*.
 #ifndef CC
     #define CC gcc
 #endif
+
+struct Config debug = {.flags = "-g -O0"};
+struct Config release = {.flags = "-O2"};
 
 /******************************* WARNING ********************************/
 /* 1. main is defined in mace.h                                         */
@@ -65,6 +69,10 @@ int mace(int argc, char *argv[]) {
 
     // Change default target from 'all' to input.
     MACE_DEFAULT_TARGET(foo);
+
+    /* -- Configs -- */
+    MACE_ADD_CONFIG(debug);   /* First config is default config */
+    MACE_ADD_CONFIG(release); /* To use this config: -g flag */
 }
 
 ```
@@ -75,8 +83,8 @@ int mace(int argc, char *argv[]) {
     2. Run installer: `sudo ./installer`. 
 2. Write your own macefile e.g. `macefile.c`
 3. Build `mace`
-    1. Default macefile: `macefile.c`
-    2. Usage mostly the same as `make`
+    1. Compiles macefile and runs builder executable
+    2. Default macefile: `macefile.c`
 
 Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
@@ -94,8 +102,11 @@ Use these macro definitions when compiling `installer` to customize `mace`:
     - No weird syntax to create.
     - No bespoke parser to implement: C compilers already exist!
 - Using C to build C gets you free lunches! 
-    - C syntax is widely known.
-    - If you know how to compile one C file, you can use `mace`.
+    - Same skills needed to write and run `hello_world.c` for `mace` usage.
+        - Learn C syntax.
+        - Write a C file.
+        - Compile a C file.
+        - Run resulting executable.
 
 ## Limitations
 - Tested on Linux only.
