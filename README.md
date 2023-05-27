@@ -114,7 +114,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - User inputs target dependencies with `target.links` and `target.dependencies`
     - Build order determined by depth first search through all target dependencies.
 - Mace saves file checksums to `.sha1` files in `obj_dir`
-    - uses checksum to check if sources, headers change for recompilation.
+    - Uses checksum to check if sources, headers change for recompilation.
     - Checksum recorded to `.sha1` files in `src` and `include`
 - Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
     - Parsed into binary `.ho` file for faster reading.
