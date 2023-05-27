@@ -165,6 +165,7 @@ struct Target {
     char **restrict _argv;         /* argv buffer for commands            */
     int             _argc;         /* number of arguments in argv         */
     int             _arg_len;      /* alloced len of argv                 */
+    int             _argc_tail;    /* tail of argv to free                */
     char **restrict _argv_includes;/* user includes, in argv form         */
     int             _argc_includes;/* number of args in _argv_includes    */
     char **restrict _argv_links;   /* linked libraries                    */
@@ -243,6 +244,7 @@ struct Config {
 
     uint64_t  *restrict _target_orders;
     char     **restrict _flags;
+    int                 _flag_num;      /* Number of flags                */
     size_t              _targets_len;   /* Number of flags and targets    */
 };
 
@@ -421,7 +423,8 @@ void  mace_exec_print(char *const arguments[], size_t argnum);
 void mace_link_executable(struct Target         *restrict target);
 void mace_link_static_library(struct Target     *restrict target);
 void mace_link_dynamic_library(struct Target    *restrict target);
-typedef void (*mace_link_t)(struct Target *restrict)
+
+typedef void (*mace_link_t)(struct Target *restrict);
 mace_link_t mace_link[MACE_TARGET_NUM - 1] = {mace_link_executable, mace_link_static_library, mace_link_dynamic_library};
 
 /* --- mace_clean --- */
@@ -3956,8 +3959,8 @@ void mace_Target_argv_allatonce(struct Target *target) {
     target->_argv[target->_argc++] = compflag;
 }
 
-// should be called after mace_Target_Parse_User
 void mace_Target_argv_init(struct Target *target) {
+    /* Should be called after mace_Target_Parse_User */
     if (target->_argv == NULL) {
         target->_arg_len = 8;
         target->_argc = 0;
@@ -3989,6 +3992,7 @@ void mace_Target_argv_init(struct Target *target) {
     }
 
     /* -- argv -L flag for build_dir -- */
+    target->_argc_tail = target->_argc;
     mace_Target_argv_grow(target);
     assert(build_dir != NULL);
     size_t build_dir_len = strlen(build_dir);
@@ -4184,6 +4188,11 @@ void mace_link_dynamic_library(struct Target *restrict target) {
         }
     }
 
+    /* -- argv config -- */
+    int config_startc = argc; 
+    mace_argv_add_config(target, &argv, &argc, &arg_len);
+    int config_endc = argc; 
+
     /* -- Actual linking -- */
     mace_exec_print(argv, argc);
     if (!dry_run) {
@@ -4194,6 +4203,9 @@ void mace_link_dynamic_library(struct Target *restrict target) {
     free(argv[cfPICflag]);
     free(argv[csharedflag]);
     free(argv[libc]);
+    for (int i = config_startc; i < config_endc; i++) {
+        free(argv[i]);
+    }
     free(argv);
     free(lib);
 }
@@ -4229,6 +4241,11 @@ void mace_link_static_library(struct Target *restrict target) {
         }
     }
 
+    /* -- argv config -- */
+    int config_startc = argc; 
+    mace_argv_add_config(target, &argv, &argc, &arg_len);
+    int config_endc = argc; 
+
     /* -- Actual linking -- */
     mace_exec_print(argv, argc);
     if (!dry_run) {
@@ -4238,6 +4255,10 @@ void mace_link_static_library(struct Target *restrict target) {
 
     free(argv[crcsflag]);
     free(argv[libc]);
+    for (int i = config_startc; i < config_endc; i++) {
+        free(argv[i]);
+    }
+
     free(argv);
     free(lib);
 }
@@ -4301,8 +4322,9 @@ void mace_link_executable(struct Target *restrict target) {
 
 
     /* -- argv config -- */
-    // TODO: input target->_order instead of target.
+    int config_startc = argc; 
     mace_argv_add_config(target, &argv, &argc, &arg_len);
+    int config_endc = argc; 
 
     /* -- Actual linking -- */
     mace_exec_print(argv, argc);
@@ -4313,6 +4335,9 @@ void mace_link_executable(struct Target *restrict target) {
 
     free(argv[oflag_i]);
     free(argv[ldirflag_i]);
+    for (int i = config_startc; i < config_endc; i++) {
+        free(argv[i]);
+    }
     free(argv);
     free(exec);
 }
@@ -5126,9 +5151,11 @@ void mace_make_dirs() {
 }
 
 int mace_Config_hasTarget(struct Config *config, int target_order) {
-    if (config->targets == NULL) {
+    if (config == NULL)
         return (0);
-    }
+
+    if (config->_target_orders == NULL)
+        return (0);
 
     for (int i = 0; i < config->_targets_len; i++) {
         if (target_order == config->_target_orders[i]) {
@@ -5167,7 +5194,7 @@ void mace_parse_config(struct Config *config) {
     } while (token != NULL);
     free(buffer);
     config->_target_orders = realloc(config->_target_orders,
-                                     config->_targets_len * sizeof(*config->targets));
+                                     config->_targets_len * sizeof(*config->_target_orders));
     config->_flags = malloc(config->_targets_len * sizeof(*config->_flags));
 
     /* -- Split flags string into target orders -- */
@@ -5267,7 +5294,21 @@ void mace_build_targets() {
 }
 
 void mace_Config_Free(struct Config *config) {
+    if (config == NULL)
+        return;
 
+    if (config->_target_orders != NULL) {
+        free(config->_target_orders);
+        config->_target_orders = NULL;
+    }
+    if (config->_flags != NULL) {
+        for (int i = 0; i < config->_targets_len; i++) {
+            free(config->_flags[i]);
+            config->_flags[i] = NULL;
+        }
+        free(config->_flags);
+        config->_flags = NULL;
+    } 
 }
 
 void mace_Target_Free(struct Target *target) {
@@ -5381,17 +5422,15 @@ void mace_Target_Free_argv(struct Target *target) {
     free(target->_argv_objects_hash);
     target->_argv_objects_hash  = NULL;
     if ((target->_argv != NULL) && (target->_argc > 0))  {
-        if (target->_argv[target->_argc - 1] != NULL) {
-            free(target->_argv[target->_argc - 1]);
-            target->_argv[target->_argc - 1] = NULL;
-        }
+        if (target->_argc_tail > 0) {
 
-        if (target->_argv[target->_argc - 2] != NULL) {
-            free(target->_argv[target->_argc - 2]);
-            target->_argv[target->_argc - 2] = NULL;
+        for (int i = target->_argc_tail; i < target->_argc; i++) {
+            free(target->_argv[i]);
+            target->_argv[i] = NULL;
         }
         free(target->_argv);
         target->_argv = NULL;
+        }
     }
 }
 
@@ -5848,22 +5887,25 @@ void mace_post_user(struct Mace_Arguments *args) {
 
 void mace_finish(struct Mace_Arguments *args) {
     Mace_Arguments_Free(args);
-
     for (int i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
     }
+    if (targets != NULL) {
+        free(targets);
+        targets = NULL;
+    }    
 
     for (int i = 0; i < config_num; i++) {
         mace_Config_Free(&configs[i]);
+    }
+    if (configs != NULL) {
+        free(configs);
+        configs = NULL;
     }
 
     if (pqueue != NULL) {
         free(pqueue);
         pqueue = NULL;
-    }
-    if (targets != NULL) {
-        free(targets);
-        targets = NULL;
     }
     if (object != NULL) {
         free(object);
