@@ -9,22 +9,10 @@ Specificity, reduced scope, everything in service of *simplicity*.
 ## Features
 - C syntax.
     - Macefiles are `.c` files.
-    - Targets and configs are `structs`, 
-    - Function `mace` is user entry point.
-- Single header build system : `mace.h` is all you need.
-    - Compiling macefile as easy as compiling `hello_world.c`, or even easier!
-    - Build project by running the resulting builder executable.
-    - Builder executable uses same flags as `make`: `-B`, `-C`, `-n`, `-j`...  
+    - Targets are `structs`, 
 - Simple API
-    - Add target with `MACE_ADD_TARGET`, configs with `MACE_ADD_CONFIG`
-    - Set compiler with `MACE_SET_COMPILER`
-    - Set output directories with `MACE_SET_BUILD_DIR`, `MACE_SET_OBJ_DIR`
-    - Set default target with `MACE_SET_DEFAULT_TARGET`
+- Single header build system: `mace.h`.
 - Convenience executable for `make`-like behavior
-    - Build and run macefile `installer.c` to install `mace` and `mace.h`
-    - Run `mace` to build!
-- Similar performance to `make`
-    - Faster at high `-j` count, using fewer resources.
 
 ## Usage
 1. Get `mace.h`
