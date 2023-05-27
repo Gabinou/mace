@@ -42,7 +42,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
     - No weird syntax to create.
     - No bespoke parser to implement: C compilers already exist!
 - Using C to build C gets you free lunches.
-    - If you can write and run `hello_world.c`, you can use `mace`.
+    - If you can write and run `hello_world.c`, you know how to use `mace`.
 
 ## Limitations
 - Tested on Linux only.
