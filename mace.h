@@ -69,7 +69,7 @@ extern int mace(int argc, char *argv[]);
 /* -- Compiler -- */
 // Tested with gcc, clang and tcc.
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
-#define _MACE_SET_COMPILER(compiler) cc = #compiler
+#define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
 
 /* -- Directories -- */
 /* - obj_dir - */
@@ -331,6 +331,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     /* --- mace_setters --- */
     char *mace_set_obj_dir(char    *obj);
     char *mace_set_build_dir(char  *build);
+    char *mace_set_compiler(char   *cc);
 
     /* --- mace add --- */
     void mace_add_target(struct Target   *restrict target,  char *restrict name);
@@ -390,9 +391,9 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void mace_argv_add_config(struct Target *target, char **restrict *argv, int *restrict argc,
     int *restrict arg_len);
 
-    void mace_Target_argv_init(struct Target      *target);
     void mace_Target_argv_grow(struct Target      *target);
     void mace_Target_Parse_User(struct Target     *target);
+    void mace_Target_argv_compile(struct Target   *target);
     void mace_Target_Parse_Source(struct Target   *target, char *path, char *src);
     void mace_Target_argv_allatonce(struct Target *target);
     /* utils */
@@ -494,8 +495,9 @@ char *mace_command_separator = "&&";
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
     /* -- Compiler -- */
-    char *cc      = "gcc";
-    char *ar      = "ar";
+    char *cc         = "gcc";
+    char *ar         = "ar";
+    char *cc_depflag = "-MM"; /* flag to create .d file */
 
     /* -- current working directory -- */
     char cwd[MACE_CWD_BUFFERSIZE];
@@ -3555,7 +3557,7 @@ void mace_add_target(struct Target *target, char *name) {
     targets[target_num]._order = target_num;
     mace_Target_Deps_Hash(&targets[target_num]);
     mace_Target_Parse_User(&targets[target_num]);
-    mace_Target_argv_init(&targets[target_num]);
+    mace_Target_argv_compile(&targets[target_num]);
     if (++target_num >= target_len) {
         target_len *= 2;
         targets     = realloc(targets,     target_len * sizeof(*targets));
@@ -3604,7 +3606,6 @@ void mace_user_config_set(uint64_t hash, char *name) {
 void mace_user_target_set(uint64_t hash, char *name) {
     if (hash == 0)
         return;
-        return;
 
     if (hash == mace_hash(MACE_CLEAN)) {
         mace_user_target = MACE_CLEAN_ORDER;
@@ -3641,7 +3642,7 @@ uint64_t mace_hash(const char *str) {
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
 
-/****************************** MACE_SET_obj_dir ******************************/
+/******************************** MACE_SETTERS ********************************/
 // Sets where the object files will be placed during build.
 char *mace_set_obj_dir(char *obj) {
     if (obj_dir != NULL)
@@ -3654,6 +3655,23 @@ char *mace_set_build_dir(char *build) {
         free(build_dir);
     return (build_dir = mace_str_buffer(build));
 }
+
+
+char *mace_set_compiler(char *compiler) {
+    cc = compiler;
+
+    if (strcmp(cc, "gcc") == 0) {
+        cc_depflag = "-MM";
+    } else if (strcmp(cc, "tcc") == 0) {
+        cc_depflag = "-MD";
+    } else if (strcmp(cc, "clang") == 0) {
+        cc_depflag = "-MM";
+    } else {
+        fprintf(stderr, "mace error: unknown compiler '%s'. \n", compiler);
+        exit(EPERM);
+    }
+}
+
 
 /************************************ argv ************************************/
 
@@ -3945,6 +3963,7 @@ void mace_Target_argv_allatonce(struct Target *target) {
     }
 
     /* -- argv -L flag for build_dir -- */
+    target->_argc_tail =    target->_argc;
     mace_Target_argv_grow(target);
     assert(build_dir != NULL);
     size_t build_dir_len = strlen(build_dir);
@@ -3958,9 +3977,12 @@ void mace_Target_argv_allatonce(struct Target *target) {
     char *compflag = calloc(3, sizeof(*compflag));
     strncpy(compflag, "-c", 2);
     target->_argv[target->_argc++] = compflag;
+
+    /* -- add config -- */
+    mace_argv_add_config(target, &target->_argv, &target->_argc, &target->_arg_len);
 }
 
-void mace_Target_argv_init(struct Target *target) {
+void mace_Target_argv_compile(struct Target *target) {
     /* Should be called after mace_Target_Parse_User */
     if (target->_argv == NULL) {
         target->_arg_len = 8;
@@ -3984,23 +4006,6 @@ void mace_Target_argv_init(struct Target *target) {
             target->_argv[target->_argc++] = target->_argv_includes[i];
         }
     }
-    /* -- argv links -- */
-    if ((target->_argc_links > 0) && (target->_argv_links != NULL)) {
-        for (int i = 0; i < target->_argc_links; i++) {
-            mace_Target_argv_grow(target);
-            target->_argv[target->_argc++] = target->_argv_links[i];
-        }
-    }
-
-    /* -- argv -L flag for build_dir -- */
-    target->_argc_tail = target->_argc;
-    mace_Target_argv_grow(target);
-    assert(build_dir != NULL);
-    size_t build_dir_len = strlen(build_dir);
-    char *ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
-    strncpy(ldirflag, "-L", 2);
-    strncpy(ldirflag + 2, build_dir, build_dir_len);
-    target->_argv[target->_argc++] = ldirflag;
 
     /* -- argv -c flag for objects -- */
     mace_Target_argv_grow(target);
@@ -4015,9 +4020,6 @@ void mace_Target_argv_init(struct Target *target) {
         strncpy(fPICflag, "-fPIC", 5);
         target->_argv[target->_argc++] = fPICflag;
     }
-
-    /* -- config argv -- */
-    mace_argv_add_config(target, &target->_argv, &target->_argc, &target->_arg_len);
 
     target->_argv[target->_argc] = NULL;
 }
@@ -4156,7 +4158,7 @@ void mace_wait_pid(int pid) {
 /********************************* mace_build **********************************/
 void mace_link_dynamic_library(struct Target *restrict target) {
     char *lib = mace_library_path(target->_name, MACE_DYNAMIC_LIBRARY);
-    sprintf("Linking \t%s \n", lib);
+    sprintf("Linking  %s \n", lib);
     int    argc_objects = target->_argc_sources;
     char **argv_objects = target->_argv_objects;
 
@@ -4217,7 +4219,7 @@ void mace_link_dynamic_library(struct Target *restrict target) {
 
 void mace_link_static_library(struct Target *restrict target) {
     char *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
-    sprintf("Linking \t%s \n", target);
+    sprintf("Linking  %s \n", lib);
     int    argc_objects = target->_argc_sources;
     char **argv_objects = target->_argv_objects;
 
@@ -4246,11 +4248,6 @@ void mace_link_static_library(struct Target *restrict target) {
         }
     }
 
-    /* -- argv config -- */
-    int config_startc = argc; 
-    mace_argv_add_config(target, &argv, &argc, &arg_len);
-    int config_endc = argc; 
-
     /* -- Actual linking -- */
     mace_exec_print(argv, argc);
     if (!dry_run) {
@@ -4260,17 +4257,13 @@ void mace_link_static_library(struct Target *restrict target) {
 
     free(argv[crcsflag]);
     free(argv[libc]);
-    for (int i = config_startc; i < config_endc; i++) {
-        free(argv[i]);
-    }
-
     free(argv);
     free(lib);
 }
 
 void mace_link_executable(struct Target *restrict target) {
     char *exec = mace_executable_path(target->_name);
-    sprintf("Linking \t%s \n", exec);
+    sprintf("Linking  %s \n", exec);
 
     char **argv_links    = target->_argv_links;
     char **argv_flags    = target->_argv_flags;
@@ -4373,7 +4366,8 @@ void mace_Target_precompile(struct Target *target) {
     assert(target != NULL);
     assert(target->_argv != NULL);
     int argc = 0;
-    target->_argv[target->_argc++] = "-MM";
+
+    target->_argv[target->_argc++] = cc_depflag;
     /* - Single source argv - */
     while (true) {
         /* - Skip if no recompiles - */
@@ -5005,11 +4999,12 @@ void mace_build_target(struct Target *target) {
     if (target->base_dir != NULL)
         assert(chdir(target->base_dir) == 0);
 
-    mace_Target_compile(target); // faster than make with no pre-compile
 
-    // /* -- allatonce -- */
-    // if (target->allatonce)
-    //     mace_Target_compile_allatonce(target);
+    /* -- allatonce -- */
+    if (target->allatonce)
+        mace_Target_compile_allatonce(target);
+    else 
+        mace_Target_compile(target); // faster than make with no pre-compile
 
     /* --- Move back to cwd to link --- */
     assert(chdir(cwd) == 0);
@@ -5019,7 +5014,7 @@ void mace_build_target(struct Target *target) {
         fprintf(stderr, "Wrong target type.");
         exit(EPERM);
     }
-    mace_link[target->kind](target);
+    mace_link[target->kind - 1](target);
     assert(chdir(cwd) == 0);
 }
 
@@ -5304,11 +5299,15 @@ void mace_build_targets() {
 
     /* Actually build all targets */
     for (int z = 0; z < build_order_num; z++) {
-        mace_run_commands(targets[build_order[z]].command_pre_build);
-        mace_print_message(targets[build_order[z]].message_pre_build);
-        mace_build_target(&targets[build_order[z]]);
-        mace_print_message(targets[build_order[z]].message_post_build);
-        mace_run_commands(targets[build_order[z]].command_post_build);
+        struct Target * target = &targets[build_order[z]];
+        /* -- config argv -- */
+        mace_argv_add_config(target, &target->_argv, &target->_argc, &target->_arg_len);
+
+        mace_run_commands(target->command_pre_build);
+        mace_print_message(target->message_pre_build);
+        mace_build_target(target);
+        mace_print_message(target->message_post_build);
+        mace_run_commands(target->command_post_build);
     }
 }
 
@@ -5444,8 +5443,10 @@ void mace_Target_Free_argv(struct Target *target) {
         if (target->_argc_tail > 0) {
 
         for (int i = target->_argc_tail; i < target->_argc; i++) {
-            free(target->_argv[i]);
-            target->_argv[i] = NULL;
+            if (target->_argv[i] != NULL); {
+                free(target->_argv[i]);
+                target->_argv[i] = NULL;
+            }
         }
         free(target->_argv);
         target->_argv = NULL;
@@ -5547,23 +5548,41 @@ void mace_Target_Grow_Headers(struct Target *target) {
 }
 
 void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
-    /* --- Split links into tokens, --- */
-    char *header = strtok(deps, mace_d_separator);
+    /* --- Split headers into tokens --- */
+    char *header   = strtok(deps, mace_d_separator);
+    size_t cwd_len = strlen(cwd);
 
     /* --- Hash headers into _deps_links --- */
-    do {
+    while (header != NULL) {
+        /* Skip if file is not a header */
         size_t len = strlen(header);
-        if (header[len - 1] == 'h') {
-            /* add header to list of all headers */
-            uint64_t hash = mace_Target_Header_Add(target, header);
+        char *dot  = strchr(header,  '.'); /* last dot in path */
+        if (dot == NULL) {
+            header = strtok(NULL, mace_d_separator);
+            continue;
+        }
+        size_t ext = dot - header;
 
-            /* Add header to list of header_deps of object */
-            int header_order = mace_Target_header_order(target, hash);
-            mace_Target_Objdep_Add(target, header_order, source_i);
+        if (header[ext + 1] != 'h') {
+            header = strtok(NULL, mace_d_separator);
+            continue;
         }
 
+        /* Skip if header is not in cwd */
+        if (strncmp(header, cwd, cwd_len) != 0) {
+            header = strtok(NULL, mace_d_separator);
+            continue;
+        }
+
+        /* add header to list of all headers */
+        uint64_t hash = mace_Target_Header_Add(target, header);
+
+        /* Add header to list of header_deps of object */
+        int header_order = mace_Target_header_order(target, hash);
+        mace_Target_Objdep_Add(target, header_order, source_i);
+        
         header = strtok(NULL, mace_d_separator);
-    } while (header != NULL);
+    } 
 }
 
 int mace_Target_hasHeader(struct Target *target, uint64_t hash) {
@@ -5664,10 +5683,13 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
     strncpy(obj_file, obj_file_flag + oflagl, obj_len - oflagl);
     char buffer[MACE_OBJDEP_BUFFER];
     size_t size;
-    size_t ext = obj_len - oflagl - 1;
+    char *dot        = strchr(obj_file,  '.'); /* last dot in path */
+    size_t ext = dot - obj_file;
 
     /* Check if .ho exists */
-    strncpy(obj_file + ext, "ho", 2);
+    strncpy(obj_file + ext + 1, "ho", 2);
+    obj_file[ext + 3] = '\0';
+    printf("obj_file %s \n", obj_file);
 
     FILE *fho = fopen(obj_file, "r");
     bool fho_exists = false;
@@ -5677,8 +5699,8 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
     }
 
     /* Check if .d exists */
-    obj_file[ext]     = 'd';
-    obj_file[ext + 1] = '\0';
+    obj_file[ext + 1]     = 'd';
+    obj_file[ext + 2] = '\0';
     FILE *fd = fopen(obj_file, "rb");
     if (fd == NULL) {
         fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
@@ -5698,7 +5720,7 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
         }
 
         /* Check that target has object with nocoll hashes */
-        obj_file[ext] = 'o';
+        obj_file[ext + 1] = 'o';
         uint64_t obj_hash = mace_hash(obj_file);
         obj_hash_id = Target_hasObjectHash_nocoll(target, obj_hash);
         assert(obj_hash_id < target->_objects_hash_nocoll_num);
@@ -5740,8 +5762,12 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
         return;
     }
     /* Write _deps_header to .ho file */
-    size_t ext = strlen(obj_file) - 2;
-    strncpy(obj_file + ext, "ho", 2);
+    char *dot  = strchr(obj_file,  '.'); /* last dot in path */
+    size_t ext = dot - obj_file;
+
+    strncpy(obj_file + ext + 1, "ho", 2);
+    obj_file[ext + 3] = '\0';
+
     FILE *fho = fopen(obj_file, "wb");
     fwrite(target->_deps_headers[source_i], sizeof(**target->_deps_headers),
            target->_deps_headers_num[source_i], fho);
@@ -5773,10 +5799,14 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
     strncpy(obj_file, obj_file_flag + oflagl, obj_len - oflagl);
     char buffer[MACE_OBJDEP_BUFFER];
     size_t size;
-    size_t ext = obj_len - oflagl - 1;
+
+    char *dot        = strchr(obj_file,  '.'); /* last dot in path */
+    size_t ext = dot - obj_file;
 
     /* Check if .ho exists */
-    strncpy(obj_file + ext, "ho", 2);
+    strncpy(obj_file + ext + 1, "ho", 2);
+    obj_file[ext + 3] = '\0';
+    printf("READ obj_file %s \n", obj_file);
     FILE *fho = fopen(obj_file, "rb");
     if (fho == NULL) {
         fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);

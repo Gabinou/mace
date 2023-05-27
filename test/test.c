@@ -1540,6 +1540,8 @@ void test_config_global() {
     mace_finish(NULL);
 }
 
+// TODO: test compiling a source file with NO INCLUDES
+
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     MACE_SET_COMPILER(gcc);
@@ -1557,7 +1559,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("checksum ",        test_checksum);
     nourstest_run("excludes ",        test_excludes);
     nourstest_run("parse_d ",         test_parse_d);
-    nourstest_run("config_global ",   test_config_global);
+    nourstest_run("config_global ",   test_cocpnfig_global);
     nourstest_run("config_spec ",     test_config_specific);
     nourstest_results();
 
