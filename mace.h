@@ -5808,7 +5808,6 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
     /* Check if .ho exists */
     strncpy(obj_file + ext + 1, "ho", 2);
     obj_file[ext + 3] = '\0';
-
     FILE *fho = fopen(obj_file, "rb");
     if (fho == NULL) {
         fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);

@@ -19,7 +19,7 @@ Specificity, reduced scope, everything in service of *simplicity*.
     - Add target with `MACE_ADD_TARGET`, configs with `MACE_ADD_CONFIG`
     - Set compiler with `MACE_SET_COMPILER`
     - Set output directories with `MACE_SET_BUILD_DIR`, `MACE_SET_OBJ_DIR`
-    - Set default target with `MACE_DEFAULT_TARGET`
+    - Set default target with `MACE_SET_DEFAULT_TARGET`
 - Convenience executable for `make`-like behavior
     - Build and run macefile `installer.c` to install `mace` and `mace.h`
     - Run `mace` to build!
@@ -82,7 +82,7 @@ int mace(int argc, char *argv[]) {
     1. Compile `installer.c` macefile: `gcc installer.c -o installer`
     2. Run installer: `sudo ./installer`. 
 2. Write your own macefile e.g. `macefile.c`
-3. Build `mace`
+3. Run `mace` to build
     1. Compiles macefile and runs builder executable
     2. Default macefile: `macefile.c`
 
@@ -103,10 +103,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
     - No bespoke parser to implement: C compilers already exist!
 - Using C to build C gets you free lunches! 
     - Same skills needed to write and run `hello_world.c` for `mace` usage.
-        - Learn C syntax.
-        - Write a C file.
-        - Compile a C file.
-        - Run resulting executable.
+    - Learn C syntax, write a C file, compile the C file and run resulting executable.
 
 ## Limitations
 - Tested on Linux only.
@@ -117,10 +114,12 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - User inputs target dependencies with `target.links` and `target.dependencies`
     - Build order determined by depth first search through all target dependencies.
 - Mace saves file checksums to `.sha1` files in `obj_dir`
+    - uses checksum to check if sources, headers change for recompilation.
     - Checksum recorded to `.sha1` files in `src` and `include`
 - Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
     - Parsed into binary `.ho` file for faster reading.
     - Check if any header file changed to recompile.
+
 ### Lines
 - mace.h: ~6300 Lines
     - parg:     ~600 lines
