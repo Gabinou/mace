@@ -1480,6 +1480,7 @@ void test_config_global() {
     assert(config_num == 2);
 
     mace_user_config_set(mace_hash("release"), "release");
+    assert(mace_user_config == 1);
 
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -1515,14 +1516,14 @@ void test_config_global() {
     nourstest_true(strcmp(targets[0]._argv[7],  "-pie")         == 0);
     nourstest_true(strcmp(targets[0]._argv[8],  "-O2")        == 0);
 
-    nourstest_true(strcmp(configs[0].flags,  "-pie -O2")        == 0);
+    nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
     mace_add_target(&tnecs, "baka");
     nourstest_true(target_num == 2);
-    nourstest_true(strcmp(configs[0].flags,  "-pie -O2")        == 0);
+    nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
 
     mace_Target_Parse_User(&targets[1]);
     mace_Target_argv_init(&targets[1]);
-    nourstest_true(strcmp(configs[0].flags,  "-pie -O2")        == 0);
+    nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
     assert(targets[1]._argv != NULL);
     nourstest_true(targets[1]._arg_len == 16);
     nourstest_true(targets[1]._argc == 9);

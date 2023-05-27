@@ -3604,6 +3604,7 @@ void mace_user_config_set(uint64_t hash, char *name) {
 void mace_user_target_set(uint64_t hash, char *name) {
     if (hash == 0)
         return;
+        return;
 
     if (hash == mace_hash(MACE_CLEAN)) {
         mace_user_target = MACE_CLEAN_ORDER;
@@ -4029,9 +4030,11 @@ void mace_argv_add_config(struct Target *target, char **restrict *argv, int *res
             break;
 
         int config_order = mace_Config_hasTarget(&configs[mace_user_config], target->_order);
+
         if (config_order < 0)
             break;
 
+        assert(config_order <= configs[mace_user_config]._targets_len);
         size_t len = strlen(configs[mace_user_config]._flags[config_order]);
         char *flags = calloc(len + 1, sizeof(*flags));
         strncpy(flags, configs[mace_user_config]._flags[config_order], len);
@@ -5160,9 +5163,10 @@ int mace_Config_hasTarget(struct Config *config, int target_order) {
         return (-1);
 
     if (config->targets == NULL)
-        return (mace_user_config);
+        return (0);
 
     for (int i = 0; i < config->_targets_len; i++) {
+        assert(config->_flags[i] != NULL);
         if (target_order == config->_target_orders[i]) {
             return (i);
         }
@@ -5838,6 +5842,9 @@ void mace_pre_user(struct Mace_Arguments *args) {
     config_len      = MACE_DEFAULT_TARGET_LEN;
     object_len      = MACE_DEFAULT_OBJECT_LEN;
     build_order_num = 0;
+
+    mace_user_target = MACE_NULL_ORDER;
+    mace_user_config = 0;
 
 
     object      = calloc(object_len, sizeof(*object));
