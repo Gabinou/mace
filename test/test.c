@@ -1401,7 +1401,7 @@ void test_config() {
     mace_set_build_dir(MACE_TEST_BUILD_DIR);
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
-    
+
     mace_set_separator(",");
     MACE_ADD_CONFIG(debug);
     assert(config_num == 1);
