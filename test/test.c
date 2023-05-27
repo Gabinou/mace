@@ -515,7 +515,7 @@ void test_argv() {
     nourstest_true(CodenameFiresaga._argv_flags == NULL);
 
     // MACE_SET_COMPILER(gcc);
-    mace_Target_argv_init(&CodenameFiresaga);
+    mace_Target_argv_compile(&CodenameFiresaga);
     assert(CodenameFiresaga._argv != NULL);
     nourstest_true(CodenameFiresaga._arg_len == 32);
     nourstest_true(strcmp(CodenameFiresaga._argv[MACE_ARGV_CC], "gcc") == 0);
@@ -537,9 +537,7 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv[16], "-Ithird_party/tinymt")     == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv[17], "-Ithird_party/stb")        == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv[18], "-Ithird_party/cJson")      == 0);
-    nourstest_true(strcmp(CodenameFiresaga._argv[19], "-ltnecs")                  == 0);
-    nourstest_true(strcmp(CodenameFiresaga._argv[20], "-Lbuild")                  == 0);
-    nourstest_true(strcmp(CodenameFiresaga._argv[21], "-c")                       == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[19], "-c")                       == 0);
     nourstest_true(CodenameFiresaga._argv[22] == NULL);
 
     mace_Target_Free(&CodenameFiresaga);
@@ -1129,6 +1127,7 @@ void test_parse_d() {
 
     struct Target target1 = {0};
     MACE_ADD_TARGET(target1);
+    targets[0].checkcwd = false;
     mace_Target_Source_Add(&targets[0], "test1.c");
     mace_Target_Object_Add(&targets[0], "test1.o");
     mace_Target_Parse_Objdep(&targets[0], 0);
@@ -1143,6 +1142,7 @@ void test_parse_d() {
     };
     assert(target_num == 1);
     MACE_ADD_TARGET(target);
+    targets[1].checkcwd = false;
     assert(target_num == 2);
 
     mace_Target_Source_Add(&targets[1], "test2.c");
@@ -1423,36 +1423,30 @@ void test_config_specific() {
     nourstest_true(configs[0]._targets_len == 2);
     mace_Target_Parse_User(&targets[0]);
     nourstest_true(configs[0]._targets_len == 2);
-    mace_Target_argv_init(&targets[0]);
+    mace_Target_argv_compile(&targets[0]);
     nourstest_true(configs[0]._targets_len == 2);
     assert(targets[0]._argv != NULL);
-    nourstest_true(targets[0]._arg_len == 16);
-    nourstest_true(targets[0]._argc == 9);
+    nourstest_true(targets[0]._arg_len == 8);
+    nourstest_true(targets[0]._argc == 5);
     nourstest_true(strcmp(targets[0]._argv[MACE_ARGV_CC], "gcc") == 0);
     nourstest_true(targets[0]._argv[MACE_ARGV_SOURCE] == NULL);
     nourstest_true(targets[0]._argv[MACE_ARGV_OBJECT] == NULL);
     nourstest_true(strcmp(targets[0]._argv[3],  "-Itnecs.h")  == 0);
-    nourstest_true(strcmp(targets[0]._argv[4],  "-lH")        == 0);
-    nourstest_true(strcmp(targets[0]._argv[5],  "-Lbuild")    == 0);
-    nourstest_true(strcmp(targets[0]._argv[6],  "-c")         == 0);
-    nourstest_true(strcmp(targets[0]._argv[7],  "-g")         == 0);
-    nourstest_true(strcmp(targets[0]._argv[8],  "-O0")        == 0);
+    nourstest_true(strcmp(targets[0]._argv[4],  "-c")         == 0);
 
     mace_add_target(&tnecs, "baka");
     nourstest_true(target_num == 2);
 
     mace_Target_Parse_User(&targets[1]);
-    mace_Target_argv_init(&targets[1]);
+    mace_Target_argv_compile(&targets[1]);
     assert(targets[1]._argv != NULL);
     nourstest_true(targets[1]._arg_len == 8);
-    nourstest_true(targets[1]._argc == 7);
+    nourstest_true(targets[1]._argc == 5);
     nourstest_true(strcmp(targets[1]._argv[MACE_ARGV_CC], "gcc") == 0);
     nourstest_true(targets[1]._argv[MACE_ARGV_SOURCE] == NULL);
     nourstest_true(targets[1]._argv[MACE_ARGV_OBJECT] == NULL);
     nourstest_true(strcmp(targets[1]._argv[3],  "-Itnecs.h")  == 0);
-    nourstest_true(strcmp(targets[1]._argv[4],  "-lH")        == 0);
-    nourstest_true(strcmp(targets[1]._argv[5],  "-Lbuild")    == 0);
-    nourstest_true(strcmp(targets[1]._argv[6],  "-c")         == 0);
+    nourstest_true(strcmp(targets[1]._argv[4],  "-c")         == 0);
     nourstest_true(targets[1]._argv[7] == NULL);
     mace_finish(NULL);
 }
@@ -1502,19 +1496,15 @@ void test_config_global() {
     nourstest_true(strcmp(configs[1]._flags[0], "-pie -O2") == 0);
 
     mace_Target_Parse_User(&targets[0]);
-    mace_Target_argv_init(&targets[0]);
+    mace_Target_argv_compile(&targets[0]);
     assert(targets[0]._argv != NULL);
-    nourstest_true(targets[0]._arg_len == 16);
-    nourstest_true(targets[0]._argc == 9);
+    nourstest_true(targets[0]._arg_len == 8);
+    nourstest_true(targets[0]._argc == 5);
     nourstest_true(strcmp(targets[0]._argv[MACE_ARGV_CC], "gcc") == 0);
     nourstest_true(targets[0]._argv[MACE_ARGV_SOURCE] == NULL);
     nourstest_true(targets[0]._argv[MACE_ARGV_OBJECT] == NULL);
     nourstest_true(strcmp(targets[0]._argv[3],  "-Itnecs.h")  == 0);
-    nourstest_true(strcmp(targets[0]._argv[4],  "-lH")        == 0);
-    nourstest_true(strcmp(targets[0]._argv[5],  "-Lbuild")    == 0);
-    nourstest_true(strcmp(targets[0]._argv[6],  "-c")         == 0);
-    nourstest_true(strcmp(targets[0]._argv[7],  "-pie")         == 0);
-    nourstest_true(strcmp(targets[0]._argv[8],  "-O2")        == 0);
+    nourstest_true(strcmp(targets[0]._argv[4],  "-c")         == 0);
 
     nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
     mace_add_target(&tnecs, "baka");
@@ -1522,20 +1512,16 @@ void test_config_global() {
     nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
 
     mace_Target_Parse_User(&targets[1]);
-    mace_Target_argv_init(&targets[1]);
+    mace_Target_argv_compile(&targets[1]);
     nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
     assert(targets[1]._argv != NULL);
-    nourstest_true(targets[1]._arg_len == 16);
-    nourstest_true(targets[1]._argc == 9);
+    nourstest_true(targets[1]._arg_len == 8);
+    nourstest_true(targets[1]._argc == 5);
     nourstest_true(strcmp(targets[1]._argv[MACE_ARGV_CC], "gcc") == 0);
     nourstest_true(targets[1]._argv[MACE_ARGV_SOURCE] == NULL);
     nourstest_true(targets[1]._argv[MACE_ARGV_OBJECT] == NULL);
     nourstest_true(strcmp(targets[1]._argv[3],  "-Itnecs.h")  == 0);
-    nourstest_true(strcmp(targets[1]._argv[4],  "-lH")        == 0);
-    nourstest_true(strcmp(targets[1]._argv[5],  "-Lbuild")    == 0);
-    nourstest_true(strcmp(targets[1]._argv[6],  "-c")         == 0);
-    nourstest_true(strcmp(targets[1]._argv[7],  "-pie")         == 0);
-    nourstest_true(strcmp(targets[1]._argv[8],  "-O2")        == 0);
+    nourstest_true(strcmp(targets[1]._argv[4],  "-c")         == 0);
 
     mace_finish(NULL);
 }
@@ -1559,7 +1545,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("checksum ",        test_checksum);
     nourstest_run("excludes ",        test_excludes);
     nourstest_run("parse_d ",         test_parse_d);
-    nourstest_run("config_global ",   test_cocpnfig_global);
+    nourstest_run("config_global ",   test_config_global);
     nourstest_run("config_spec ",     test_config_specific);
     nourstest_results();
 

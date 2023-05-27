@@ -213,6 +213,9 @@ struct Target {
     int       *restrict _deps_headers_num; /* len of object header deps   */
     int       *restrict _deps_headers_len; /* num of object header deps   */
 
+    /* --- Check for cwd in header dependencies ---  */
+    bool checkcwd;
+
     /* --- Recompile switches ---  */
     bool *_recompiles;      /* [argc_source]                              */
     bool *_hdrs_changed;    /* [hdr_order]                                */
@@ -3544,8 +3547,8 @@ void mace_add_config(struct Config *config, char *name) {
 
 /******************************* MACE_ADD_TARGET ******************************/
 void mace_add_target(struct Target *target, char *name) {
-    targets[target_num]        = *target;
-    targets[target_num]._name  = name;
+    targets[target_num]          = *target;
+    targets[target_num]._name    = name;
     uint64_t hash = mace_hash(name);
     for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++) {
         if (hash == mace_reserved_targets[i]) {
@@ -3553,8 +3556,9 @@ void mace_add_target(struct Target *target, char *name) {
             exit(EPERM);
         }
     }
-    targets[target_num]._hash  = hash;
-    targets[target_num]._order = target_num;
+    targets[target_num]._hash    = hash;
+    targets[target_num]._order   = target_num;
+    targets[target_num].checkcwd = true;
     mace_Target_Deps_Hash(&targets[target_num]);
     mace_Target_Parse_User(&targets[target_num]);
     mace_Target_argv_compile(&targets[target_num]);
@@ -5569,7 +5573,7 @@ void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
         }
 
         /* Skip if header is not in cwd */
-        if (strncmp(header, cwd, cwd_len) != 0) {
+        if (target->checkcwd && (strncmp(header, cwd, cwd_len) != 0)) {
             header = strtok(NULL, mace_d_separator);
             continue;
         }
@@ -5689,7 +5693,6 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
     /* Check if .ho exists */
     strncpy(obj_file + ext + 1, "ho", 2);
     obj_file[ext + 3] = '\0';
-    printf("obj_file %s \n", obj_file);
 
     FILE *fho = fopen(obj_file, "r");
     bool fho_exists = false;
@@ -5711,7 +5714,6 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
     /* Parse all dependencies, " " separated */
     while (fgets(buffer, MACE_OBJDEP_BUFFER, fd) != NULL) {
         size_t len = strlen(buffer);
-
         /* - Replace \n with \0 ' ' - */
         bool line_end = false;
         if (buffer[len - 1] == '\n') {
@@ -5758,9 +5760,9 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
     target->_deps_headers_num[source_i] = -1;
 
     char *obj_file = mace_Target_Read_d(target, source_i);
-    if (obj_file == NULL) {
+    if (obj_file == NULL)
         return;
-    }
+
     /* Write _deps_header to .ho file */
     char *dot  = strchr(obj_file,  '.'); /* last dot in path */
     size_t ext = dot - obj_file;
@@ -5806,7 +5808,7 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
     /* Check if .ho exists */
     strncpy(obj_file + ext + 1, "ho", 2);
     obj_file[ext + 3] = '\0';
-    printf("READ obj_file %s \n", obj_file);
+
     FILE *fho = fopen(obj_file, "rb");
     if (fho == NULL) {
         fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
