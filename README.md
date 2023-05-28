@@ -39,7 +39,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - `bash`
 - `zsh`
     - Put tab completion file `_mace` in your `fpath` 
-    - You can add this to your .zshrc `fpath=($HOME/.zsh-completions $fpath)`
+    - Example `.zshrc`: `fpath=($HOME/.zsh-completions $fpath)`
 
 ## Why?
 - I want a much simpler build system.
