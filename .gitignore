@@ -11,4 +11,5 @@
 !*.txt
 !benchmarks
 !test
+!_mace
 test/test

@@ -1,0 +1,42 @@
+#compdef mace
+
+typeset -A opt_args
+
+local context state line
+
+
+_mace() {
+
+  local -i cdir=-1 ret=1
+  local -A VARIABLES VAR_ARGS opt_args
+
+  # VAR=VAL on the current command line
+  for tmp in $words; do
+    if [[ $tmp == (#b)([[:alnum:]_]##)=(*) ]]; then
+      VAR_ARGS[${tmp[$mbegin[1],$mend[1]]}]=${(e)tmp[$mbegin[2],$mend[2]]}
+    fi
+  done
+  keys=( ${(k)VAR_ARGS} ) # to be used in 'compadd -F keys'
+
+  _arguments $option_specs \
+    '-C[change directory first]:directory:->cdir'\
+    '*:mace target:->target' && ret=0
+  
+  case $state in
+    (*dir)
+    _description directories expl "$state_descr"
+    _files "$expl[@]" -W $basedir -/ && ret=0
+    ;;
+    
+    (target)
+      echo AAAA
+  esac
+
+  [[ $state = cdir ]] && cdir=-2
+  basedir=${(j./.)${${~"${(@s.:.):-$PWD:${(Q)${opt_args[-C]:-$opt_args[--directory]}//\\:/$nul}}"}[(R)/*,cdir]}//$nul/:}
+  VAR_ARGS[CURDIR]="${basedir}"
+
+  return ret
+}
+
+_mace "$@"
