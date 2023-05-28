@@ -7,18 +7,38 @@ local context state line
 echo 1 Current state: $state
 
 _parse-macefile () {
+  echo parsing macefile
   local input var val target dep TAB=$'\t' tmp IFS=
-
+  VARIABLES=()
+  # TODO: IGNORE COMMENTED LINES
   while read input
   do
     # echo $input
+    if [[ $input == *"MACE_ADD_TARGET"* ]]; then
+      # check for MACE_ADD_TARGET($name)
+      echo input "$input"
+      [[ "$input" =~ '\(([^)]+)\)' ]] # regex, get str between ()
+      val=${match##[ $TAB]#} # match gets put in $match variable
+      VARIABLES[$match]=$val
+
+    elif [[ $input == *"mace_add_target"* ]]; then
+      # check for mace_add_target($target, $name)
+      echo "$input"
+      val= echo $input | cut -d "\"" -f2 | cut -d "\"" -f1
+      echo var $var
+      val=${var##[ $TAB]#}
+      echo val $val
+      VARIABLES[$var]=$val
+    fi
   done
+  echo VARIABLES "${VARIABLES[@]}"
 }
 
 _mace() {
 
-  local -i cdir=-1 ret=1
-  local -A VARIABLES VAR_ARGS opt_args
+  local file
+  local -i cdir=-1 ret=1  # integer
+  local -A VARIABLES VAR_ARGS opt_args # associative array
   local basedir nul=$'\0'
 
   # VAR=VAL on the current command line
@@ -31,8 +51,7 @@ _mace() {
 
   echo 2 Current state: $state
   # Setting $state from current arguments
-  _arguments $option_specs \
-    '(-B --always-make)'{-B,--always-make}'[Build all targets without condition]'\
+  _arguments '(-B --always-make)'{-B,--always-make}'[Build all targets without condition]'\
     '*'{-C,--directory=}'[Move to directory before anything else]:change to directory:->cdir'\
     '(-c --cc)'{-c,--cc=}'[Override C compiler]:macefile:->file'\
     '--debug=-[Print debug info]:debug options:->debug'\
@@ -46,91 +65,88 @@ _mace() {
     '*:mace target:->target' && ret=0
   
   echo 3 Current state: $state
-  [[ $state = cdir ]] && cdir=-2
-  echo Current state: $state
+  [[ $state = cdir ]] && cdir=-2 # What does this line do?
+  echo 4 Current state: $state
+
+  # Getting current directory/$basedir
   basedir=${(j./.)${${~"${(@s.:.):-$PWD:${(Q)${opt_args[-C]:-$opt_args[--directory]}//\\:/$nul}}"}[(R)/*,cdir]}//$nul/:}
   VAR_ARGS[CURDIR]="${basedir}"
 
   echo Current dir: $basedir
-  echo 4 Current state: $state
+  echo 5 Current state: $state
 
+  # Change suggested options as a function of state
   case $state in
     (*dir)
+    # Suggest directories
     _description directories expl "$state_descr"
     _files "$expl[@]" -W $basedir -/ && ret=0
     ;;
     
     (file)
+    # Suggest files
     _description files expl "$state_descr"
     _files "$expl[@]" -W $basedir && ret=0
     ;;
     
     (target)
+    # Suggest targets
       echo inside target
-    # Getting file from opt_args
+
+    # Getting macefile from opt_args
     file=${(v)opt_args[(I)(-f|--file)]}
-    echo 1 file IS $file
+    echo "$file"
+    echo 1 file IS "$file"
 
     # Check if there is a macefile in current dir 
     if [[ -n $file ]]
     then
+      echo then
       [[ $file == [^/]* ]] && file=$basedir/$file
       [[ -r $file ]] || file=
     else
-      if [[ $is_gnu == gnu && -r $basedir/GNUmakefile ]]
+      echo else
+      if [[ -r $basedir/macefile.c ]]
       then
-        file=$basedir/GNUmakefile
-      elif [[ -r $basedir/makefile ]]
+        echo macefile.c
+        file=$basedir/macefile.c
+      elif [[ -r $basedir/Macefile.c ]]
       then
-        file=$basedir/makefile
-      elif [[ -r $basedir/Makefile ]]
-      then
-        file=$basedir/Makefile
+        echo Macefile.c
+        file=$basedir/Macefile.c
       else
         file=''
       fi
     fi
-    echo 2 file IS $file
+    echo 2 file IS "$file"
 
-    if [[ -n "$file" ]]
+    if [[ -n "$file" ]] # if $file is not empty
     then
-      if [[ $is_gnu == gnu ]] 
-      then
-        if zstyle -t ":completion:${curcontext}:targets" call-command; then
-          _parse-macefile < <(_call_program targets "$words[1]" -nsp --no-print-directory -f "$file" --always-make 2> /dev/null)
-        else
-          _parse-macefile < $file
-        fi
+      echo parsing
+      if zstyle -t ":completion:${curcontext}:targets" call-command; then
+        _parse-macefile < <(_call_program targets "$words[1]" -nsp --no-print-directory -f "$file" --always-make 2> /dev/null)
       else
-        if [[ $OSTYPE == (freebsd|dragonfly|netbsd)* || /$words[1] == */bmake* ]]; then
-          TARGETS+=(${=${(f)"$(_call_program targets "$words[1]" -s -f "$file" -V.ALLTARGETS 2> /dev/null)"}})
-          _parse-macefile < <(_call_program targets "$words[1]" -nsdg1Fstdout -f "$file" .PHONY 2> /dev/null)
-        else
-          _parse-macefile < $file
-        fi
+        _parse-macefile < $file
       fi
     fi
 
-    echo 3 file IS $file
+    echo 3 file IS "$file"
 
     if [[ $PREFIX == *'='* ]]
     then
+      echo Complete make variable as if shell variable
       # Complete make variable as if shell variable
       compstate[parameter]="${PREFIX%%\=*}"
       compset -P 1 '*='
       _value "$@" && ret=0
     else
+      echo _alternative
       _alternative \
         'targets:make target:compadd -Q -a TARGETS' \
         'variables:make variable:compadd -S = -F keys -k VARIABLES' \
-        '*:file:_files -W $basedir' && ret=0
+        && ret=0
     fi
-
   esac
-
-  [[ $state = cdir ]] && cdir=-2
-  basedir=${(j./.)${${~"${(@s.:.):-$PWD:${(Q)${opt_args[-C]:-$opt_args[--directory]}//\\:/$nul}}"}[(R)/*,cdir]}//$nul/:}
-  VAR_ARGS[CURDIR]="${basedir}"
 
   return ret
 }
