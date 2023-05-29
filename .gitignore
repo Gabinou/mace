@@ -11,5 +11,6 @@
 !*.txt
 !benchmarks
 !test
-!_mace
+!mace.bash
+!_mace.zsh
 test/test
