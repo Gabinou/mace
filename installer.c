@@ -59,13 +59,19 @@ int mace(int argc, char *argv[]) {
                               "-DBUILDER="STRINGIFY(BUILDER)" "
                               "-DDEFAULT_MACEFILE="STRINGIFY(DEFAULT_MACEFILE),
         .command_post_build =
+                /* Install mace convenience executable*/
                 "install -T " STRINGIFY(BUILD_DIR) "/mace " STRINGIFY(PREFIX) "/bin/mace &&"
-                "install -T mace.h"  " " STRINGIFY(PREFIX) "/include/mace.h &&",
-                // TODO: replace builder with default builder
+                /* Install mace.h header*/
+                "install -T mace.h"  " " STRINGIFY(PREFIX) "/include/mace.h &&"
+                /* Install zsh completion */
+                "cp  _mace.zsh _mace.temp &&"
+                "sed -i s/macefile.c/" STRINGIFY(DEFAULT_MACEFILE) "/ _mace.temp &&"
+                "sed -i s/builder/" STRINGIFY(BUILDER) "/ _mace.temp &&"
+                "install -T _mace.temp"   " " STRINGIFY(ZSH_COMPLETION) "/_mace &&"
+                "rm _mace.temp &&"
+                /* Install bash completion */
                 // TODO: replace macefile.c/Macefile.c with default macefile
-                "install -T _mace.zsh"   " " STRINGIFY(ZSH_COMPLETION) "_mace &&",
-                // TODO: replace macefile.c/Macefile.c with default macefile
-                "install -T mace.bash"   " " STRINGIFY(BASH_COMPLETION) "mace &&",
+                "install -T mace.bash"   " " STRINGIFY(BASH_COMPLETION) "/mace &&",
     };
 
     // Add target with different name, i.e. "mace"
