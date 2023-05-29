@@ -32,6 +32,14 @@
 #ifndef BUILDER
     #define BUILDER builder
 #endif
+/* -- Path to zsh completion. -- */
+#ifndef ZSH_COMPLETION
+    #define ZSH_COMPLETION /usr/share/zsh/site-functions
+#endif
+/* -- Path to bash completion. -- */
+#ifndef BASH_COMPLETION
+    #define BASH_COMPLETION /usr/share/bash-completion/completions
+#endif
 
 #define STRINGIFY(x) _STRINGIFY(x)
 #define _STRINGIFY(x) #x
@@ -52,7 +60,12 @@ int mace(int argc, char *argv[]) {
                               "-DDEFAULT_MACEFILE="STRINGIFY(DEFAULT_MACEFILE),
         .command_post_build =
                 "install -T " STRINGIFY(BUILD_DIR) "/mace " STRINGIFY(PREFIX) "/bin/mace &&"
-                "install -T mace.h"          " " STRINGIFY(PREFIX) "/include/mace.h",
+                "install -T mace.h"  " " STRINGIFY(PREFIX) "/include/mace.h &&",
+                // TODO: replace builder with default builder
+                // TODO: replace macefile.c/Macefile.c with default macefile
+                "install -T _mace.zsh"   " " STRINGIFY(ZSH_COMPLETION) "_mace &&",
+                // TODO: replace macefile.c/Macefile.c with default macefile
+                "install -T mace.bash"   " " STRINGIFY(BASH_COMPLETION) "mace &&",
     };
 
     // Add target with different name, i.e. "mace"

@@ -35,6 +35,8 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DDEFAULT_MACEFILE=<file>` to change default macefile name. Defaults to `macefile.c`.
 - `-DBUILDER=<file>` to change builder executable path.
 - `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
+- `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
+- `-DBASH_COMPLETION=<path>` to set path for `mace` bash tab completion. Defaults to `/usr/share/bash-completion/completions`.
 
 ## Why?
 - I want a much simpler build system.
