@@ -26,10 +26,30 @@ int mace(int argc, char *argv[]) {
         .base_dir           = "foo",
         .kind               = MACE_STATIC_LIBRARY,
     };
+    struct Target bar = {
+        .includes           = "include,include/sub/a.h",
+        .sources            = "src,src/sub/*",
+        .base_dir           = "bar",
+        .links              = "foo",
+        .kind               = MACE_EXECUTABLE,
+    };
+    
+    struct Target bar_test = {
+        .includes           = "include,include/sub/a.h",
+        .sources            = "src,src/sub/*,test/test.c",
+        .excludes           = "src/main.c",
+        .base_dir           = "bar",
+        .links              = "foo",
+        .kind               = MACE_EXECUTABLE,
+    };
+    
+    
     MACE_ADD_TARGET(foo);
+    MACE_ADD_TARGET(bar);
+    MACE_ADD_TARGET(bar_test);
 
-    // Change default target from 'all' to input.
-    MACE_DEFAULT_TARGET(foo);
+    // Change default target from 'all' to `bar` to skip `bar_test`.
+    MACE_DEFAULT_TARGET(bar);
 
     /* -- Configs -- */
     MACE_ADD_CONFIG(debug);   /* First config is default config */
