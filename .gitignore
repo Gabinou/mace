@@ -11,3 +11,4 @@
 !*.txt
 !benchmarks
 !test
+test/test
