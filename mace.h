@@ -415,10 +415,10 @@ void  mace_exec_print(char *const arguments[], size_t argnum);
 
 /* --- mace_build --- */
 /* -- linking -- */
-void mace_link_static_library(char  *restrict target, char **restrict av_o, int ac_o);
-void mace_link_dynamic_library(char *restrict target, char **restrict av_o, int ac_o);
-void mace_link_executable(char *restrict target, char **restrict av_o, int ac_o,
-                          char **restrict av_l, int ac_l, char **restrict av_f, int ac_f);
+void mace_link_executable(struct Target         *restrict target);
+void mace_link_static_library(struct Target     *restrict target);
+void mace_link_dynamic_library(struct Target    *restrict target);
+
 /* --- mace_clean --- */
 void mace_clean();
 int mace_rmrf(char *path);
@@ -458,6 +458,7 @@ void  mace_make_dirs();
 void  mace_object_path(char     *source);
 char *mace_library_path(char    *target_name, int kind);
 char *mace_checksum_filename(char *file, int mode);
+char *mace_executable_path(char *target_name);
 
 /* --- mace_pqueue --- */
 void  mace_pqueue_put(pid_t pid);
@@ -4138,21 +4139,24 @@ void mace_wait_pid(int pid) {
 }
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 /********************************* mace_build **********************************/
-void mace_link_dynamic_library(char *restrict target, char **restrict argv_objects,
-                              int argc_objects) {
-    sprintf("Linking \t%s \n", target);
+void mace_link_dynamic_library(struct Target *restrict target) {
+    char *lib = mace_library_path(target->_name, MACE_DYNAMIC_LIBRARY);
+    sprintf("Linking \t%s \n", lib);
+    int    argc_objects = target->_argc_sources;
+    char **argv_objects = target->_argv_objects;
+
     int argc = 0, arg_len = 8;
     char **argv  = calloc(arg_len, sizeof(*argv));
     argv[argc++] = cc;
 
     /* --- Adding target --- */
     size_t oflag_len = 2;
-    size_t target_len = strlen(target);
-    char *targetv     = calloc(target_len + oflag_len + 1, sizeof(*targetv));
-    strncpy(targetv, "-o", oflag_len);
-    strncpy(targetv + oflag_len, target, target_len);
-    int targetc  = argc;
-    argv[argc++] = targetv;
+    size_t lib_len = strlen(lib);
+    char *libv     = calloc(lib_len + oflag_len + 1, sizeof(*libv));
+    strncpy(libv, "-o", oflag_len);
+    strncpy(libv + oflag_len, lib, lib_len);
+    int libc  = argc;
+    argv[argc++] = libv;
 
     /* --- Adding -fPIC flag --- */
     char *fPICflag     = calloc(6, sizeof(*fPICflag));
@@ -4183,17 +4187,19 @@ void mace_link_dynamic_library(char *restrict target, char **restrict argv_objec
 
     free(argv[cfPICflag]);
     free(argv[csharedflag]);
-    free(argv[targetc]);
+    free(argv[libc]);
     free(argv);
+    free(lib);
 }
 
-/* Build all sources from target to object */
-void mace_link_static_library(char *restrict target, char **restrict argv_objects,
-                              int argc_objects) {
+void mace_link_static_library(struct Target *restrict target) {
+    char *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
     sprintf("Linking \t%s \n", target);
-    int arg_len = 8;
-    int argc = 0;
-    char **argv       = calloc(arg_len, sizeof(*argv));
+    int    argc_objects = target->_argc_sources;
+    char **argv_objects = target->_argv_objects;
+
+    int arg_len = 8, argc = 0;
+    char **argv  = calloc(arg_len, sizeof(*argv));
     argv[argc++] = ar;
 
     /* --- Adding -rcs flag --- */
@@ -4203,11 +4209,11 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
     argv[argc++] = rcsflag;
 
     /* --- Adding target --- */
-    size_t target_len = strlen(target);
-    char *targetv     = calloc(target_len + 1, sizeof(*rcsflag));
-    strncpy(targetv, target, target_len);
-    int targetc  = argc;
-    argv[argc++] = targetv;
+    size_t lib_len = strlen(lib);
+    char *libv     = calloc(lib_len + 1, sizeof(*rcsflag));
+    strncpy(libv, lib, lib_len);
+    int libc = argc;
+    argv[argc++] = libv;
 
     /* --- Adding objects --- */
     if ((argc_objects > 0) && (argv_objects != NULL)) {
@@ -4225,26 +4231,32 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
     }
 
     free(argv[crcsflag]);
-    free(argv[targetc]);
+    free(argv[libc]);
     free(argv);
+    free(lib);
 }
 
-// todo incput actual target struct
-void mace_link_executable(char *restrict target, char **restrict argv_objects, int argc_objects,
-                          char **restrict argv_links, int argc_links,
-                          char **restrict argv_flags, int argc_flags) {
-    sprintf("Linking \t%s \n", target);
+void mace_link_executable(struct Target *restrict target) {
+    char *exec = mace_executable_path(target->_name);
+    sprintf("Linking \t%s \n", exec);
+
+    char **argv_links    = target->_argv_links;
+    char **argv_flags    = target->_argv_flags; 
+    char **argv_objects  = target->_argv_objects;
+    int    argc_links    = target->_argc_links;
+    int    argc_flags    = target->_argc_flags;
+    int    argc_objects  = target->_argc_sources;
 
     int arg_len = 16;
     int argc    = 0;
     char **argv = calloc(arg_len, sizeof(*argv));
-
     argv[argc++] = cc;
+
     /* --- Adding executable output --- */
-    size_t target_len = strlen(target);
-    char *oflag       = calloc(target_len + 3, sizeof(*oflag));
+    size_t exec_len = strlen(exec);
+    char *oflag       = calloc(exec_len + 3, sizeof(*oflag));
     strncpy(oflag, "-o", 2);
-    strncpy(oflag + 2, target, target_len);
+    strncpy(oflag + 2, exec, exec_len);
     int oflag_i = argc++;
     argv[oflag_i] = oflag;
 
@@ -4276,9 +4288,9 @@ void mace_link_executable(char *restrict target, char **restrict argv_objects, i
     argv = mace_argv_grow(argv, &argc, &arg_len);
     size_t build_dir_len = strlen(build_dir);
     char *ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
-    strncpy(ldirflag, "-L", 2);
+    strncpy(ldirflag,     "-L",      2);
     strncpy(ldirflag + 2, build_dir, build_dir_len);
-    int ldirflag_i = argc++;
+    int ldirflag_i   = argc++;
     argv[ldirflag_i] = ldirflag;
 
 
@@ -4296,6 +4308,7 @@ void mace_link_executable(char *restrict target, char **restrict argv_objects, i
     free(argv[oflag_i]);
     free(argv[ldirflag_i]);
     free(argv);
+    free(exec);
 }
 
 
@@ -4969,18 +4982,11 @@ void mace_build_target(struct Target *target) {
 
     /* --- Linking --- */
     if (target->kind == MACE_STATIC_LIBRARY) {
-        char *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
-        mace_link_static_library(lib, target->_argv_objects, target->_argc_sources);
-        free(lib);
+        mace_link_static_library(target);
     } else if (target->kind == MACE_DYNAMIC_LIBRARY) {
-        char *lib = mace_library_path(target->_name, MACE_DYNAMIC_LIBRARY);
-        mace_link_dynamic_library(lib, target->_argv_objects, target->_argc_sources);
-        free(lib);        
+        mace_link_dynamic_library(target);
     } else if (target->kind == MACE_EXECUTABLE) {
-        char *exec = mace_executable_path(target->_name);
-        mace_link_executable(exec, target->_argv_objects, target->_argc_sources, target->_argv_links,
-                             target->_argc_links, target->_argv_flags, target->_argc_flags);
-        free(exec);
+        mace_link_executable(target);
     }
     assert(chdir(cwd) == 0);
 }
