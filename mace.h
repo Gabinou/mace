@@ -227,6 +227,7 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
 void mace_compile_glob(struct Target * target, char *globsrc, char *flags, int kind) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
+        printf("globbed.gl_pathv[i] %s\n", globbed.gl_pathv[i]);
         assert(mace_isSource(globbed.gl_pathv[i]));
         char * pos = strrchr(globbed.gl_pathv[i], '/');
         char * source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos;
@@ -367,18 +368,19 @@ void mace_build_target(struct Target *target) {
             mace_compile_glob(target, globstr, target->flags, target->kind);            
             free(globstr);
 
+        } else if (mace_isWildcard(token)) {
+            /* token has a wildcard in it */
+            printf("isWildcard %s\n", token);
+            mace_compile_glob(target, token, target->flags, target->kind);            
+        
         } else if (mace_isSource(token)) {
             /* token is a source file */
-            printf("isSource %s\n", token);
+            // printf("isSource %s\n", token);
             mace_add_source(target, token);
             size_t i = target->_sources_num - 1;
             mace_object_path(token);
             mace_compile(target->_sources[i], object, target->flags, target->kind);
 
-        } else if (mace_isWildcard(token)) {
-            /* token has a wildcard in it */
-            printf("isWildcard %s\n", token);
-            mace_compile_glob(target, token, target->flags, target->kind);            
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
             exit(ENOENT);
