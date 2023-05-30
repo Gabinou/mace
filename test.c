@@ -543,6 +543,7 @@ void test_argv() {
     nourstest_true(CodenameFiresaga._argv[22] == NULL);
 
     mace_Target_Free(&CodenameFiresaga);
+    mace_free();
 }
 
 void test_post_user() {
@@ -733,11 +734,11 @@ void test_parse_args() {
     struct Mace_Arguments args;
     int len                 = 8;
     int argc                = 0;
-    char **argv             = calloc(8, sizeof(*argv));
+    char **argv             = calloc(len, sizeof(*argv));
 
     const char *command_1     = "mace clean";
     argv = mace_argv_flags(&len, &argc, argv, command_1, NULL, false);
-    args =  mace_parse_args(argc, argv);
+    args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(MACE_CLEAN));
     nourstest_true(strcmp(args.user_target, MACE_CLEAN) == 0);
     nourstest_true(args.jobs             == 1);
@@ -748,11 +749,13 @@ void test_parse_args() {
     nourstest_true(args.dry_run          == false);
     nourstest_true(args.skip_checksum    == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_2     = "mace all";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_2, NULL, false);
-    args =  mace_parse_args(argc, argv);
+    args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(MACE_ALL));
     nourstest_true(args.jobs             == 1);
     nourstest_true(args.macefile         == NULL);
@@ -762,12 +765,14 @@ void test_parse_args() {
     nourstest_true(args.dry_run          == false);
     nourstest_true(args.skip_checksum    == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
 #define TARGET "AAAAA"
     const char *command_3     = "mace " TARGET;
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_3, NULL, false);
-    args =  mace_parse_args(argc, argv);
+    args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(TARGET));
     nourstest_true(args.jobs             == 1);
     nourstest_true(args.macefile         == NULL);
@@ -777,11 +782,13 @@ void test_parse_args() {
     nourstest_true(args.dry_run          == false);
     nourstest_true(args.skip_checksum    == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 #undef TARGET
 
 #define TARGET "baka"
     const char *command_4     = "mace -B " TARGET ;
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_4, NULL, false);
     args =  mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(TARGET));
@@ -793,10 +800,12 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 #undef TARGET
 
     const char *command_5     = "mace -B";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_5, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -808,9 +817,11 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_6     = "mace -Cmydir";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_6, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -822,9 +833,11 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_7     = "mace -d";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_7, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -836,9 +849,11 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_8     = "mace -fmymacefile.c";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_8, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -850,9 +865,11 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_9     = "mace -j2";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_9, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -864,9 +881,11 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_10     = "mace -n";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_10, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -878,9 +897,11 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == true);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_11     = "mace -n -otnecs";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_11, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -893,9 +914,11 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == true);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 
     const char *command_12     = "mace allo -s -d -n -otnecs";
+    argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_12, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash("allo"));
@@ -909,6 +932,7 @@ void test_parse_args() {
     nourstest_true(args.silent           == true);
     nourstest_true(args.dry_run          == true);
     Mace_Arguments_Free(&args);
+    mace_argv_free(argv, argc);
     argc = 0;
 }
 
