@@ -80,4 +80,5 @@ int mace(int argc, char *argv[]) {
     MACE_ADD_TARGET(tinymt);
 
     MACE_ADD_TARGET(CodenameFiresaga);
+    return(0);
 }
