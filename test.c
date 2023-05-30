@@ -214,7 +214,7 @@ void test_target() {
     nourstest_true(targets[5]._hash == mace_hash("D"));
     nourstest_true(targets[6]._hash == mace_hash("F"));
 
-    mace_target_build_order(targets, target_num);
+    mace_targets_build_order(targets, target_num);
     assert(build_order != NULL);
 
     // /* Print build order names */
