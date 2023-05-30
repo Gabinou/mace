@@ -521,6 +521,7 @@ void mace_wait_pid(int pid) {
     int status;
     if (waitpid(pid, &status, 0) > 0) {
         if (WIFEXITED(status)        && !WEXITSTATUS(status)) {
+            //pass
         } else if (WIFEXITED(status) &&  WEXITSTATUS(status)) {
             if (WEXITSTATUS(status) == 127) {
                 // execvp failed
@@ -1202,22 +1203,37 @@ void Target_Free_argv(struct Target *target) {
     }
 }
 
+void mace_post_build_order() {
+    // Checks that build order:
+    if ((build_order == NULL) || (build_order_num == 0)) {
+        printf("No targets in build order. Exiting.\n");
+        exit(EDOM);
+    }
+}
+
 void mace_post_user() {
     // Checks that user:
     //   1- Set compiler,
     //   2- Added at least one target,
-    //   3- Dod not add a circular dependency.
+    //   3- Did not add a circular dependency.
     // If not exit with error.
 
-    if ((targets == NULL) || (target_num == 0) || (build_order == NULL) || (build_order_num == 0)) {
+    /* Check that compiler is set */
+    if (cc == NULL) {
+        printf("Compiler not set. Exiting.\n");
+        exit(ENXIO);
+    }
+
+    /* Check that a target exists */
+    if ((targets == NULL) || (target_num <= 0)) {
         printf("No targets to compile. Exiting.\n");
-        exit(EDOM);
+        exit(ENXIO);
     }
 
     /* Check for circular dependency */
     if (mace_circular_deps(targets, target_num)) {
         perror("Circular dependency in linked library detected. Exiting\n");
-        exit(EDOM);
+        exit(ENXIO);
     }
 }
 

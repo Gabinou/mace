@@ -1,5 +1,6 @@
 
 #include "mace.h"
+#include <fcntl.h>
 
 /* --- Testing library --- */
 #ifndef __NOURSTEST_H__
@@ -326,16 +327,14 @@ void test_argv() {
     const char *includes    = "A B C D";
     const char *links       = "ta mere putain de merde";
     const char *sources     = "a.c bd.c efg.c hijk.c lmnop.c";
-    int len     = 8;
-    int argc    = 0;
-    char **argv = calloc(8, sizeof(*argv));
+    int len                 = 8;
+    int argc                = 0;
+    char **argv             = calloc(8, sizeof(*argv));
 
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
     mace_set_build_dir(MACE_TEST_BUILD_DIR);
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
-
-
 
     argv = mace_argv_flags(&len, &argc, argv, includes, "-I");
     nourstest_true(argc == 4);
@@ -425,6 +424,53 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv[21], "-c")                       == 0);
     nourstest_true(CodenameFiresaga._argv[22] == NULL);
 }
+void test_post_user() {
+    pid_t pid;
+    int status;
+ 
+    // mace does not exit if nothing is wrong
+    mace_init();
+    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_STATIC_LIBRARY,
+    };
+    MACE_ADD_TARGET(tnecs);
+
+    pid = fork();
+    if (pid < 0) {
+        perror("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        int fd = open("/dev/null",O_WRONLY | O_CREAT, 0666);   // open the file /dev/null
+        dup2(fd, 1); 
+        mace_post_user();
+        close(fd);
+        exit(0);
+    }
+    nourstest_true(waitpid(pid, &status, 0) > 0);
+    nourstest_true(WEXITSTATUS(status) == 0);
+
+    // mace exits as expected if CC is NULL
+    pid = fork();
+    if (pid < 0) {
+        perror("Error: forking issue. \n");
+        exit(ENOENT);
+    } else if (pid == 0) {
+        cc = NULL;
+        int fd = open("/dev/null",O_WRONLY | O_CREAT, 0666);   // open the file /dev/null
+        dup2(fd, 1); 
+        mace_post_user();
+        close(fd);
+        exit(0);
+    }
+  
+    nourstest_true(waitpid(pid, &status, 0) > 0);
+    nourstest_true(WEXITSTATUS(status) == ENXIO);
+
+    // MACE_SET_COMPILER(gcc);
+}
 
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
@@ -436,6 +482,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("target ",    test_target);
     nourstest_run("circular ",  test_circular);
     nourstest_run("argv ",      test_argv);
+    nourstest_run("post_user ",      test_post_user);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
