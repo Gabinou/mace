@@ -24,6 +24,9 @@
 #ifndef PREFIX
     #define PREFIX "/usr/local"
 #endif /* PREFIX */
+#ifndef DEFAULT_MACEFILE
+    #define DEFAULT_MACEFILE "macefile.c"
+#endif /* DEFAULT_MACEFILE */
 
 /******************************* WARNING ********************************/
 // 1. main is defined in mace.h                                         //
@@ -54,5 +57,5 @@ int mace(int argc, char *argv[]) {
                 "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
                 "install -T mace.h"          " " PREFIX "/include/mace.h",
     };
-    MACE_ADD_COMMAND(install_mace);
+    MACE_ADD_COMMAND(install);
 }

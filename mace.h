@@ -78,7 +78,15 @@ void mace_add_command(struct Command *command, char *name, int build_order);
 /* --- Targets --- */
 struct Target;
 #define MACE_ADD_TARGET(target) mace_add_target(&target, #target)
+#define MACE_DEFAULT_TARGET(target) mace_set_default_target(#target)
+
 void mace_add_target(struct Target *target, char *name);
+void mace_set_default_target(char *name);
+
+// To ompile default target:
+//  1- Compute build order starting from this target.
+//  2- Build all targets in `build_order` until default target is reached
+
 
 /******************************* TARGET STRUCT ********************************/
 struct Target {
@@ -183,6 +191,10 @@ struct Command {
 /*----------------------------------------------------------------------------*/
 
 /********************************** CONSTANTS *********************************/
+#define MACE_VER_PATCH 0
+#define MACE_VER_MINOR 0
+#define MACE_VER_MAJOR 0
+#define MACE_VER_STRING "0.0.0"
 
 enum MACE {
     MACE_DEFAULT_TARGET_LEN     =   8,
@@ -190,6 +202,13 @@ enum MACE {
     MACE_DEFAULT_OBJECT_LEN     =  16,
     MACE_DEFAULT_OBJECTS_LEN    = 128,
     MACE_CWD_BUFFERSIZE         = 128,
+};
+#define MACE_CLEAN "clean"
+#define MACE_ALL "all"
+enum MACE_RESERVED_TARGETS {
+    MACE_CLEAN_I                =   0,
+    MACE_ALL_I                  =   1,
+    MACE_RESERVED_TARGETS_NUM   =   2,
 };
 
 enum MACE_TARGET_KIND { // for target.kind
@@ -215,7 +234,7 @@ void mace_post_user();
 void mace_exec_print(char *const arguments[], size_t argnum);
 
 /* --- mace_hashing --- */
-uint64_t mace_hash(char *str);
+uint64_t mace_hash(const char *str);
 
 /* --- mace_utils --- */
 /* -- str -- */
@@ -306,8 +325,12 @@ char *ar      = "ar";
 /* -- current working directory -- */
 char cwd[MACE_CWD_BUFFERSIZE];
 
+/* -- Reserved targets hashes -- */
+uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
+uint64_t mace_default_target = 0;
+
 /* -- build order -- */
-size_t *build_order = NULL;
+size_t *build_order     = NULL;
 size_t  build_order_num = 0;
 
 /* -- list of commands added by user -- */
@@ -544,7 +567,7 @@ struct parg_opt {
 };
 
 /* - parg help - */
-extern void parg_usage(const char * n, const struct parg_opt * lo);
+extern void mace_parg_usage(const char * n, const struct parg_opt * lo);
 
 /* - option matching - */
 extern int match_long(struct parg_state * ps, int c, char * const v[], const char * o,
@@ -590,9 +613,16 @@ void mace_add_command(struct Command *command, char *name, int build_order) {
 }
 
 void mace_add_target(struct Target *target, char *name) {
-    targets[target_num]        = *target;
     targets[target_num]._name  = name;
-    targets[target_num]._hash  = mace_hash(name);
+    uint64_t hash = mace_hash(name);
+    for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++){
+        if (hash == mace_reserved_targets[i]) {
+            fprintf(stderr,  "Error: '%s' is a reserved target name.\n", name);
+            exit(EPERM);
+        }
+    }
+    targets[target_num]        = *target;
+    targets[target_num]._hash  = hash;
     targets[target_num]._order = target_num;
     mace_Target_Deps_Hash(&targets[target_num]);
     mace_Target_Parse_User(&targets[target_num]);
@@ -603,7 +633,7 @@ void mace_add_target(struct Target *target, char *name) {
 }
 
 /********************************* mace_hash **********************************/
-uint64_t mace_hash(char *str) {
+uint64_t mace_hash(const char *str) {
     /* djb2 hashing algorithm by Dan Bernstein.
     * Description: This algorithm (k=33) was first reported by dan bernstein many
     * years ago in comp.lang.c. Another version of this algorithm (now favored by bernstein)
@@ -638,11 +668,7 @@ char *mace_str_copy(char *restrict buffer, const char *str) {
     return (buffer);
 }
 
-/************************************ parg ************************************/
-// Slightly pruned version of parg for arguments parsing.
-
 /************************************ argv ************************************/
-//
 
 void argv_free(int argc, char **argv) {
     if (argv == NULL)
@@ -1528,7 +1554,7 @@ void mace_links_build_order(struct Target target, size_t *o_cnt) {
     /* All dependencies of target were built, add it to build order */
     if (target._d_cnt != target._deps_links_num) {
         printf("Error: Not all target dependencies before target in build order.");
-        exit(1);
+        exit(EPERM);
     }
 
     mace_build_order_add(order);
@@ -1698,8 +1724,14 @@ void mace_init() {
         exit(errno);
     }
 
-    /* --- Memory allocation --- */
+    /* --- Reserved target names --- */
+    mace_reserved_targets[MACE_CLEAN_I] = mace_hash(MACE_CLEAN);
+    mace_reserved_targets[MACE_ALL_I]   = mace_hash(MACE_ALL);
 
+    /* --- Default target --- */
+    mace_default_target = mace_reserved_targets[MACE_CLEAN_I];
+    
+    /* --- Memory allocation --- */
     target_len      = MACE_DEFAULT_TARGET_LEN;
     object_len      = MACE_DEFAULT_OBJECT_LEN;
     build_order_num = 0;
@@ -4122,20 +4154,21 @@ struct parg_state parg_state_default = {
 };
 
 /* Automatic usage/help printing */
-void parg_usage(const char * name, const struct parg_opt * longopts) {
+void mace_parg_usage(const char * name, const struct parg_opt * longopts) {
     assert(longopts);
-    printf("\nUsage: %s [OPTIONS]\n", name);
+    printf("\nmace builder executable: %s \n", name);
+    printf("Usage: %s [TARGET] [OPTIONS]\n", name);
     for (int i = 0; longopts[i].doc; ++i) {
-        if (longopts[i].name)
-            printf("  --%s", longopts[i].name);
-
         if (longopts[i].val)
-            printf(", -%c", longopts[i].val);
+            printf(" -%c", longopts[i].val);
+ 
+        if (longopts[i].name)
+            printf(",  --%s", longopts[i].name);
 
         if (longopts[i].arg)
-            printf("[=%s]\t", longopts[i].arg);
+            printf("\t[=%s]\t\t", longopts[i].arg);
         else if (longopts[i].val || longopts[i].name)
-            printf("\t");
+            printf("\t\t");
 
         if ((!longopts[i].arg) && ((longopts[i].val) || (longopts[i].name)))
             printf("\t");
@@ -4492,8 +4525,7 @@ int parg_zgetopt_long(struct parg_state * ps, int argc, char * const argv[], con
             if (longopts != NULL) {
                 ps->nextchar += 2;
 
-                return match_long(ps, argc, argv, optstring,
-                                  longopts, longindex);
+                return match_long(ps, argc, argv, optstring, longopts, longindex);
             }
         }
         ps->nextchar++;
@@ -4504,6 +4536,70 @@ int parg_zgetopt_long(struct parg_state * ps, int argc, char * const argv[], con
 }
 
 /******************************* PARG SOURCE END ******************************/
+
+/****************************** argument parsing ******************************/
+/* list of parg options to be parsed, with usage */
+static struct parg_opt longopts[] = {
+    // {NULL,          PARG_NOARG,  0,  0,  NULL,   "Debug options:"},
+    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build all targets"},
+    {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else."},
+    {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
+    {"file",        PARG_REQARG, 0, 'f', "FILE", "Specify input macefile (defaults to macefile.c)"},
+    {"help",        PARG_NOARG,  0, 'h', NULL,   "display help and exit"},
+    {"jobs",        PARG_REQARG, 0, 'j', "INT",  "Allow N jobs at once"},
+    {"dry-run",     PARG_NOARG,  0, 'n', NULL,   "Don't build, just echo commands"},
+    {"old-file",    PARG_REQARG, 0, 'o', "FILE", "Skip target/file"},
+    {"silent",      PARG_NOARG,  0, 's', NULL,   "Don't echo commands"},
+    {"version",     PARG_NOARG,  0, 'v', NULL,   "display version and exit"},
+};
+
+struct Mace_Arguments {
+    uint64_t target;
+};
+
+
+struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
+    struct Mace_Arguments out_args = {0};
+    struct parg_state ps = parg_state_default;
+    int *longindex;
+    int c;
+    while ((c = parg_getopt_long(&ps, argc, argv, "BC:df:hj:no:sv", longopts, longindex)) != -1) {
+        switch (c) {
+            case 1:
+                printf("target '%s' \n", ps.optarg);
+                out_args.target = mace_hash(ps.optarg);
+                break;
+            case 'h':
+                mace_parg_usage(argv[0], longopts);
+                exit(0);
+                break;
+            case 'v':
+                printf("mace version %s\n", MACE_VER_STRING);
+                exit(0);
+//             case '?':
+//                 if (ps.optopt == 's') {
+//                     printf("option -s/--state requires an argument\n");
+//                 } else if (ps.optopt == 'm') {
+//                     printf("option -m/--map requires an argument\n");
+//                 } else {
+//                     printf("unknown option -%c\n", ps.optopt);
+//                 }
+//                 exit(ERROR_Generic);
+//                 break;
+            default:
+                printf("error: unhandled option -%c\n", c);
+                exit(EPERM);
+                break;
+        }
+    }
+
+    /*Debugging*/
+    for (c = ps.optind; c < argc; ++c) {
+        printf("argument '%s'\n", argv[c]);
+    }
+
+    return (out_args);
+}
 
 /************************************ main ************************************/
 // 1- Runs mace function, get all info from user:
@@ -4516,7 +4612,10 @@ int parg_zgetopt_long(struct parg_state * ps, int argc, char * const argv[], con
 #ifndef MACE_OVERRIDE_MAIN
 int main(int argc, char *argv[]) {
     printf("START\n");
-
+    
+    /* --- Parse user arguments --- */
+    mace_parse_args(argc, argv);
+    
     /* --- Get cwd, alloc memory, set defaults. --- */
     mace_init();
 
