@@ -155,6 +155,19 @@ struct Target {
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
 
+/********************************** STRUCTS *********************************/
+struct Mace_Arguments {
+    char * target;
+    uint64_t target_hash;
+    int reserved_target;
+    uint64_t skip;
+    char *macefile;
+    int jobs;
+    bool debug;
+    bool silent;
+    bool dry_run;
+};
+
 /********************************** CONSTANTS *********************************/
 #define MACE_VER_PATCH 0
 #define MACE_VER_MINOR 0
@@ -603,7 +616,7 @@ void mace_set_default_target(char *name) {
             break;
         }
     }
-    printf(stderr, "Default target not found. Exiting");
+    fprintf(stderr, "Default target not found. Exiting");
     exit(EPERM);
 }
 
@@ -1576,7 +1589,7 @@ void mace_targets_build_order() {
         return;
     }
     
-    mace_isTargetinBuildOrder(order)
+    // mace_isTargetinBuildOrder(order);
     if (mace_default_target >= 0) {
         /* Build dependencies of default target, and itself only */
         o_cnt = mace_default_target;
@@ -1690,7 +1703,7 @@ void mace_post_user(struct Mace_Arguments args) {
     if (args.target > 0) { 
         mace_user_target = mace_hash_order(args.target_hash);
         if (mace_user_target == -1) {
-            printf(stderr, "Target '%s' not found. Exiting." args.target);
+            fprintf(stderr, "Target '%s' not found. Exiting.", args.target);
             exit(EPERM);
         }
     }
@@ -4580,18 +4593,6 @@ static struct parg_opt longopts[] = {
     {"file",        PARG_REQARG, 0, 'f', "FILE", "Specify input macefile. Defaults to macefile.c)"},
 };
 
-struct Mace_Arguments {
-    char * target;
-    uint64_t target_hash;
-    int reserved_target;
-    uint64_t skip;
-    char *macefile;
-    int jobs;
-    bool debug;
-    bool silent;
-    bool dry_run;
-};
-
 struct Mace_Arguments Mace_Arguments_default = {
     .target   = 0,
     .reserved_target = -1,
@@ -4622,7 +4623,9 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 } else if (strcmp(ps.optarg, MACE_ALL) == 0) {
                     out_args.reserved_target = MACE_ALL_I;
                 }
-                out_args.target = ps.optarg;
+                size_t len = strlen(ps.optarg);
+                out_args.target = calloc(len + 1, sizeof(*out_args.target));
+                strncpy(out_args.target, ps.optarg, len);
                 out_args.target_hash = mace_hash(ps.optarg);
                 break;
             case 'B':
