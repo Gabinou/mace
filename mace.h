@@ -144,6 +144,7 @@ struct Command {
 
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
+    char       *_name;             /* target name set by user                 */
     char      **_argv;             /* buffer for argv to exec build commands  */
     int         _argc;             /* number of arguments in argv             */
     int         _arg_len;          /* alloced len of argv                     */
@@ -184,6 +185,7 @@ enum MACE_ARGV { // for various argv
 void mace_init();
 void mace_free();
 void mace_post_user();
+void mace_exec_print(char *const arguments[], size_t argnum);
 
 /* --- mace_hashing --- */
 uint64_t mace_hash(char *str);
@@ -206,6 +208,11 @@ char *mace_set_build_dir(char  *build);
 /* --- mace_Target --- */
 void mace_add_target(struct Target   *target,  char *name);
 void mace_add_command(struct Command *command, char *name, int build_order);
+
+/* -- Command OOP -- */
+void mace_Command_Free(struct Command *command);
+void mace_Command_Free_argv(struct Command *command);
+void mace_Command_Parse_User(struct Command *command);
 
 /* -- Target OOP -- */
 void mace_Target_Free(struct Target              *target);
@@ -270,8 +277,9 @@ char *checksum = "sha1DC";
 // -> git uses sha1DC and SO WILL I
 
 /* -- Compiler -- */
-char *cc = NULL; // DESIGN QUESTION: Should I set a default?
-char *ar = "ar";
+char *cc      = NULL; // DESIGN QUESTION: Should I set a default?
+char *ar      = "ar";
+char *install = "install";
 
 /* -- current working directory -- */
 char cwd[MACE_CWD_BUFFERSIZE];
@@ -319,10 +327,16 @@ void mace_grow_targets() {
 }
 
 void mace_add_command(struct Command *command, char *name, int build_order) {
-    if (build_order >= target_len) {
+    printf("mace_add_command %d\n", build_order);
+    if (build_order >= target_len)
         mace_grow_targets();
-    }
     commands[build_order]        = *command;
+    commands[build_order]._name  =  name;
+
+    printf("commands[build_order] %s\n", commands[build_order]._name);
+    mace_Command_Parse_User(&commands[build_order]);
+    mace_exec_print(commands[build_order]._argv, commands[build_order]._argc);
+    printf("commands[build_order] %s\n", commands[build_order]._name);
 }
 
 void mace_add_target(struct Target *target, char *name) {
@@ -451,6 +465,25 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
     return (argv);
 }
 
+void mace_Command_Parse_User(struct Command *command) {
+    mace_Command_Free_argv(command);
+    int len, bytesize;
+    /* -- Make _argv_includes to argv -- */
+    if (command->command == NULL) {
+        perror("Command was added with NULL command string.");
+        exit(EPERM);
+    }
+    len = 8;
+    command->_argc = 0;
+    command->_argv = calloc(len, sizeof(*command->_argv));
+    command->_argv = mace_argv_flags(&len, &command->_argc, command->_argv,
+                                     command->command, NULL, false);
+    bytesize       = command->_argc * sizeof(*command->_argv);
+    command->_argv = realloc(command->_argv, bytesize);
+    mace_exec_print(command->_argv, command->_argc);
+}
+
+
 void mace_Target_Parse_User(struct Target *target) {
     // Makes flags for target includes, links libraries, and flags
     //  NOT sources: they can be folders, so need to be globbed
@@ -461,7 +494,7 @@ void mace_Target_Parse_User(struct Target *target) {
     if (target->includes != NULL) {
         len = 8;
         target->_argc_includes = 0;
-        target->_argv_includes = malloc(len * sizeof(*target->_argv_includes));
+        target->_argv_includes = calloc(len, sizeof(*target->_argv_includes));
         target->_argv_includes = mace_argv_flags(&len, &target->_argc_includes,
                                                  target->_argv_includes,
                                                  target->includes, "-I", true);
@@ -473,7 +506,7 @@ void mace_Target_Parse_User(struct Target *target) {
     if (target->links != NULL) {
         len = 8;
         target->_argc_links = 0;
-        target->_argv_links = malloc(len * sizeof(*target->_argv_links));
+        target->_argv_links = calloc(len, sizeof(*target->_argv_links));
         target->_argv_links = mace_argv_flags(&len, &target->_argc_links, target->_argv_links,
                                               target->links, "-l", false);
         bytesize            = target->_argc_links * sizeof(*target->_argv_links);
@@ -484,7 +517,7 @@ void mace_Target_Parse_User(struct Target *target) {
     if (target->flags != NULL) {
         len = 8;
         target->_argc_flags = 0;
-        target->_argv_flags = malloc(len * sizeof(*target->_argv_flags));
+        target->_argv_flags = calloc(len, sizeof(*target->_argv_flags));
         target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags,
                                               target->flags, NULL, false);
         bytesize            = target->_argc_flags * sizeof(*target->_argv_flags);
@@ -610,19 +643,12 @@ void mace_set_separator(char *sep) {
     mace_separator = sep;
 }
 
-/******************************* mace_find_sources *****************************/
-// 1- if glob pattern, find all matches, add to list
-// 2- if file add to list
-int mace_globerr(const char *path, int eerrno) {
-    fprintf(stderr, "%s: %s\n", path, strerror(eerrno));
-    exit(ENOENT);
-}
-
+/****************************** mace_glob_sources *****************************/
 glob_t mace_glob_sources(const char *path) {
     /* If source is a folder, get all .c files in it */
     glob_t  globbed;
-    int     flags = 0;
-    int     ret = glob(path, flags, mace_globerr, &globbed);
+    int     flags   = 0;
+    int     ret     = glob(path, flags, mace_globerr, &globbed);
     if (ret != 0) {
         fprintf(stderr, "problem with %s (%s), quitting\n", path,
                 (ret == GLOB_ABORTED ? "filesystem problem" :
@@ -633,6 +659,11 @@ glob_t mace_glob_sources(const char *path) {
     }
 
     return (globbed);
+}
+
+int mace_globerr(const char *path, int eerrno) {
+    fprintf(stderr, "%s: %s\n", path, strerror(eerrno));
+    exit(eerrno);
 }
 
 /********************************* mace_exec **********************************/
@@ -800,14 +831,16 @@ void mace_Target_compile(struct Target *target) {
     // Compile latest object
     assert(target != NULL);
     assert(target->_argv != NULL);
-    printf("target->_argc_sources %d\n", target->_argc_sources);
     assert(target->_argv_sources[target->_argc_sources - 1] != NULL);
     assert(target->_argv_objects[target->_argc_objects - 1] != NULL);
+
     /* - Single source argv - */
     printf("Compile %s\n", target->_argv_sources[target->_argc_sources - 1]);
+
     // argv[0] is always cc
     // argv[1] is always source
     target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[target->_argc_sources - 1];
+
     // argv[2] is always object (includeing -o flag)
     target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
     // rest of argv should be set previously by mace_Target_argv_init
@@ -1066,9 +1099,13 @@ char *mace_str_buffer(const char *strlit) {
     return (buffer);
 }
 void mace_run_command(struct Command *command) {
-    if (command->command != NULL) {
+    if (command->_argv == NULL)
+        return;
 
-    }
+    assert(chdir(cwd) == 0);
+    mace_exec_print(command->_argv, command->_argc);
+    pid_t pid = mace_exec(install,  command->_argv);
+    mace_wait_pid(pid);
 }
 
 /******************************** mace_build **********************************/
@@ -1094,7 +1131,7 @@ void mace_build_target(struct Target *target) {
 
         if (mace_isDir(token)) {
             /* Glob all sources recursively */
-            printf("isDir %s\n", token);
+            // printf("isDir %s\n", token);
 
             size_t srclen  = strlen(token);
             char  *globstr = calloc(srclen + 6, sizeof(*globstr));
@@ -1107,7 +1144,7 @@ void mace_build_target(struct Target *target) {
 
         } else if (mace_isWildcard(token)) {
             /* token has a wildcard in it */
-            printf("isWildcard %s\n", token);
+            // printf("isWildcard %s\n", token);
             mace_compile_glob(target, token, target->flags);
 
         } else if (mace_isSource(token)) {
@@ -1123,7 +1160,7 @@ void mace_build_target(struct Target *target) {
             }
 
         } else {
-            printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
+            printf("Error: source is neither a .c file, a folder, nor has a wildcard in it\n");
             exit(ENOENT);
         }
 
@@ -1275,15 +1312,25 @@ void mace_targets_build_order() {
 void mace_build_targets() {
     int z = 0;
     for (z = 0; z < build_order_num; z++) {
-        // mace_run_command(&commands[build_order[z]]);
+        mace_run_command(&commands[z]);
         mace_build_target(&targets[build_order[z]]);
     }
-    // mace_run_command(&commands[build_order[z]]);
+    mace_run_command(&commands[z]);
 }
 
 /*----------------------------------------------------------------------------*/
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
+
+void mace_Command_Free(struct Command *command) {
+    mace_Command_Free_argv(command);
+}
+
+void mace_Command_Free_argv(struct Command *command) {
+    mace_argv_free(command->_argv, command->_argc);
+    command->_argv = NULL;
+    command->_argc = 0;
+}
 
 void mace_Target_Free(struct Target *target) {
     Target_Free_notargv(target);
@@ -1348,13 +1395,13 @@ void mace_post_user() {
 
     /* Check that compiler is set */
     if (cc == NULL) {
-        printf("Compiler not set. Exiting.\n");
+        perror("Compiler not set. Exiting.\n");
         exit(ENXIO);
     }
 
     /* Check that a target exists */
     if ((targets == NULL) || (target_num <= 0)) {
-        printf("No targets to compile. Exiting.\n");
+        perror("No targets to compile. Exiting.\n");
         exit(ENXIO);
     }
 
@@ -1478,7 +1525,7 @@ int main(int argc, char *argv[]) {
     /* --- Perform compilation with buil_order --- */
     mace_build_targets();
 
-    /* ---  --- */
+    /* --- Finish --- */
     mace_free();
     printf("FINISH\n");
     return (0);
