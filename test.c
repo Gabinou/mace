@@ -109,7 +109,10 @@ void test_target() {
     nourstest_true(targets[1]._deps_links[10]           == mace_hash("nstr"));
     nourstest_true(targets[1]._deps_links[11]           == mace_hash("parg"));
 
-    target_num = 0; /* cleanup so that mace doesn't build targets */
+    /* cleanup so that mace doesn't build targets */
+    mace_free();
+    target_num = 0; 
+    mace_init();
 
     /* mace computing build order as a function of linking dependencies */
     struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -203,11 +206,13 @@ void test_target() {
     nourstest_true(target_num == 7);
     nourstest_true(build_order[0]);
     nourstest_true(build_order[target_num - 1] == A_order);
-
+    
+    mace_free();
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
 void test_circular() {
+    mace_init();
     /* mace detect circular dependency */
     struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -273,10 +278,12 @@ void test_circular() {
     nourstest_true(target_num == 7);
 
     nourstest_true(mace_circular_deps(targets, target_num));
+    mace_free();
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
 void test_self_dependency() {
+    mace_init();
     struct Target H = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
@@ -286,12 +293,16 @@ void test_self_dependency() {
     };
     MACE_ADD_TARGET(H);
     mace_circular_deps(targets, target_num); /* Should print a warning*/
+    
+    mace_free();
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
+
 void test_includes() {
     const char *includes = "A B C D";
     char *include_flags = mace_include_flags(includes);
     nourstest_true(strcmp(include_flags, "-IA -IB -IC -ID") == 0);
+    free(include_flags);
 }
 
 int mace(int argc, char *argv[]) {
