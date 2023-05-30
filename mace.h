@@ -370,7 +370,7 @@ void  mace_exec_print(char *const arguments[], size_t argnum);
 /* --- mace_build --- */
 /* -- linking -- */
 void mace_link_static_library(char  *restrict target, char **restrict av_o, int ac_o);
-void mace_link_dynamic_library(char *restrict target, char *restrict objects);
+void mace_link_dynamic_library(char *restrict target, char **restrict av_o, int ac_o);
 void mace_link_executable(char *restrict target, char **restrict av_o, int ac_o,
                           char **restrict av_l, int ac_l, char **restrict av_f, int ac_f);
 /* --- mace_clean --- */
@@ -3894,11 +3894,19 @@ void mace_Target_argv_init(struct Target *target) {
     strncpy(ldirflag + 2, build_dir, build_dir_len);
     target->_argv[target->_argc++] = ldirflag;
 
-    /* -- argv -c flag for libraries -- */
+    /* -- argv -c flag for objects -- */
     mace_Target_argv_grow(target);
     char *compflag = calloc(3, sizeof(*compflag));
     strncpy(compflag, "-c", 2);
     target->_argv[target->_argc++] = compflag;
+
+    if(target->kind == MACE_DYNAMIC_LIBRARY) {
+        /* -- argv -fPIC flag for objects -- */
+        mace_Target_argv_grow(target);
+        char *fPICflag = calloc(6, sizeof(*compflag));
+        strncpy(fPICflag, "-fPIC", 5);
+        target->_argv[target->_argc++] = fPICflag;
+    }
 
     mace_Target_argv_grow(target);
     target->_argv[target->_argc] = NULL;
@@ -4005,17 +4013,68 @@ void mace_wait_pid(int pid) {
 }
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 /********************************* mace_build **********************************/
+void mace_link_dynamic_library(char *restrict target, char **restrict argv_objects,
+                              int argc_objects) {
+    printf("Linking \t%s \n", target);
+    // NOTE: -fPIC is needed on all object files in a shared library
+    // command: gcc -shared -fPIC ...
+    //
+
+    int arg_len = 8;
+    int argc = 0;
+    char **argv       = calloc(arg_len, sizeof(*argv));
+
+    argv[argc++] = cc;
+
+    /* --- Adding -fPIC flag --- */
+    char *fPICflag     = calloc(6, sizeof(*fPICflag));
+    strncpy(fPICflag, "-fPIC", 5);
+    int cfPICflag = argc;
+    argv[argc++] = fPICflag;
+
+    /* --- Adding -shared flag --- */
+    char *sharedflag     = calloc(8, sizeof(*sharedflag));
+    strncpy(sharedflag, "-shared", 7);
+    int csharedflag = argc;
+    argv[argc++] = sharedflag;
+
+    /* --- Adding target --- */
+    size_t target_len = strlen(target);
+    char *targetv     = calloc(target_len + 1, sizeof(*rcsflag));
+    strncpy(targetv, target, target_len);
+    int targetc  = argc;
+    argv[argc++] = targetv;
+
+    /* --- Adding objects --- */
+    if ((argc_objects > 0) && (argv_objects != NULL)) {
+        for (int i = 0; i < argc_objects; i++) {
+            argv = mace_argv_grow(argv, &argc, &arg_len);
+            argv[argc++] = argv_objects[i] + strlen("-o");
+        }
+    }
+
+    mace_exec_print(argv, argc);
+    pid_t pid = mace_exec(ar, argv);
+    mace_wait_pid(pid);
+
+    free(argv[cfPICflag]);
+    free(argv[sharedflag]);
+    free(argv[targetc]);
+    free(argv);
+
+}
+
 /* Build all sources from target to object */
 void mace_link_static_library(char *restrict target, char **restrict argv_objects,
                               int argc_objects) {
     printf("Linking \t%s \n", target);
     int arg_len = 8;
     int argc = 0;
-    char **argv         = calloc(arg_len, sizeof(*argv));
+    char **argv       = calloc(arg_len, sizeof(*argv));
 
     argv[argc++] = ar;
     /* --- Adding -rcs flag --- */
-    char *rcsflag       = calloc(5, sizeof(*rcsflag));
+    char *rcsflag     = calloc(5, sizeof(*rcsflag));
     strncpy(rcsflag, "-rcs", 4);
     int crcsflag = argc;
     argv[argc++] = rcsflag;
@@ -4103,12 +4162,6 @@ void mace_link_executable(char *restrict target, char **restrict argv_objects, i
     free(argv[oflag_i]);
     free(argv[ldirflag_i]);
     free(argv);
-}
-
-void mace_link_dynamic_library(char *restrict target, char *restrict objects) {
-    // NOTE: -fPIC is needed on all object files in a shared library
-    // command: gcc -shared -fPIC ...
-    //
 }
 
 
@@ -4495,7 +4548,6 @@ void mace_Target_Parse_Source(struct Target *restrict target, char *path, char *
     }
 }
 
-
 /* Compile globbed files to objects */
 void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
                            const char *restrict flags) {
@@ -4777,6 +4829,10 @@ void mace_build_target(struct Target *target) {
         char *lib = mace_library_path(target->_name);
         mace_link_static_library(lib, target->_argv_objects, target->_argc_sources);
         free(lib);
+    } else if (target->kind == MACE_DYNAMIC_LIBRARY) {
+        char *lib = mace_library_path(target->_name);
+        mace_link_dynamic_library(lib, target->_argv_objects, target->_argc_sources);
+        free(lib);        
     } else if (target->kind == MACE_EXECUTABLE) {
         char *exec = mace_executable_path(target->_name);
         mace_link_executable(exec, target->_argv_objects, target->_argc_sources, target->_argv_links,
