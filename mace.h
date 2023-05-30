@@ -4825,9 +4825,6 @@ inline bool mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]) {
     return(memcmp(hash1, hash2, SHA1_LEN) == 0);
 }
 
-// Files to checksum:
-//  - sources
-//  - includes
 void mace_sha1cd(char *file, uint8_t hash[SHA1_LEN]) {
     assert(file != NULL);
     size_t size;
