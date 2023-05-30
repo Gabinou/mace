@@ -12,7 +12,10 @@ struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
 
 
 struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = ". include include/bars/ include/menu/ include/popup/ include/systems/ names/ names/popup/ names/menu/",
+    .includes           = ". include  include/bars  include/menu include/popup include/systems "
+                          "names names/popup names/menu "
+                          "second_party/nstr second_party/noursmath second_party/tnecs "
+                          "third_party/physfs third_party/tinymt third_party/stb third_party/cJson ",
     .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
     .sources_exclude    = "",
     .base_dir           = "",

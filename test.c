@@ -312,6 +312,16 @@ void test_links() {
     free(link_flags);
 }
 
+void test_argv() {
+    const char *includes = "A B C D";
+    const char *links = "ta mere putain de merde";
+    const char *source = "a.c bd.c efg.c hijk.c";
+    int argc = 8;
+    
+    // argv_flags(int * len, int * argc, char * argv, const char *includes, const char *flag) {
+
+}
+
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     nourstest_run("isFunc ",    test_isFunc);
