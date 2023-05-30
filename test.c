@@ -494,6 +494,7 @@ void test_post_user() {
     // MACE_SET_COMPILER(gcc);
     mace_free();
 }
+
 void test_separator() {
     mace_init();
     mace_set_separator(",");
@@ -625,6 +626,10 @@ void test_separator() {
     nourstest_true(WEXITSTATUS(status) == 0);
 }
 
+void test_links() {
+    // test LINKS and DEPENDENCIES
+}
+
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     MACE_SET_COMPILER(gcc);
@@ -637,6 +642,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("argv ",      test_argv);
     nourstest_run("post_user ", test_post_user);
     nourstest_run("separator ", test_separator);
+    // nourstest_run("links ",     test_links);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
