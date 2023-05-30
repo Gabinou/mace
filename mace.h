@@ -354,10 +354,7 @@ pid_t mace_pqueue_pop() {
 }
 
 void mace_pqueue_put(pid_t pid) {
-    if (pnum <= plen) {
-        plen *= 2;
-        pqueue = realloc(pqueue);
-    }
+    assert(pnum < plen);
     size_t bytes = pnum * sizeof(*pqueue);
     memmove(pqueue, pqueue + 1, bytes);
     pqueue[0] = pid;
@@ -1267,6 +1264,7 @@ void mace_Target_precompile(struct Target *target) {
 }
 
 void mace_Target_compile(struct Target *target) {
+    // TODO compile all objects
     // Compile latest object
     assert(target != NULL);
     assert(target->_argv != NULL);
@@ -1662,7 +1660,7 @@ void mace_build_target(struct Target *target) {
     /* -- Copy sources into modifiable buffer -- */
     char *buffer = mace_str_buffer(target->sources);
 
-    /* --- Split sources into tokens --- */
+    /* --- Parse sources --- */
     char *token = strtok(buffer, mace_separator);
     do {
         // printf("token %s\n", token);
@@ -1706,7 +1704,12 @@ void mace_build_target(struct Target *target) {
         token = strtok(NULL, mace_separator);
     } while (token != NULL);
 
-    /* --- If allatonce enable, compile now. --- */
+    /* --- Compile now. --- */
+    /* -- TODO: in parallel n jobs -- */
+    // mace_Target_precompile(target);
+    //  mace_Target_compile(target);
+    
+   /* -- allatonce -- */
     if (target->allatonce)
         mace_Target_compile_allatonce(target);
 
