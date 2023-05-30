@@ -1,80 +1,74 @@
-# 0 "B_obj/unit.d"
-# 0 "<built-in>"
-# 0 "<command-line>"
-# 1 "/usr/include/stdc-predef.h" 1 3 4
-# 0 "<command-line>" 2
-# 1 "B_obj/unit.d"
-unit.o: /home/gabinours/Sync/Firesaga/src/unit.c
- /home/gabinours/Sync/Firesaga/include/unit.h
- /home/gabinours/Sync/Firesaga/include/types.h
- /home/gabinours/Sync/Firesaga/include/enums.h
- /home/gabinours/Sync/Firesaga/names/mounts_types.h
- /home/gabinours/Sync/Firesaga/names/mounts.h
- /home/gabinours/Sync/Firesaga/names/chapters.h
- /home/gabinours/Sync/Firesaga/names/shops.h
- /home/gabinours/Sync/Firesaga/names/menu/options.h
- /home/gabinours/Sync/Firesaga/names/items.h
- /home/gabinours/Sync/Firesaga/names/units_stats.h
- /home/gabinours/Sync/Firesaga/names/skills_passive.h
- /home/gabinours/Sync/Firesaga/names/skills_active.h
- /home/gabinours/Sync/Firesaga/names/items_types.h
- /home/gabinours/Sync/Firesaga/names/items_stats.h
- /home/gabinours/Sync/Firesaga/names/weapon_stats.h
- /home/gabinours/Sync/Firesaga/names/units_PC.h
- /home/gabinours/Sync/Firesaga/names/units_NPC.h
- /home/gabinours/Sync/Firesaga/names/items_effects.h
- /home/gabinours/Sync/Firesaga/names/camp_jobs.h
- /home/gabinours/Sync/Firesaga/names/classes.h
- /home/gabinours/Sync/Firesaga/names/units_types.h
- /home/gabinours/Sync/Firesaga/names/armies.h
- /home/gabinours/Sync/Firesaga/names/units_statuses.h
- /home/gabinours/Sync/Firesaga/names/tiles.h
- /home/gabinours/Sync/Firesaga/names/game_states.h
- /home/gabinours/Sync/Firesaga/names/game_substates.h
- /home/gabinours/Sync/Firesaga/names/json_elements.h
- /home/gabinours/Sync/Firesaga/names/mvt_types.h
- /home/gabinours/Sync/Firesaga/names/buttons.h
- /home/gabinours/Sync/Firesaga/names/popup/types.h
- /home/gabinours/Sync/Firesaga/names/menu/types.h
- /home/gabinours/Sync/Firesaga/names/menu/player_select.h
- /home/gabinours/Sync/Firesaga/names/errors.h
- /home/gabinours/Sync/Firesaga/names/input_flags.h
- /home/gabinours/Sync/Firesaga/names/scene_time.h
- /home/gabinours/Sync/Firesaga/include/structs.h
- /home/gabinours/Sync/Firesaga/second_party/noursmath/nmath.h
- /home/gabinours/Sync/Firesaga/second_party/tnecs/tnecs.h
- /home/gabinours/Sync/Firesaga/include/filesystem.h
- /home/gabinours/Sync/Firesaga/include/globals.h
- /home/gabinours/Sync/Firesaga/third_party/physfs/physfs.h
- /home/gabinours/Sync/Firesaga/include/platform.h
- /home/gabinours/Sync/Firesaga/third_party/cJson/cJSON.h
- /home/gabinours/Sync/Firesaga/second_party/nstr/nstr.h
- /home/gabinours/Sync/Firesaga/include/utilities.h
- /home/gabinours/Sync/Firesaga/include/palette.h
- /home/gabinours/Sync/Firesaga/include/debug.h
- /home/gabinours/Sync/Firesaga/include/macros.h
- /home/gabinours/Sync/Firesaga/include/names.h
- /home/gabinours/Sync/Firesaga/include/unit.h
- /home/gabinours/Sync/Firesaga/include/hashes.h
- /home/gabinours/Sync/Firesaga/include/supports.h
- /home/gabinours/Sync/Firesaga/names/support_types.h
- /home/gabinours/Sync/Firesaga/include/jsonio.h
- /home/gabinours/Sync/Firesaga/include/tile.h
- /home/gabinours/Sync/Firesaga/include/weapon.h
- /home/gabinours/Sync/Firesaga/include/item.h
- /home/gabinours/Sync/Firesaga/third_party/stb/stb_sprintf.h
- /home/gabinours/Sync/Firesaga/include/pixelfonts.h
- /home/gabinours/Sync/Firesaga/include/convoy.h
- /home/gabinours/Sync/Firesaga/include/camp.h
- /home/gabinours/Sync/Firesaga/include/narrative.h
- /home/gabinours/Sync/Firesaga/include/bitfields.h
- /home/gabinours/Sync/Firesaga/include/RNG.h
- /home/gabinours/Sync/Firesaga/third_party/tinymt/tinymt32.h
- /home/gabinours/Sync/Firesaga/include/sprite.h
- /home/gabinours/Sync/Firesaga/include/index_shader.h
- /home/gabinours/Sync/Firesaga/include/map.h
- /home/gabinours/Sync/Firesaga/include/arrow.h
- /home/gabinours/Sync/Firesaga/include/position.h
- /home/gabinours/Sync/Firesaga/include/equations.h
- /home/gabinours/Sync/Firesaga/include/combat.h
+unit.o: /home/gabinours/Sync/Firesaga/src/unit.c \
+ /home/gabinours/Sync/Firesaga/include/unit.h \
+ /home/gabinours/Sync/Firesaga/include/types.h \
+ /home/gabinours/Sync/Firesaga/include/enums.h \
+ /home/gabinours/Sync/Firesaga/names/mounts_types.h \
+ /home/gabinours/Sync/Firesaga/names/mounts.h \
+ /home/gabinours/Sync/Firesaga/names/chapters.h \
+ /home/gabinours/Sync/Firesaga/names/shops.h \
+ /home/gabinours/Sync/Firesaga/names/menu/options.h \
+ /home/gabinours/Sync/Firesaga/names/items.h \
+ /home/gabinours/Sync/Firesaga/names/units_stats.h \
+ /home/gabinours/Sync/Firesaga/names/skills_passive.h \
+ /home/gabinours/Sync/Firesaga/names/skills_active.h \
+ /home/gabinours/Sync/Firesaga/names/items_types.h \
+ /home/gabinours/Sync/Firesaga/names/items_stats.h \
+ /home/gabinours/Sync/Firesaga/names/weapon_stats.h \
+ /home/gabinours/Sync/Firesaga/names/units_PC.h \
+ /home/gabinours/Sync/Firesaga/names/units_NPC.h \
+ /home/gabinours/Sync/Firesaga/names/items_effects.h \
+ /home/gabinours/Sync/Firesaga/names/camp_jobs.h \
+ /home/gabinours/Sync/Firesaga/names/classes.h \
+ /home/gabinours/Sync/Firesaga/names/units_types.h \
+ /home/gabinours/Sync/Firesaga/names/armies.h \
+ /home/gabinours/Sync/Firesaga/names/units_statuses.h \
+ /home/gabinours/Sync/Firesaga/names/tiles.h \
+ /home/gabinours/Sync/Firesaga/names/game_states.h \
+ /home/gabinours/Sync/Firesaga/names/game_substates.h \
+ /home/gabinours/Sync/Firesaga/names/json_elements.h \
+ /home/gabinours/Sync/Firesaga/names/mvt_types.h \
+ /home/gabinours/Sync/Firesaga/names/buttons.h \
+ /home/gabinours/Sync/Firesaga/names/popup/types.h \
+ /home/gabinours/Sync/Firesaga/names/menu/types.h \
+ /home/gabinours/Sync/Firesaga/names/menu/player_select.h \
+ /home/gabinours/Sync/Firesaga/names/errors.h \
+ /home/gabinours/Sync/Firesaga/names/input_flags.h \
+ /home/gabinours/Sync/Firesaga/names/scene_time.h \
+ /home/gabinours/Sync/Firesaga/include/structs.h \
+ /home/gabinours/Sync/Firesaga/second_party/noursmath/nmath.h \
+ /home/gabinours/Sync/Firesaga/second_party/tnecs/tnecs.h \
+ /home/gabinours/Sync/Firesaga/include/filesystem.h \
+ /home/gabinours/Sync/Firesaga/include/globals.h \
+ /home/gabinours/Sync/Firesaga/third_party/physfs/physfs.h \
+ /home/gabinours/Sync/Firesaga/include/platform.h \
+ /home/gabinours/Sync/Firesaga/third_party/cJson/cJSON.h \
+ /home/gabinours/Sync/Firesaga/second_party/nstr/nstr.h \
+ /home/gabinours/Sync/Firesaga/include/utilities.h \
+ /home/gabinours/Sync/Firesaga/include/palette.h \
+ /home/gabinours/Sync/Firesaga/include/debug.h \
+ /home/gabinours/Sync/Firesaga/include/macros.h \
+ /home/gabinours/Sync/Firesaga/include/names.h \
+ /home/gabinours/Sync/Firesaga/include/unit.h \
+ /home/gabinours/Sync/Firesaga/include/hashes.h \
+ /home/gabinours/Sync/Firesaga/include/supports.h \
+ /home/gabinours/Sync/Firesaga/names/support_types.h \
+ /home/gabinours/Sync/Firesaga/include/jsonio.h \
+ /home/gabinours/Sync/Firesaga/include/tile.h \
+ /home/gabinours/Sync/Firesaga/include/weapon.h \
+ /home/gabinours/Sync/Firesaga/include/item.h \
+ /home/gabinours/Sync/Firesaga/third_party/stb/stb_sprintf.h \
+ /home/gabinours/Sync/Firesaga/include/pixelfonts.h \
+ /home/gabinours/Sync/Firesaga/include/convoy.h \
+ /home/gabinours/Sync/Firesaga/include/camp.h \
+ /home/gabinours/Sync/Firesaga/include/narrative.h \
+ /home/gabinours/Sync/Firesaga/include/bitfields.h \
+ /home/gabinours/Sync/Firesaga/include/RNG.h \
+ /home/gabinours/Sync/Firesaga/third_party/tinymt/tinymt32.h \
+ /home/gabinours/Sync/Firesaga/include/sprite.h \
+ /home/gabinours/Sync/Firesaga/include/index_shader.h \
+ /home/gabinours/Sync/Firesaga/include/map.h \
+ /home/gabinours/Sync/Firesaga/include/arrow.h \
+ /home/gabinours/Sync/Firesaga/include/position.h \
+ /home/gabinours/Sync/Firesaga/include/equations.h \
+ /home/gabinours/Sync/Firesaga/include/combat.h \
  /home/gabinours/Sync/Firesaga/names/units_struct_stats.h
