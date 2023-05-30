@@ -288,8 +288,6 @@ uint64_t mace_hash(const char *str);
 char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
                        const char *restrict includes, const char *restrict flag, bool path);
 #ifndef MACE_CONVENIENCE_EXECUTABLE
-    /* --- mace_obj_dependencies --- */
-
     /* --- mace_setters --- */
     char *mace_set_obj_dir(char    *obj);
     char *mace_set_build_dir(char  *build);
@@ -318,9 +316,9 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     
     /* - obj_deps - */
     void mace_Target_Read_Objdeps(struct Target  *target, char *deps, int source_i);
-    void mace_Target_Parse_Objdep(struct Target *target, int source_i);
+    void mace_Target_Parse_Objdep(struct Target  *target, int source_i);
     void mace_Target_Parse_Objdeps(struct Target *target);
-    int  mace_Target_header_order(struct Target *target, uint64_t hash);
+    int  mace_Target_header_order(struct Target  *target, uint64_t hash);
     
     /* - target dependencies - */
     bool mace_Target_hasDep(struct Target    *target, uint64_t hash);
@@ -333,6 +331,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     bool     mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
     uint64_t mace_Target_Header_Add(struct Target *restrict target, char *restrict header);
     void     mace_Target_Objdep_Add(struct Target *target, int header_order, int obj_hash_id);
+    void     mace_Target_Header_Add_Objpath(struct Target *restrict target, char *restrict header);
     
     /* - Checksums - */
     bool mace_Source_Checksum(struct Target          *target, char *s, char *o);
@@ -3745,7 +3744,7 @@ void mace_Target_sources_grow(struct Target *target) {
     /* -- Alloc recompiles -- */
     if (target->_recompiles == NULL) {
         bytesize = target->_len_sources * sizeof(*target->_recompiles);
-        target->_recompiles = malloc(bytesize);
+        target->_recompiles = calloc(1, bytesize);
     }
 
     /* -- Alloc objects -- */
@@ -3766,10 +3765,12 @@ void mace_Target_sources_grow(struct Target *target) {
         /* -- Realloc recompiles -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_recompiles);
         target->_recompiles = realloc(target->_recompiles, bytesize);
+        memset(target->_recompiles + target->_len_sources, 0, bytesize / 2);
 
         /* -- Realloc objects -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_argv_objects);
         target->_argv_objects = realloc(target->_argv_objects, bytesize);
+        memset(target->_argv_objects + target->_len_sources, 0, bytesize / 2);
     }
 
     /* -- Realloc deps_headers -- */
@@ -4284,12 +4285,10 @@ int Target_hasObjectHash(struct Target *target, uint64_t hash) {
     return (-1);
 }
 
-
 void mace_Target_Recompiles_Add(struct Target *target, bool add) {
     // printf("recompiles: %d\n", add);
     target->_recompiles[target->_argc_sources - 1] = add;
 }
-
 
 bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token) {
     /* token is object path */
@@ -4764,7 +4763,6 @@ void mace_build_target(struct Target *target) {
     if (target->base_dir != NULL)
         assert(chdir(target->base_dir) == 0);
 
-
     mace_Target_compile(target); // faster than make with no pre-compile
 
     // /* -- allatonce -- */
@@ -4826,7 +4824,6 @@ void mace_build_order_add(size_t order) {
 }
 
 /* - Depth first search through depencies - */
-// Builds all target dependencies before building target
 void mace_build_order_recursive(struct Target target, size_t *restrict o_cnt) {
     /* o_cnt should never be geq to target_num */
     if ((*o_cnt) >= target_num)
@@ -4969,8 +4966,7 @@ void mace_prebuild_targets() {
     if (mace_user_target == MACE_CLEAN_ORDER)
         return;
 
-    int z = 0;
-    for (z = 0; z < build_order_num; z++) {
+    for (int z = 0; z < build_order_num; z++) {
         mace_prebuild_target(&targets[build_order[z]]);
     }
 }
@@ -4983,8 +4979,7 @@ void mace_build_targets() {
     }
 
     /* Actually build all targets */
-    int z = 0;
-    for (z = 0; z < build_order_num; z++) {
+    for (int z = 0; z < build_order_num; z++) {
         mace_run_commands(targets[build_order[z]].command_pre_build);
         mace_print_message(targets[build_order[z]].message_pre_build);
         mace_build_target(&targets[build_order[z]]);
@@ -5060,6 +5055,10 @@ void mace_Target_Free_deps_headers(struct Target *target) {
         free(target->_objects_hash_nocoll);
         target->_objects_hash_nocoll = NULL;
     }
+    if (target->_hdrs_changed != NULL) {
+        free(target->_hdrs_changed);
+        target->_hdrs_changed = NULL;
+    }
 }
 
 void mace_Target_Free_excludes(struct Target *target) {
@@ -5114,14 +5113,6 @@ void mace_Target_Free_argv(struct Target *target) {
     }
 }
 
-void mace_post_build_order() {
-    // Checks that build order:
-    if ((build_order == NULL) || (build_order_num == 0)) {
-        printf("No targets in build order. Exiting.\n");
-        exit(EDOM);
-    }
-}
-
 int mace_Target_header_order(struct Target *target, uint64_t hash) {
     for (int i = 0; i < target->_headers_num; ++i) {
         if (target->_headers_hash[i] == hash)
@@ -5141,7 +5132,6 @@ void mace_Target_Grow_deps_headers(struct Target *target, int source_i) {
     if (target->_deps_headers_num[source_i] >= target->_deps_headers_len[source_i]) {
         target->_deps_headers_len[source_i] *= 2;
         size_t bytesize = target->_deps_headers_len[source_i] * sizeof(**target->_deps_headers);
-
         target->_deps_headers[source_i] = realloc(target->_deps_headers[source_i], bytesize);
         assert(target->_deps_headers[source_i] != NULL);
     }
@@ -5324,7 +5314,7 @@ void mace_Target_Objdep_Add(struct Target *target, int header_order, int source_
 // Only be called if source file changed
 void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
     // printf("mace_Target_Parse_Objdep A\n");
-    // Set _deps_headers_num remains to invalid if
+    /* Set _deps_headers_num to invalid */
     target->_deps_headers_num[source_i] = -1;
 
     char *obj_file_flag = target->_argv_objects[source_i];
@@ -5337,13 +5327,12 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
     }
     int oflagl = 2;
     int obj_hash_id;
-    size_t obj_len = strlen(obj_file_flag);
-    char *obj_file = calloc(obj_len - oflagl + 5, sizeof(*obj_file));
+    size_t obj_len  = strlen(obj_file_flag);
+    char  *obj_file = calloc(obj_len - oflagl + 5, sizeof(*obj_file));
     strncpy(obj_file, obj_file_flag + oflagl, obj_len - oflagl);
     char buffer[MACE_OBJDEP_BUFFER];
     size_t size;
     size_t ext = obj_len - oflagl - 1;
-
 
     /* Check if .ho exists */
     strncpy(obj_file + ext, "ho", 2);
@@ -5354,9 +5343,8 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
         fclose(fho);
     }
 
-
     /* Check if .d exists */
-    obj_file[ext] = 'd';
+    obj_file[ext]     = 'd';
     obj_file[ext + 1] = '\0';
     FILE *fd = fopen(obj_file, "rb");
     if (fd == NULL) {
@@ -5396,7 +5384,6 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
             fseek(fd, last_space, SEEK_CUR);
         }
     }
-
     fclose(fd);
 
     /* - Only need to compute .ho file if source changed OR fho doesn't exist - */
@@ -5481,6 +5468,33 @@ void mace_Target_Parse_Objdeps(struct Target *target) {
     }
 }
 
+void mace_pre_user() {
+    mace_finish(NULL);
+    if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
+        fprintf(stderr, "getcwd() error\n");
+        exit(errno);
+    }
+
+    /* --- Reserved target names --- */
+    int i = MACE_CLEAN_ORDER + MACE_RESERVED_TARGETS_NUM;
+    mace_reserved_targets[i]    = mace_hash(MACE_CLEAN);
+    i = MACE_ALL_ORDER + MACE_RESERVED_TARGETS_NUM;
+    mace_reserved_targets[i]    = mace_hash(MACE_ALL);
+
+    /* --- Memory allocation --- */
+    target_len      = MACE_DEFAULT_TARGET_LEN;
+    object_len      = MACE_DEFAULT_OBJECT_LEN;
+    build_order_num = 0;
+
+    object      = calloc(object_len, sizeof(*object));
+    targets     = calloc(target_len, sizeof(*targets));
+    build_order = calloc(target_len, sizeof(*build_order));
+
+    /* --- Default output folders --- */
+    mace_set_build_dir("build/");
+    mace_set_obj_dir("obj/");
+}
+
 void mace_post_user(struct Mace_Arguments args) {
     //   1- Moves to user set dir if not NULL,
     //   2- Checks set compiler,
@@ -5527,34 +5541,6 @@ void mace_post_user(struct Mace_Arguments args) {
     if (args.cc != NULL) {
         cc = args.cc;
     }
-}
-
-
-void mace_pre_user() {
-    mace_finish(NULL);
-    if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
-        fprintf(stderr, "getcwd() error\n");
-        exit(errno);
-    }
-
-    /* --- Reserved target names --- */
-    int i = MACE_CLEAN_ORDER + MACE_RESERVED_TARGETS_NUM;
-    mace_reserved_targets[i]    = mace_hash(MACE_CLEAN);
-    i = MACE_ALL_ORDER + MACE_RESERVED_TARGETS_NUM;
-    mace_reserved_targets[i]    = mace_hash(MACE_ALL);
-
-    /* --- Memory allocation --- */
-    target_len      = MACE_DEFAULT_TARGET_LEN;
-    object_len      = MACE_DEFAULT_OBJECT_LEN;
-    build_order_num = 0;
-
-    object      = calloc(object_len, sizeof(*object));
-    targets     = calloc(target_len, sizeof(*targets));
-    build_order = calloc(target_len, sizeof(*build_order));
-
-    /* --- Default output folders --- */
-    mace_set_build_dir("build/");
-    mace_set_obj_dir("obj/");
 }
 
 void mace_finish(struct Mace_Arguments *args) {
@@ -5793,28 +5779,6 @@ struct Mace_Arguments Mace_Arguments_default = {
     .skip_checksum      = false,
 };
 
-void Mace_Arguments_Free(struct Mace_Arguments *args) {
-    /* Skip if NULL */
-    if (args == NULL)
-        return;
-
-    if (args->macefile != NULL) {
-        free(args->macefile);
-        args->macefile = NULL;
-    }
-    if (args->user_target != NULL) {
-        free(args->user_target);
-        args->user_target = NULL;
-    }
-    if (args->dir != NULL) {
-        free(args->dir);
-        args->dir = NULL;
-    }
-    if (args->cc != NULL) {
-        free(args->cc);
-        args->cc = NULL;
-    }
-}
 
 struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     struct Mace_Arguments out_args = Mace_Arguments_default;
@@ -5898,7 +5862,7 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
         }
     }
 
-    /*Debugging*/
+    /* Debugging */
     for (c = ps.optind; c < argc; ++c) {
         printf("argument '%s'\n", argv[c]);
     }
@@ -5906,12 +5870,35 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     return (out_args);
 }
 
+void Mace_Arguments_Free(struct Mace_Arguments *args) {
+    /* Skip if NULL */
+    if (args == NULL)
+        return;
+
+    if (args->macefile != NULL) {
+        free(args->macefile);
+        args->macefile = NULL;
+    }
+    if (args->user_target != NULL) {
+        free(args->user_target);
+        args->user_target = NULL;
+    }
+    if (args->dir != NULL) {
+        free(args->dir);
+        args->dir = NULL;
+    }
+    if (args->cc != NULL) {
+        free(args->cc);
+        args->cc = NULL;
+    }
+}
+
 /************************************ main ************************************/
 // 1- Runs mace function, get all info from user:
 //   a- Get compiler
 //   b- Get targets
 // 2- Builds dependency graph from targets' links, dependencies
-// 3- TODO: Determine which targets need to be recompiled
+// 3- Determine which targets need to be recompiled
 // 4- Build the targets
 
 #ifndef MACE_OVERRIDE_MAIN
@@ -5919,12 +5906,11 @@ int main(int argc, char *argv[]) {
     /* --- Parse user arguments --- */
     struct Mace_Arguments args = mace_parse_args(argc, argv);
 
-    /* --- Pre-user ops:  Get cwd, alloc memory, set defaults. --- */
+    /* --- Pre-user ops: Get cwd, alloc memory, set defaults. --- */
     mace_pre_user();
 
     /* --- User function --- */
-    // Sets compiler, add targets and commands.
-    mace(argc, argv);
+    mace(argc, argv); /* Sets compiler, add targets and commands. */
 
     /* --- Post-user ops: checks, allocs, default target. --- */
     mace_post_user(args);
