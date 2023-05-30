@@ -44,6 +44,9 @@ extern int mace(int argc, char *argv[]);
 char *mace_set_obj_dir(char   *obj);
 char *mace_set_build_dir(char *build);
 
+/* -- Separator -- */
+void mace_set_separator(char * sep);
+
 /* --- Commands --- */
 struct Command;
 
@@ -81,6 +84,7 @@ struct Target {
     *     .links              = "lib1 lib2 mytarget2",                  /
     *     .kind               = MACE_LIBRARY,                           /
     * };                                                                /
+    * NOTE: defauilt separator is " ".  /
     *                                                                   /
     /*-----------------------------------------------------------------*/
 
@@ -225,7 +229,7 @@ char *mace_library_path(char   *target_name);
 /* --- mace_globals --- */
 
 /* -- separator -- */
-char *separator = " ";
+char *mace_separator = " ";
 
 /* -- Checksum -- */
 // char *checksum = "sha256sum";
@@ -370,7 +374,7 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
     /* -- Copy user_str into modifiable buffer -- */
     char *buffer = mace_str_buffer(user_str);
 
-    char *token = strtok(buffer, separator);
+    char *token = strtok(buffer, mace_separator);
     while (token != NULL) {
         argv = argv_grows(len, argc, argv);
         size_t token_len = strlen(token);
@@ -391,7 +395,7 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
 
         argv[(*argc)++] = arg;
 
-        token = strtok(NULL, separator);
+        token = strtok(NULL, mace_separator);
     }
 
     free(buffer);
@@ -505,6 +509,18 @@ void Target_argv_init(struct Target *target) {
 
     Target_argv_grow(target);
     target->_argv[target->_argc] = NULL;
+}
+
+void mace_set_separator(char * sep) {
+    if (sep == NULL) {
+        perror("Separator should not be NULL.");
+        exit(EPERM);
+    }
+    if (strlen(sep) != 1) {
+        perror("Separator should have length one.");
+        exit(EPERM);
+    }
+    mace_separator = sep;
 }
 
 /******************************* mace_find_sources *****************************/
@@ -949,7 +965,7 @@ void mace_build_target(struct Target *target) {
     char *buffer = mace_str_buffer(target->sources);
 
     /* --- Split sources into tokens --- */
-    char *token = strtok(buffer, separator);
+    char *token = strtok(buffer, mace_separator);
     do {
         // printf("token %s\n", token);
 
@@ -986,7 +1002,7 @@ void mace_build_target(struct Target *target) {
             exit(ENOENT);
         }
 
-        token = strtok(NULL, separator);
+        token = strtok(NULL, mace_separator);
     } while (token != NULL);
 
     /* --- Move back to cwd to link --- */
@@ -1170,9 +1186,17 @@ void Target_Free_argv(struct Target *target) {
     target->_argv_objects = NULL;
     target->_argc_objects = 0;
     if ((target->_argv != NULL) && (target->_argc > 0))  {
-        free(target->_argv[target->_argc - 1]);
-        free(target->_argv[target->_argc - 2]);
+        if (target->_argv[target->_argc - 1] != NULL) {
+            free(target->_argv[target->_argc - 1]);
+            target->_argv[target->_argc - 1] = NULL;
+        }
+
+        if (target->_argv[target->_argc - 2] != NULL) {
+            free(target->_argv[target->_argc - 2]);
+            target->_argv[target->_argc - 2] = NULL;
+        }
         free(target->_argv);
+        target->_argv = NULL;
     }
 }
 
