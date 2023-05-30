@@ -908,7 +908,142 @@ void test_parse_args() {
     nourstest_true(args.dry_run          == true);
     Mace_Arguments_Free(&args);
     argc = 0;
+}
 
+void test_build_order() {
+    /* cleanup so that mace doesn't build targets */
+    mace_free();
+    mace_init();
+
+    /* mace computing build order as a function of linking dependencies */
+    struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "B C D",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target B = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "D E",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target C = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target D = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "F G",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+
+    struct Target E = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "G",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target F = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target G = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    MACE_ADD_TARGET(B);
+    MACE_ADD_TARGET(C);
+    MACE_ADD_TARGET(E);
+    MACE_ADD_TARGET(A);
+    MACE_ADD_TARGET(G);
+    MACE_ADD_TARGET(D);
+    MACE_ADD_TARGET(F);
+    nourstest_true(target_num == 7);
+    nourstest_true(strcmp(targets[0]._name, "B") == 0);
+    nourstest_true(strcmp(targets[1]._name, "C") == 0);
+    nourstest_true(strcmp(targets[2]._name, "E") == 0);
+    nourstest_true(strcmp(targets[3]._name, "A") == 0);
+    nourstest_true(strcmp(targets[4]._name, "G") == 0);
+    nourstest_true(strcmp(targets[5]._name, "D") == 0);
+    nourstest_true(strcmp(targets[6]._name, "F") == 0);
+
+    nourstest_true(targets[0]._hash == mace_hash("B"));
+    nourstest_true(targets[1]._hash == mace_hash("C"));
+    nourstest_true(targets[2]._hash == mace_hash("E"));
+    nourstest_true(targets[3]._hash == mace_hash("A"));
+    nourstest_true(targets[4]._hash == mace_hash("G"));
+    nourstest_true(targets[5]._hash == mace_hash("D"));
+    nourstest_true(targets[6]._hash == mace_hash("F"));
+
+    mace_targets_build_order(targets, target_num);
+    assert(build_order != NULL);
+    nourstest_true(build_order[0] == mace_hash_order(mace_hash("F")));
+    nourstest_true(build_order[1] == mace_hash_order(mace_hash("G")));
+    nourstest_true(build_order[2] == mace_hash_order(mace_hash("D")));
+    nourstest_true(build_order[3] == mace_hash_order(mace_hash("E")));
+    nourstest_true(build_order[4] == mace_hash_order(mace_hash("B")));
+    nourstest_true(build_order[5] == mace_hash_order(mace_hash("C")));
+    nourstest_true(build_order[6] == mace_hash_order(mace_hash("A")));
+    build_order_num = 0;
+
+    // set default_target to "D" check build_order
+    mace_default_target = mace_hash_order(mace_hash("D"));
+    mace_user_target    = MACE_NULL_ORDER;  /* order */
+    mace_targets_build_order(targets, target_num);
+    nourstest_true(build_order_num == 3);
+
+    nourstest_true(build_order[0] == mace_hash_order(mace_hash("F")));
+    nourstest_true(build_order[1] == mace_hash_order(mace_hash("G")));
+    nourstest_true(build_order[2] == mace_hash_order(mace_hash("D")));
+    build_order_num = 0;
+
+    // set user_target to E check build_order
+    // user_target should override mace_default_target
+    mace_user_target    = mace_hash_order(mace_hash("E"));
+    mace_default_target = mace_hash_order(mace_hash("D"));
+    mace_targets_build_order(targets, target_num);
+    nourstest_true(build_order_num == 2);
+
+    nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
+    nourstest_true(build_order[1] == mace_hash_order(mace_hash("E")));
+
+ 
+    // set user_target to A check build_order
+    // user_target should override mace_default_target
+    mace_user_target    = mace_hash_order(mace_hash("A"));
+    mace_default_target = mace_hash_order(mace_hash("D"));
+    mace_targets_build_order(targets, target_num);
+    nourstest_true(build_order_num == 7);
+
+    nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
+    nourstest_true(build_order[1] == mace_hash_order(mace_hash("E")));
+    nourstest_true(build_order[2] == mace_hash_order(mace_hash("F")));
+    nourstest_true(build_order[3] == mace_hash_order(mace_hash("D")));
+    nourstest_true(build_order[4] == mace_hash_order(mace_hash("B")));
+    nourstest_true(build_order[5] == mace_hash_order(mace_hash("C")));
+    nourstest_true(build_order[6] == mace_hash_order(mace_hash("A")));
+
+    mace_default_target = MACE_ALL_ORDER;   /* order */
+    mace_user_target    = MACE_NULL_ORDER;  /* order */
 }
 
 int mace(int argc, char *argv[]) {
@@ -924,6 +1059,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("post_user ",     test_post_user);
     nourstest_run("separator ",     test_separator);
     nourstest_run("parse_args ",    test_parse_args);
+    nourstest_run("build_order ",   test_build_order);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");

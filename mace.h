@@ -1644,13 +1644,12 @@ void mace_targets_build_order() {
     if ((mace_user_target > MACE_ALL_ORDER) || (mace_default_target > MACE_ALL_ORDER)) {
         /* Build dependencies of default target, and itself only */
         o_cnt = mace_user_target > MACE_ALL_ORDER ? mace_user_target : mace_default_target;
-
         mace_deps_links_build_order(targets[o_cnt], &o_cnt);
 
-        int user_order = mace_target_order(targets[o_cnt]);
-        if (mace_isTargetinBuildOrder(user_order, build_order, build_order_num)) {
+        // int user_order = mace_target_order(targets[o_cnt]);
+        // if (mace_isTargetinBuildOrder(user_order, build_order, build_order_num)) {
 
-        }
+        // }
         return;
     }
     // If user_target is all, or default_target is all and no user_target
