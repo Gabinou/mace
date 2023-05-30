@@ -150,7 +150,7 @@ struct Target {
     char **restrict _argv_sources; /* sources, in argv form                   */
     int             _argc_sources; /* number of arguments in argv_sources     */
     int             _len_sources;  /* alloc len of arguments in argv_sources  */
-    
+
 
     uint64_t *restrict _argv_objects_hash;/* sources, in argv form            */
     int                _argc_objects_hash;/* num of arguments in argv_sources */
@@ -975,7 +975,7 @@ void mace_Target_sources_grow(struct Target *target) {
         /* -- Realloc recompiles -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_recompiles);
         target->_recompiles = realloc(target->_recompiles, bytesize);
-        
+
         /* -- Realloc objects -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_argv_objects);
         target->_argv_objects = realloc(target->_argv_objects, bytesize);
@@ -2070,7 +2070,7 @@ void mace_Target_Free_notargv(struct Target *target) {
             }
         }
         free(target->_deps_obj);
-        target->_deps_obj= NULL;
+        target->_deps_obj = NULL;
     }
     if (target->_deps_obj_num != NULL) {
         free(target->_deps_obj_num);
@@ -2125,37 +2125,33 @@ void mace_post_build_order() {
     }
 }
 
-void mace_grow_deps(uint64_t *restrict _deps_obj, int*restrict _deps_obj_num, int       *restrict _deps_obj_len) {
-    if (_deps_obj == NULL) {
-        *_deps_obj_len = 8;
-        *_deps_obj_num = 0;
-        _deps_obj = calloc(*_deps_obj_len, sizeof(*_deps_obj));
-        return;        
-    }
+void mace_grow_deps(uint64_t **restrict _deps_obj, int *restrict _deps_obj_num,
+                    int       *restrict _deps_obj_len) {
     if (*_deps_obj_num >= *_deps_obj_len) {
-        *_deps_obj_len *= 2;
-        _deps_obj = realloc(_deps_obj, *_deps_obj_len * sizeof(*_deps_obj));        
+        (*_deps_obj_len) *= 2;
+        size_t bytesize = (*_deps_obj_len) * sizeof(**_deps_obj);
+        *_deps_obj = realloc(*_deps_obj, bytesize);
     }
 }
 
-void mace_read_obj_deps(char *deps, uint64_t *restrict _deps_obj, int       *restrict _deps_obj_num, int       *restrict _deps_obj_len) {
-    printf("mace_read_obj_deps\n");
+void mace_read_obj_deps(char *deps, uint64_t **restrict _deps_obj,
+                        int       *restrict _deps_obj_num, int       *restrict _deps_obj_len) {
     /* --- Split links into tokens, --- */
     char *token = strtok(deps, " ");
 
     /* --- Hash tokens into _deps_links --- */
     do {
         size_t len = strlen(token);
-        printf("token '%s' \n", token);
         if (token[len - 1] == 'h') {
             mace_grow_deps(_deps_obj, _deps_obj_num, _deps_obj_len);
-            _deps_obj[(*_deps_obj_num)++] = mace_hash(token);             
+            (*_deps_obj)[(*_deps_obj_num)++] = mace_hash(token);
         }
         token = strtok(NULL, " ");
     } while (token != NULL);
 }
 
-void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj, int       *restrict _deps_obj_num, int       *restrict _deps_obj_len) {
+void mace_parse_object_dependencies(char *objfile, uint64_t **restrict _deps_obj,
+                                    int       *restrict _deps_obj_num, int       *restrict _deps_obj_len) {
     bool oflag = (objfile[0] == '-') && (objfile[1] == 'o');
     int oflagl = 2;
     if (!oflag)
@@ -2175,18 +2171,16 @@ void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj,
     size_t ext = objlen - oflagl - 1;
     do {
         /* Check if .d exists */
-        file[ext] = 'd';    
-        printf("file %s\n", file);
+        file[ext] = 'd';
         FILE *fd = fopen(file, "rb");
         if (fd == NULL) {
             fprintf(stderr, "Object dependency file '%s' does not exist.\n", file);
             break;
         }
         /* Parse all dependencies, " " separated */
-        while (fgets (buffer, MACE_OBJDEP_BUFFER, fd) != NULL) {
+        while (fgets(buffer, MACE_OBJDEP_BUFFER, fd) != NULL) {
             size_t len = strlen(buffer);
-            printf("buffer %s \n", buffer);
-            
+
             /* - Repalce \n with \0 ' ' - */
             bool line_end = false;
             if (buffer[len - 1] == '\n') {
@@ -2196,36 +2190,37 @@ void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj,
 
             /* - Parsing here - */
             mace_read_obj_deps(buffer, _deps_obj, _deps_obj_num, _deps_obj_len);
-            
+
             if (!line_end) {
                 /* - Go back to last ' ', to read line more - */
                 char *last_ptr = strrchr(buffer, ' ');
                 /* [                  size                  ]  */
                 /* [    last_ptr - buffer    ] [ last_space ]  */
                 /* b--------------------------l-------------\0 */
-                int last_space = (int)(last_ptr - buffer) - size; 
+                int last_space = (int)(last_ptr - buffer) - size;
                 fseek(fd, last_space, SEEK_CUR);
             }
         }
-        
+
         // /* Write dependencies to .djb2 file */
         // strncpy(file + ext, "djb2", 4);
         // printf("file %s\n", file);
         // FILE *fdjb2 = fopen(file, "wb");
         // fwrite(_deps_obj, sizeof(*_deps_obj), *_deps_obj_num, fdjb2);
 
-    } while(false);
+    } while (false);
 
     free(file);
 }
 
 void mace_Target_parse_object_dependencies(struct Target *target) {
     // TODO: save hashed filenames dependencies to .djb2
-    //  test if faster to read: .djb2 vs .d 
+    //  test if faster to read: .djb2 vs .d
     /* Loop over all _argv_sources */
     /* Check if .djb2 exists */
     for (int i = 0; i < target->_argc_sources; i++) {
-        mace_parse_object_dependencies(target->_argv_objects[i], target->_deps_obj[i], &target->_deps_obj_num[i], &target->_deps_obj_len[i]);
+        mace_parse_object_dependencies(target->_argv_objects[i], &target->_deps_obj[i],
+                                       &target->_deps_obj_num[i], &target->_deps_obj_len[i]);
     }
     /* read all files, starting from 3rd (check if .h) */
     /* hash name */

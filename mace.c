@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     struct Mace_Arguments args = mace_parse_args(argc, argv);
 
     /* -- Override c compiler-- */
-    char *cc;   
+    char *cc;
     if (args.cc != NULL) {
         cc = args.cc;
     } else {

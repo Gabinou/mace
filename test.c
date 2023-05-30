@@ -1112,26 +1112,95 @@ void test_parse_d() {
     int _deps_obj_num = 0;
     int _deps_obj_len = 8;
     uint64_t *_deps_obj = calloc(_deps_obj_len, sizeof(*_deps_obj));
-    mace_parse_object_dependencies("-otest1.o", _deps_obj, &_deps_obj_num, &_deps_obj_len);
-    printf("_deps_obj_num %d\n",_deps_obj_num);
+
+    mace_parse_object_dependencies("-otest1.o", &_deps_obj, &_deps_obj_num, &_deps_obj_len);
     nourstest_true(_deps_obj_num == 1);
     nourstest_true(_deps_obj_len == 8);
     nourstest_true(_deps_obj[0] == mace_hash("tnecs.h"));
 
     _deps_obj_num = 0;
-    mace_parse_object_dependencies("test1.o", _deps_obj, &_deps_obj_num, &_deps_obj_len);
+    mace_parse_object_dependencies("test1.o", &_deps_obj, &_deps_obj_num, &_deps_obj_len);
     nourstest_true(_deps_obj_num == 1);
     nourstest_true(_deps_obj_len == 8);
     nourstest_true(_deps_obj[0] == mace_hash("tnecs.h"));
-    
+
     _deps_obj_num = 0;
-    mace_parse_object_dependencies("test2.o", _deps_obj, &_deps_obj_num, &_deps_obj_len);
-    nourstest_true(_deps_obj_num == 72);
+    mace_parse_object_dependencies("test2.o", &_deps_obj, &_deps_obj_num, &_deps_obj_len);
+    nourstest_true(_deps_obj_num == 73);
     nourstest_true(_deps_obj_len == 128);
-    // nourstest_true(_deps_obj[0] == mace_hash("tnecs.h"));
-    
-
-
+    nourstest_true(_deps_obj[0] == mace_hash("/home/gabinours/Sync/Firesaga/include/unit.h"));
+    nourstest_true(_deps_obj[1] == mace_hash("/home/gabinours/Sync/Firesaga/include/types.h"));
+    nourstest_true(_deps_obj[2] == mace_hash("/home/gabinours/Sync/Firesaga/include/enums.h"));
+    nourstest_true(_deps_obj[3] == mace_hash("/home/gabinours/Sync/Firesaga/names/mounts_types.h"));
+    nourstest_true(_deps_obj[4] == mace_hash("/home/gabinours/Sync/Firesaga/names/mounts.h"));
+    nourstest_true(_deps_obj[5] == mace_hash("/home/gabinours/Sync/Firesaga/names/chapters.h"));
+    nourstest_true(_deps_obj[6] == mace_hash("/home/gabinours/Sync/Firesaga/names/shops.h"));
+    nourstest_true(_deps_obj[7] == mace_hash("/home/gabinours/Sync/Firesaga/names/menu/options.h"));
+    nourstest_true(_deps_obj[8] == mace_hash("/home/gabinours/Sync/Firesaga/names/items.h"));
+    nourstest_true(_deps_obj[9] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_stats.h"));
+    nourstest_true(_deps_obj[10] == mace_hash("/home/gabinours/Sync/Firesaga/names/skills_passive.h"));
+    nourstest_true(_deps_obj[11] == mace_hash("/home/gabinours/Sync/Firesaga/names/skills_active.h"));
+    nourstest_true(_deps_obj[12] == mace_hash("/home/gabinours/Sync/Firesaga/names/items_types.h"));
+    nourstest_true(_deps_obj[13] == mace_hash("/home/gabinours/Sync/Firesaga/names/items_stats.h"));
+    nourstest_true(_deps_obj[14] == mace_hash("/home/gabinours/Sync/Firesaga/names/weapon_stats.h"));
+    nourstest_true(_deps_obj[15] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_PC.h"));
+    nourstest_true(_deps_obj[16] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_NPC.h"));
+    nourstest_true(_deps_obj[17] == mace_hash("/home/gabinours/Sync/Firesaga/names/items_effects.h"));
+    nourstest_true(_deps_obj[18] == mace_hash("/home/gabinours/Sync/Firesaga/names/camp_jobs.h"));
+    nourstest_true(_deps_obj[19] == mace_hash("/home/gabinours/Sync/Firesaga/names/classes.h"));
+    nourstest_true(_deps_obj[20] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_types.h"));
+    nourstest_true(_deps_obj[21] == mace_hash("/home/gabinours/Sync/Firesaga/names/armies.h"));
+    nourstest_true(_deps_obj[22] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_statuses.h"));
+    nourstest_true(_deps_obj[23] == mace_hash("/home/gabinours/Sync/Firesaga/names/tiles.h"));
+    nourstest_true(_deps_obj[24] == mace_hash("/home/gabinours/Sync/Firesaga/names/game_states.h"));
+    nourstest_true(_deps_obj[25] == mace_hash("/home/gabinours/Sync/Firesaga/names/game_substates.h"));
+    nourstest_true(_deps_obj[26] == mace_hash("/home/gabinours/Sync/Firesaga/names/json_elements.h"));
+    nourstest_true(_deps_obj[27] == mace_hash("/home/gabinours/Sync/Firesaga/names/mvt_types.h"));
+    nourstest_true(_deps_obj[28] == mace_hash("/home/gabinours/Sync/Firesaga/names/buttons.h"));
+    nourstest_true(_deps_obj[29] == mace_hash("/home/gabinours/Sync/Firesaga/names/popup/types.h"));
+    nourstest_true(_deps_obj[30] == mace_hash("/home/gabinours/Sync/Firesaga/names/menu/types.h"));
+    nourstest_true(_deps_obj[31] == mace_hash("/home/gabinours/Sync/Firesaga/names/menu/player_select.h"));
+    nourstest_true(_deps_obj[32] == mace_hash("/home/gabinours/Sync/Firesaga/names/errors.h"));
+    nourstest_true(_deps_obj[33] == mace_hash("/home/gabinours/Sync/Firesaga/names/input_flags.h"));
+    nourstest_true(_deps_obj[34] == mace_hash("/home/gabinours/Sync/Firesaga/names/scene_time.h"));
+    nourstest_true(_deps_obj[35] == mace_hash("/home/gabinours/Sync/Firesaga/include/structs.h"));
+    nourstest_true(_deps_obj[36] == mace_hash("/home/gabinours/Sync/Firesaga/second_party/noursmath/nmath.h"));
+    nourstest_true(_deps_obj[37] == mace_hash("/home/gabinours/Sync/Firesaga/second_party/tnecs/tnecs.h"));
+    nourstest_true(_deps_obj[38] == mace_hash("/home/gabinours/Sync/Firesaga/include/filesystem.h"));
+    nourstest_true(_deps_obj[39] == mace_hash("/home/gabinours/Sync/Firesaga/include/globals.h"));
+    nourstest_true(_deps_obj[40] == mace_hash("/home/gabinours/Sync/Firesaga/third_party/physfs/physfs.h"));
+    nourstest_true(_deps_obj[41] == mace_hash("/home/gabinours/Sync/Firesaga/include/platform.h"));
+    nourstest_true(_deps_obj[42] == mace_hash("/home/gabinours/Sync/Firesaga/third_party/cJson/cJSON.h"));
+    nourstest_true(_deps_obj[43] == mace_hash("/home/gabinours/Sync/Firesaga/second_party/nstr/nstr.h"));
+    nourstest_true(_deps_obj[44] == mace_hash("/home/gabinours/Sync/Firesaga/include/utilities.h"));
+    nourstest_true(_deps_obj[45] == mace_hash("/home/gabinours/Sync/Firesaga/include/palette.h"));
+    nourstest_true(_deps_obj[46] == mace_hash("/home/gabinours/Sync/Firesaga/include/debug.h"));
+    nourstest_true(_deps_obj[47] == mace_hash("/home/gabinours/Sync/Firesaga/include/macros.h"));
+    nourstest_true(_deps_obj[48] == mace_hash("/home/gabinours/Sync/Firesaga/include/names.h"));
+    nourstest_true(_deps_obj[49] == mace_hash("/home/gabinours/Sync/Firesaga/include/unit.h"));
+    nourstest_true(_deps_obj[50] == mace_hash("/home/gabinours/Sync/Firesaga/include/hashes.h"));
+    nourstest_true(_deps_obj[51] == mace_hash("/home/gabinours/Sync/Firesaga/include/supports.h"));
+    nourstest_true(_deps_obj[52] == mace_hash("/home/gabinours/Sync/Firesaga/names/support_types.h"));
+    nourstest_true(_deps_obj[53] == mace_hash("/home/gabinours/Sync/Firesaga/include/jsonio.h"));
+    nourstest_true(_deps_obj[54] == mace_hash("/home/gabinours/Sync/Firesaga/include/tile.h"));
+    nourstest_true(_deps_obj[55] == mace_hash("/home/gabinours/Sync/Firesaga/include/weapon.h"));
+    nourstest_true(_deps_obj[56] == mace_hash("/home/gabinours/Sync/Firesaga/include/item.h"));
+    nourstest_true(_deps_obj[57] == mace_hash("/home/gabinours/Sync/Firesaga/third_party/stb/stb_sprintf.h"));
+    nourstest_true(_deps_obj[58] == mace_hash("/home/gabinours/Sync/Firesaga/include/pixelfonts.h"));
+    nourstest_true(_deps_obj[59] == mace_hash("/home/gabinours/Sync/Firesaga/include/convoy.h"));
+    nourstest_true(_deps_obj[60] == mace_hash("/home/gabinours/Sync/Firesaga/include/camp.h"));
+    nourstest_true(_deps_obj[61] == mace_hash("/home/gabinours/Sync/Firesaga/include/narrative.h"));
+    nourstest_true(_deps_obj[62] == mace_hash("/home/gabinours/Sync/Firesaga/include/bitfields.h"));
+    nourstest_true(_deps_obj[63] == mace_hash("/home/gabinours/Sync/Firesaga/include/RNG.h"));
+    nourstest_true(_deps_obj[64] == mace_hash("/home/gabinours/Sync/Firesaga/third_party/tinymt/tinymt32.h"));
+    nourstest_true(_deps_obj[65] == mace_hash("/home/gabinours/Sync/Firesaga/include/sprite.h"));
+    nourstest_true(_deps_obj[66] == mace_hash("/home/gabinours/Sync/Firesaga/include/index_shader.h"));
+    nourstest_true(_deps_obj[67] == mace_hash("/home/gabinours/Sync/Firesaga/include/map.h"));
+    nourstest_true(_deps_obj[68] == mace_hash("/home/gabinours/Sync/Firesaga/include/arrow.h"));
+    nourstest_true(_deps_obj[69] == mace_hash("/home/gabinours/Sync/Firesaga/include/position.h"));
+    nourstest_true(_deps_obj[70] == mace_hash("/home/gabinours/Sync/Firesaga/include/equations.h"));
+    nourstest_true(_deps_obj[71] == mace_hash("/home/gabinours/Sync/Firesaga/include/combat.h"));
+    nourstest_true(_deps_obj[72] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_struct_stats.h"));
     free(_deps_obj);
 }
 
