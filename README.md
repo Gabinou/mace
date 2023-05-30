@@ -134,9 +134,9 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 ### Running benchmarks
 1. `cd` into benchmarks folder
 2. Compile test: `gcc benchmarks.c -o bench`
-3. Run testbenchmarks `./benchmarks`
+3. Run benchmarks `./benchmarks`
 
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
-- Argument parser [parg](https://github.com/jibsen/parg)
+- Argument parser: [parg](https://github.com/jibsen/parg)
