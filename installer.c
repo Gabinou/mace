@@ -48,9 +48,9 @@ int mace(int argc, char *argv[]) {
         .flags              = "-DMACE_OVERRIDE_MAIN -DCC="MACE_STRINGIFY(CC)" "
                               "-DBUILDER="MACE_STRINGIFY(BUILDER)" "
                               "-DDEFAULT_MACEFILE="MACE_STRINGIFY(DEFAULT_MACEFILE),
-        .command_post_build =
-                "install -T " MACE_STRINGIFY(BUILD_DIR) "/mace " MACE_STRINGIFY(PREFIX) "/bin/mace &&"
-                "install -T mace.h"          " " MACE_STRINGIFY(PREFIX) "/include/mace.h",
+        // .command_post_build =
+        //         "install -T " MACE_STRINGIFY(BUILD_DIR) "/mace " MACE_STRINGIFY(PREFIX) "/bin/mace &&"
+        //         "install -T mace.h"          " " MACE_STRINGIFY(PREFIX) "/include/mace.h",
 
     };
 
