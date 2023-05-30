@@ -31,6 +31,7 @@
 #include <sys/wait.h>
 #include <ftw.h>
 
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 /*----------------------------------------------------------------------------*/
 /*                                 PUBLIC API                                 */
 /*----------------------------------------------------------------------------*/
@@ -97,9 +98,9 @@ struct Target {
     const char *sources;           /* files, glob patterns,  ' ' separated    */
     const char *sources_exclude;   /* files, glob patterns,  ' ' separated    */
     const char *base_dir;          /* directory,                              */
-    /* Links are targets or libraries. Linked targets will be built before. */
+    /* Links are targets or libraries, are be built before. */
     const char *links;             /* libraries or targets   ' ' separated    */
-    /* Dependencies are targets, will be built before.*/
+    /* Dependencies are targets, are built before.*/
     const char *dependencies;      /* targets                ' ' separated    */
     const char *flags;             /* passed as is to compiler                */
 
@@ -123,6 +124,7 @@ struct Target {
     *     .includes           = "include include/foo",                  /
     *     .sources            = "src/* src/bar.c",                      /
     *     .sources_exclude    = "src/main.c",                           /
+    *     .dependencies       = "mytarget1",                            /
     *     .links              = "lib1 lib2 mytarget2",                  /
     *     .kind               = MACE_LIBRARY,                           /
     * };                                                                /
@@ -136,7 +138,7 @@ struct Target {
     int            _order;         /* target order added by user              */
 
 
-    /* --- This is only for targets with compilation ---  */
+    /* --- Compilation --- */
     char **restrict _argv;         /* buffer for argv to exec build commands  */
     int             _argc;         /* number of arguments in argv             */
     int             _arg_len;      /* alloced len of argv                     */
@@ -157,16 +159,19 @@ struct Target {
     int             _argc_objects;   /* number of arguments in argv_sources   */
     int             _len_objects;    /* alloc len of arguments in argv_sources*/
 
-    /* --- This is only for targets with dependencies ---  */
+    /* -- Exclusions --  */
+    uint64_t *restrict _excluded_files;
+    uint64_t *restrict _excluded_folders;
+    char **restrict _excluded_folders_path;
+
+    /* --- Dependencies ---  */
     uint64_t *restrict _deps_links;/* target or libs hashes                       */
     size_t     _deps_links_num;    /* target or libs hashes                       */
     size_t     _deps_links_len;    /* target or libs hashes                       */
     size_t     _d_cnt;             /* dependency count, for build order           */
-};
 
-/*----------------------------------------------------------------------------*/
-/*                               MACE INTERNALS                               */
-/*----------------------------------------------------------------------------*/
+};
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 
 /********************************** STRUCTS *********************************/
 struct Mace_Arguments {
@@ -187,6 +192,7 @@ struct Mace_Arguments {
 #define MACE_VER_MINOR 0
 #define MACE_VER_MAJOR 0
 #define MACE_VER_STRING "0.0.0"
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 enum MACE {
     MACE_DEFAULT_TARGET_LEN     =   8,
@@ -238,12 +244,14 @@ uint64_t mace_hash(const char *str);
 
 /* --- mace_utils --- */
 /* -- str -- */
-char  *mace_str_buffer(const char *const strlit);
 char  *mace_str_copy(char *restrict buffer, const char *restrict str);
 
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
+char  *mace_str_buffer(const char *const strlit);
 /* -- argv -- */
 char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
                        const char *restrict includes, const char *restrict flag, bool path);
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 char **mace_argv_grow(char **restrict argv, int *restrict argc, int *restrict arg_len);
 void   mace_argv_free(char **restrict argv, int argc);
@@ -277,9 +285,11 @@ void mace_Target_compile_allatonce(struct Target   *target);
 int     mace_globerr(const char *path, int eerrno);
 glob_t  mace_glob_sources(const char *path);
 
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /* --- mace_exec --- */
 pid_t mace_exec(const char *restrict exec, char *const arguments[]);
 void  mace_wait_pid(int pid);
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 /* --- mace_build --- */
 /* -- linking -- */
@@ -324,9 +334,11 @@ char *mace_library_path(char    *target_name);
 /********************************** GLOBALS ***********************************/
 bool verbose = false;
 
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /* -- separator -- */
 char *mace_separator = " ";
 char *mace_command_separator = "&&";
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 /* -- Compiler -- */
 char *cc      = NULL; // DESIGN QUESTION: Should I set a default?
@@ -360,12 +372,10 @@ char           *restrict build_dir   = NULL;   /* linked libraries, execs     */
 
 /* -- mace_globals control -- */
 void mace_object_grow();
-
-/*********************************** MACROS ***********************************/
-#define MACE_STRINGIFY(x) _MACE_STRINGIFY(x)
-#define _MACE_STRINGIFY(x) #x
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 
 /***************************** SHA1DC DECLARATION *****************************/
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 /***
 * Copyright 2017 Marc Stevens <marc@marc-stevens.nl>, Dan Shumow <danshu@microsoft.com>
@@ -522,7 +532,7 @@ void ubc_check(const uint32_t W[80], uint32_t dvmask[DVMASKSIZE]);
 #endif /* SHA1DC_CUSTOM_TRAILING_INCLUDE_UBC_CHECK_H */
 
 #endif /* SHA1DC_UBC_CHECK_H */
-
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /*************************** SHA1DC DECLARATION END ***************************/
 
 /****************************** PARG DECLARATION ******************************/
@@ -597,10 +607,12 @@ extern int parg_getopt_long(struct parg_state *ps, int c, char *const v[],
                             const char *os, const struct parg_opt *lo, int *li);
 
 #endif /* PARG_INCLUDED */
-
 /**************************** PARG DECLARATION END ****************************/
 
-/****************************** MACE SOURCE START *****************************/
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 #define vprintf(format, ...) do {\
         if (verbose)\
             printf(format, ##__VA_ARGS__);\
@@ -681,7 +693,7 @@ void mace_user_target_order(uint64_t hash) {
     exit(EPERM);
 
 }
-
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /********************************* mace_hash **********************************/
 uint64_t mace_hash(const char *str) {
     /* djb2 hashing algorithm by Dan Bernstein.
@@ -697,6 +709,7 @@ uint64_t mace_hash(const char *str) {
         hash = ((hash << 5) + hash) + str_char; /* hash * 33 + c */
     return (hash);
 }
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 
 /****************************** MACE_SET_obj_dir ******************************/
@@ -720,6 +733,7 @@ char *mace_str_copy(char *restrict buffer, const char *restrict str) {
 
 /************************************ argv ************************************/
 
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 void argv_free(int argc, char **argv) {
     if (argv == NULL)
         return;
@@ -748,7 +762,6 @@ void mace_argv_free(char **argv, int argc) {
     }
     free(argv);
 }
-
 char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict argv,
                        const char *restrict user_str, const char *restrict flag, bool path) {
     assert(argc != NULL);
@@ -801,6 +814,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     free(buffer);
     return (argv);
 }
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 void mace_Target_Parse_User(struct Target *target) {
     // Makes flags for target includes, links libraries, and flags
@@ -984,6 +998,7 @@ int mace_globerr(const char *path, int eerrno) {
     exit(eerrno);
 }
 
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /********************************* mace_exec **********************************/
 // Execute command in forked process.
 void mace_exec_print(char *const arguments[], size_t argnum) {
@@ -1026,7 +1041,7 @@ void mace_wait_pid(int pid) {
         }
     }
 }
-
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
 void mace_link_static_library(char *restrict target, char **restrict argv_objects,
@@ -1161,6 +1176,7 @@ void mace_Target_precompile(struct Target *target) {
     target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
     size_t len = strlen(target->_argv[MACE_ARGV_OBJECT]);
     target->_argv[MACE_ARGV_OBJECT][len - 1] = 'd';
+    // TODO: test with clang and tcc
     target->_argv[target->_argc++] = "-MM";
 
     /* -- Actual pre-compilation -- */
@@ -1235,7 +1251,6 @@ bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token
     }
 
     uint64_t hash = mace_hash(token);
-
     int hash_id = Target_hasObjectHash(target, hash);
 
     if (hash_id < 0) {
@@ -1478,13 +1493,14 @@ void mace_object_path(char *source) {
 
     free(path);
 }
-
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 char *mace_str_buffer(const char *strlit) {
     size_t  litlen  = strlen(strlit);
     char   *buffer  = calloc(litlen + 1, sizeof(*buffer));
     strncpy(buffer, strlit, litlen);
     return (buffer);
 }
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 void mace_print_message(const char *message) {
     if (message == NULL)
@@ -1796,10 +1812,6 @@ void mace_build_targets() {
     }
 }
 
-/*----------------------------------------------------------------------------*/
-/*                               MACE INTERNALS                               */
-/*----------------------------------------------------------------------------*/
-
 void mace_Target_Free(struct Target *target) {
     Target_Free_notargv(target);
     mace_Target_Free_argv(target);
@@ -2017,10 +2029,87 @@ void mace_Target_Deps_Hash(struct Target *target) {
         } while (token != NULL);
         free(buffer);
     } while (false);
-
 }
 
+/********************************** checksums *********************************/
+char *mace_checksum_filename(char *file) {
+    // Files should be .c or .h
+    size_t path_len  = strlen(file);
+    char *dot   = strchr(file, '.'); // last dot in path
+    char *slash = strrchr(file, '/'); // last slash in path
+    if (dot == NULL) {
+        fprintf(stderr, "Could not find extension in filename");
+        exit(EPERM);
+    }
+
+    int dot_i   = (int)(dot   - file);
+    int slash_i = (slash == NULL) ? 0 : (int)(slash - file);
+    size_t obj_dir_len  = strlen(obj_dir);
+    size_t file_len  = dot_i - slash_i;
+
+    size_t checksum_len  = (file_len + 5) + obj_dir_len + 1;
+
+    char *sha1  = calloc(checksum_len, sizeof(*sha1));
+    strncpy(sha1, obj_dir, obj_dir_len);
+    size_t total = obj_dir_len;
+    strncpy(sha1 + total, file + slash_i, file_len);
+    total += file_len;
+    strncpy(sha1 + total, ".sha1", 5);
+    return (sha1);
+}
+
+inline bool mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]) {
+    return (memcmp(hash1, hash2, SHA1_LEN) == 0);
+}
+
+void mace_sha1cd(char *file, uint8_t hash[SHA1_LEN]) {
+    assert(file != NULL);
+    size_t size;
+    int i, j, foundcollision;
+
+    /* - open file - */
+    FILE *fd = fopen(file, "rb");
+    if (fd == NULL) {
+        fprintf(stderr, "cannot open file: %s: %s\n", file, strerror(errno));
+        exit(EPERM);
+    }
+
+    /* - compute checksum - */
+    SHA1_CTX ctx2;
+    SHA1DCInit(&ctx2);
+    char buffer[USHRT_MAX + 1];
+    while (true) {
+        size = fread(buffer, 1, (USHRT_MAX + 1), fd);
+        SHA1DCUpdate(&ctx2, buffer, (unsigned)(size));
+        if (size != (USHRT_MAX + 1))
+            break;
+    }
+    if (ferror(fd)) {
+        fprintf(stderr, " file read error: %s: %s\n", file, strerror(errno));
+        exit(EPERM);
+    }
+    if (!feof(fd)) {
+        fprintf(stderr, "not end of file?: %s: %s\n", file, strerror(errno));
+        exit(EPERM);
+    }
+
+    /* - check for collision - */
+    foundcollision = SHA1DCFinal(hash, &ctx2);
+
+    if (foundcollision) {
+        fprintf(stderr, "sha1dc: collision detected");
+        exit(EPERM);
+    }
+
+    fclose(fd);
+}
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
+/*----------------------------------------------------------------------------*/
+/*                               MACE SOURCE END                              */
+/*----------------------------------------------------------------------------*/
+
 /******************************** SHA1DC SOURCE *******************************/
+#ifndef MACE_CONVENCIENCE_EXECUTABLE
 
 /***
 * Copyright 2017 Marc Stevens <marc@marc-stevens.nl>, Dan Shumow (danshu@microsoft.com)
@@ -4354,6 +4443,7 @@ void ubc_check(const uint32_t W[80], uint32_t dvmask[1]) {
     #include SHA1DC_CUSTOM_TRAILING_INCLUDE_UBC_CHECK_C
 #endif
 
+#endif /* MACE_CONVENCIENCE_EXECUTABLE */
 /****************************** SHA1DC SOURCE END *****************************/
 
 /********************************* PARG SOURCE ********************************/
@@ -4876,87 +4966,14 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     return (out_args);
 }
 
-/********************************** checksums *********************************/
-char *mace_checksum_filename(char *file) {
-    // Files should be .c or .h
-    size_t path_len  = strlen(file);
-    char *dot   = strchr(file, '.'); // last dot in path
-    char *slash = strrchr(file, '/'); // last slash in path
-    if (dot == NULL) {
-        fprintf(stderr, "Could not find extension in filename");
-        exit(EPERM);
-    }
-
-    int dot_i   = (int)(dot   - file);
-    int slash_i = (slash == NULL) ? 0 : (int)(slash - file);
-    size_t obj_dir_len  = strlen(obj_dir);
-    size_t file_len  = dot_i - slash_i;
-
-    size_t checksum_len  = (file_len + 5) + obj_dir_len + 1;
-
-    char *sha1  = calloc(checksum_len, sizeof(*sha1));
-    strncpy(sha1, obj_dir, obj_dir_len);
-    size_t total = obj_dir_len;
-    strncpy(sha1 + total, file + slash_i, file_len);
-    total += file_len;
-    strncpy(sha1 + total, ".sha1", 5);
-    return (sha1);
-}
-
-inline bool mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]) {
-    return (memcmp(hash1, hash2, SHA1_LEN) == 0);
-}
-
-void mace_sha1cd(char *file, uint8_t hash[SHA1_LEN]) {
-    assert(file != NULL);
-    size_t size;
-    int i, j, foundcollision;
-
-    /* - open file - */
-    FILE *fd = fopen(file, "rb");
-    if (fd == NULL) {
-        fprintf(stderr, "cannot open file: %s: %s\n", file, strerror(errno));
-        exit(EPERM);
-    }
-
-    /* - compute checksum - */
-    SHA1_CTX ctx2;
-    SHA1DCInit(&ctx2);
-    char buffer[USHRT_MAX + 1];
-    while (true) {
-        size = fread(buffer, 1, (USHRT_MAX + 1), fd);
-        SHA1DCUpdate(&ctx2, buffer, (unsigned)(size));
-        if (size != (USHRT_MAX + 1))
-            break;
-    }
-    if (ferror(fd)) {
-        fprintf(stderr, " file read error: %s: %s\n", file, strerror(errno));
-        exit(EPERM);
-    }
-    if (!feof(fd)) {
-        fprintf(stderr, "not end of file?: %s: %s\n", file, strerror(errno));
-        exit(EPERM);
-    }
-
-    /* - check for collision - */
-    foundcollision = SHA1DCFinal(hash, &ctx2);
-
-    if (foundcollision) {
-        fprintf(stderr, "sha1dc: collision detected");
-        exit(EPERM);
-    }
-
-    fclose(fd);
-}
-
 /************************************ main ************************************/
 // 1- Runs mace function, get all info from user:
 //   a- Get compiler
 //   b- Get targets
-// 2- Builds dependency graph from targets' links
+// 2- Builds dependency graph from targets' links, dependencies
 // 3- TODO: Determine which targets need to be recompiled
 // 4- Build the targets
-// TODO: if `mace clean` is called (clean target), rm all targets
+
 #ifndef MACE_OVERRIDE_MAIN
 int main(int argc, char *argv[]) {
     printf("START\n");
