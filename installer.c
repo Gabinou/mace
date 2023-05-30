@@ -1,8 +1,14 @@
 
 #include "mace.h"
 
+// Compiler used to compile installer executable
+#ifndef CC
 #define CC gcc
-#define MACE_CONVENIENCE_EXECUTABLE "mace"
+#endif /* CC */
+#define BUILD_DIR "bin"
+#define OBJ_DIR "obj"
+#define EXECUTABLE_NAME "mace"
+#define HEADER_NAME "mace.h"
 #ifndef PREFIX
     #define PREFIX "/usr/local"
 #endif /* PREFIX */
@@ -14,28 +20,31 @@
 /*======================================================================*/
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC);
-    mace_set_build_dir("bin");
-    mace_set_obj_dir("obj");
+    mace_set_build_dir(BUILD_DIR);
+    mace_set_obj_dir(OBJ_DIR);
 
-
-    /* - mace convenience executable - */
+    /* -- mace convenience executable -- */
     // Note: "mace" token is reserved for user entry point.
     struct Target MACE      = { /* Unitialized values guaranteed to be 0 / NULL */
         .sources            = "mace.c",
         .kind               = MACE_EXECUTABLE,
         // Overrides main in mace.h with custom main.
-        .flags              = "-DMACE_CONVENIENCE_EXECUTABLE",
+        .flags              = "-DMACE_OVERRIDE_MAIN -DCC=gcc -DBUILDER=build",
     };
-    MACE_ADD_TARGET(MACE);
-    // Change target name from "MACE" to "mace"
-    targets[0]._name = MACE_CONVENIENCE_EXECUTABLE;
+    // Add target with different name, i.e. "mace"
+    mace_add_target(&MACE, EXECUTABLE_NAME);
 
-    /* - mace install - */
-    // 1. Copies mace.h header to `/usr/include`.
-    // 2. Copies mace convenient executable to `/usr/bin`
-    struct Command install  = {
-        .command            = "install " build_dir / MACE_CONVENIENCE_EXECUTABLE
-                              PREFIX / MACE_CONVENIENCE_EXECUTABLE,
-    };
+    // /* - mace install - */
+    // // 1. Copies mace convenience executable to `/usr/local/bin`
+    // // 2. Copies mace header                 to `/usr/local/include`
+    // struct Command install_mace = {
+    //     .command                = "install" 
+    //                               " " BUILD_DIR "/" EXECUTABLE_NAME
+    //                               " " PREFIX "/bin/" EXECUTABLE_NAME
+    //                               " " "&& install"
+    //                               " " HEADER_NAME 
+    //                               " " PREFIX "/include/" HEADER_NAME,
+    // };
+    // MACE_ADD_COMMAND(install_mace);
 }
 

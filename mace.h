@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -31,7 +32,10 @@ extern int mace(int argc, char *argv[]);
 *           MACE FUNCTION             /
 * int mace(int argc, char *argv[]) {  /
 *   MACE_SET_COMPILER(gcc);           /
-*   MACE_ADD_TARGET(mytarget);        /
+*   MACE_ADD_COMMAND(before_foo1);    /
+*   MACE_ADD_TARGET(foo1);            /
+*   MACE_ADD_COMMAND(after_foo1);     /
+*   MACE_ADD_TARGET(foo2);            /
 * };                                  /
 /*-----------------------------------*/
 
@@ -49,14 +53,19 @@ void mace_set_separator(char *sep);
 
 /* --- Commands --- */
 struct Command;
+// - Commands run before target at build_order.
+//  - ONE command per build_order.
+// - Multiple commands at same build_order run first-come first-serve.
+// - MACE_ADD_COMMAND will add command to run before next target.
+#define MACE_ADD_COMMAND(command) mace_add_command(&command, #command, target_num)
+void mace_add_command(struct Command *command, char *name, int build_order);
 
 /* --- Targets --- */
 struct Target;
 #define MACE_ADD_TARGET(target) mace_add_target(&target, #target)
 void mace_add_target(struct Target *target, char *name);
 
-/**************************** TARGET STRUCT ***********************************/
-
+/******************************* TARGET STRUCT ********************************/
 struct Target {
 
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
@@ -66,10 +75,11 @@ struct Target {
     const char *base_dir;          /* directory,                              */
     const char *links;             /* libraries or targets   ' ' separated    */
     const char *flags;             /* passed as is to compiler                */
-    const char *message_pre_build;
-    const char *command_pre_build;
-    const char *message_post_build;
-    const char *command_post_build;
+    // These commands should be necessary to build target
+    const char *command_pre_build; /* command ran before building target      */
+    const char *command_post_build;/* command ran after building target       */
+    const char *message_pre_build; /* message printed before building target  */
+    const char *message_post_build;/* message printed after building target   */
     int         kind;              /* MACE_TARGET_KIND                        */
     /* allatonce: Compile all .o objects at once (calls gcc one time).        */
     /* Compiles slightly faster: gcc is called once per .c file when false.   */
@@ -127,6 +137,20 @@ struct Target {
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
 };
 
+/******************************* COMMAND STRUCT *******************************/
+struct Command {
+    /*---------------------------- PUBLIC MEMBERS ----------------------------*/
+    const char *command;                 /* command string,  ' ' separated    */
+
+    /*---------------------------- PRIVATE MEMBERS ---------------------------*/
+    /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
+    char      **_argv;             /* buffer for argv to exec build commands  */
+    int         _argc;             /* number of arguments in argv             */
+    int         _arg_len;          /* alloced len of argv                     */
+    /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
+};
+
+
 /*----------------------------------------------------------------------------*/
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
@@ -180,7 +204,8 @@ char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
 
 /* --- mace_Target --- */
-void mace_add_target(struct Target *target, char *name);
+void mace_add_target(struct Target   *target,  char *name);
+void mace_add_command(struct Command *command, char *name, int build_order);
 
 /* -- Target OOP -- */
 void mace_Target_Free(struct Target              *target);
@@ -255,6 +280,9 @@ char cwd[MACE_CWD_BUFFERSIZE];
 size_t *build_order = NULL;
 size_t  build_order_num = 0;
 
+/* -- list of commands added by user -- */
+struct Command *commands    = NULL;   /* [order] is as added by user      */
+
 /* -- list of targets added by user -- */
 struct Target  *targets    = NULL;   /* [order] is as added by user      */
 size_t          target_num = 0;
@@ -271,6 +299,11 @@ char           *build_dir  = NULL;   /* linked libraries, executables    */
 /* -- mace_globals control -- */
 void mace_object_grow();
 
+/*********************************** MACROS ***********************************/
+
+#define MACE_STRINGIFY(x) _MACE_STRINGIFY(x)
+#define _MACE_STRINGIFY(x) #x
+
 /******************************* MACE_ADD_TARGET ******************************/
 #define vprintf(format, ...) do {\
         if (verbose)\
@@ -278,6 +311,19 @@ void mace_object_grow();
     } while(0)
 
 /******************************* MACE_ADD_TARGET ******************************/
+void mace_grow_targets() {
+    target_len *= 2;
+    targets     = realloc(targets,     target_len * sizeof(*targets));
+    commands    = realloc(commands,    target_len * sizeof(*commands));
+    build_order = realloc(build_order, target_len * sizeof(*build_order));
+}
+
+void mace_add_command(struct Command *command, char *name, int build_order) {
+    if (build_order >= target_len) {
+        mace_grow_targets();
+    }
+    commands[build_order]        = *command;
+}
 
 void mace_add_target(struct Target *target, char *name) {
     targets[target_num]        = *target;
@@ -287,27 +333,10 @@ void mace_add_target(struct Target *target, char *name) {
     mace_Target_Deps_Hash(&targets[target_num]);
     mace_Target_Parse_User(&targets[target_num]);
     mace_Target_argv_init(&targets[target_num]);
-    if (++target_num == target_len) {
-        target_len *= 2;
-        targets     = realloc(targets,     target_len * sizeof(*targets));
-        build_order = realloc(build_order, target_len * sizeof(*build_order));
+    if (++target_num >= target_len) {
+        mace_grow_targets();
     }
 }
-
-/******************************** Phony struct ********************************/
-// Builds dependencies, then runs command.
-struct Command {
-    char *command;
-    char *deps;      /* targets,               ' ' separated */
-};
-
-/****************************** MACE_ADD_COMMAND ******************************/
-// Command targets are only built when called explicitely e.g. <./build> install
-// Default phony: 'clean' removes all targets.
-#define MACE_ADD_COMMAND(a)
-// How to dermine command order?
-//  - If command has dependencies, order computed from dependency graph
-//  - If command has NO dependencies, user can set order
 
 /********************************* mace_hash **********************************/
 uint64_t mace_hash(char *str) {
@@ -771,6 +800,7 @@ void mace_Target_compile(struct Target *target) {
     // Compile latest object
     assert(target != NULL);
     assert(target->_argv != NULL);
+    printf("target->_argc_sources %d\n", target->_argc_sources);
     assert(target->_argv_sources[target->_argc_sources - 1] != NULL);
     assert(target->_argv_objects[target->_argc_objects - 1] != NULL);
     /* - Single source argv - */
@@ -879,8 +909,15 @@ bool mace_Target_Source_Add(struct Target *target, char *token) {
     size_t token_len = strlen(token);
     char *arg = calloc(token_len + 1, sizeof(*arg));
     strncpy(arg, token, token_len);
-    target->_argv_sources[target->_argc_sources++] = realpath(arg, NULL);
-
+    assert(arg != NULL);
+    char* rpath = calloc(PATH_MAX, sizeof(*target->_argv_sources));
+    rpath = realpath(arg, rpath);
+    rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*targets));
+    if (rpath == NULL) {
+        fprintf(stderr, "realpath error : %s\n", strerror(errno));
+        exit(errno);
+    }
+    target->_argv_sources[target->_argc_sources++] = rpath;
     free(arg);
     return (excluded);
 }
@@ -1027,6 +1064,11 @@ char *mace_str_buffer(const char *strlit) {
     char   *buffer  = calloc(litlen + 1, sizeof(*buffer));
     strncpy(buffer, strlit, litlen);
     return (buffer);
+}
+void mace_run_command(struct Command *command) {
+    if (command->command != NULL) {
+
+    }
 }
 
 /******************************** mace_build **********************************/
@@ -1231,10 +1273,12 @@ void mace_targets_build_order() {
 }
 
 void mace_build_targets() {
-    for (int z = 0; z < build_order_num; z++) {
-        int i = build_order[z];
-        mace_build_target(&targets[i]);
+    int z = 0;
+    for (z = 0; z < build_order_num; z++) {
+        // mace_run_command(&commands[build_order[z]]);
+        mace_build_target(&targets[build_order[z]]);
     }
+    // mace_run_command(&commands[build_order[z]]);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1338,8 +1382,9 @@ void mace_init() {
     target_len  = MACE_DEFAULT_TARGET_LEN;
     object_len  = MACE_DEFAULT_OBJECT_LEN;
 
-    targets = malloc(target_len  * sizeof(*targets));
-    object  = malloc(object_len  * sizeof(*object));
+    object   = calloc(object_len, sizeof(*object));
+    targets  = calloc(target_len, sizeof(*targets));
+    commands = calloc(target_len, sizeof(*commands));
 
     /* --- Default output folders --- */
     mace_set_build_dir("build/");
@@ -1409,7 +1454,7 @@ void mace_Target_Deps_Hash(struct Target *target) {
 // 3- TODO: Determine which targets need to be recompiled
 // 4- Build the targets
 // TODO: if `mace clean` is called (clean target), rm all targets
-#ifndef MACE_CONVENIENCE_EXECUTABLE
+#ifndef MACE_OVERRIDE_MAIN
 int main(int argc, char *argv[]) {
     printf("START\n");
 
@@ -1438,4 +1483,4 @@ int main(int argc, char *argv[]) {
     printf("FINISH\n");
     return (0);
 }
-#endif /* MACE_CONVENIENCE_EXECUTABLE */
+#endif /* MACE_OVERRIDE_MAIN */
