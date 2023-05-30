@@ -1,7 +1,7 @@
 
 ## About
 
-Mace is a C99-only build system.
+Mace is a build system for C, that uses C.
 
 Specificity, reduced scope, all in service of *simplicity*. 
 
