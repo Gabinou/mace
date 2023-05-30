@@ -49,7 +49,7 @@ int mace(int argc, char *argv[]) {
     /* - mace install - */
     // 1. Copies mace convenience executable to `/usr/local/bin` by default
     // 2. Copies mace header                 to `/usr/local/include` by default
-    struct Command install_mace = {
+    struct Command install  = {
         .commands =
                 "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
                 "install -T mace.h"          " " PREFIX "/include/mace.h",

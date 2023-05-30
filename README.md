@@ -1,22 +1,22 @@
 
 ## About
 
-Mace is a build system for C, that uses C.
+Mace is a single-header build system for C, which uses C.
 
-Specificity, reduced scope, all in service of *simplicity*. 
+Specificity, reduced scope, everything in service of *simplicity*. 
 
 ## Features
-- As simple as possible.
 - C syntax.
     - Macefiles are `.c` files.
-    - Targets are `structs`. 
+    - Targets are `structs` (including phony/command targets). 
     - Function `mace` is user entry point.
-- Single header build system.
+- Single header build system : `mace.h` is all you need.
     - Compiling macefile as easy as compiling `hello_world.c`, or easier!
     - Build project by running resulting executable.
-- Easy to learn
-    - Familiar syntax.
-    - Simple API.
+- Convenience executable for make-like behavior
+    - Build and run macefile `installer.c` to install `mace` and `mace.h`
+    - `mace macefile.c` to build!
+- Simple API
 
 ## Usage
 1. Get `mace.h`
@@ -51,35 +51,28 @@ int mace(int argc, char *argv[]) {
 ### Convenience executable
 1. Install `mace` convenience executable
     1. Compile `installer.c` macefile: `gcc installer.c -o installer`
-    2. Run installer: `sudo ./installer`
+    2. Run installer: `sudo ./installer`. 
 2. Write your own macefile e.g. `macefile.c`
 3. Build `mace macefile.c`
 
-The convenience executable `mace` will compile the `macefile.c` into the `build` executable, and run it.
-Nothing more, nothing less.
-
 You can modify the default install path `/usr/local` with `-DPREFIX=\"<path>\"` when compiling `installer`.
-
-Some default behaviour of the convenience executable can be customized, see `installer.c`:
-- Default compiler with the target flag `-DCC=gcc`
-- Builder executable name with the target flag `-DBUILDER=build`
 
 ## Why?
 - No build systems for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
-    - Proof 2: Modern programming languages devs implement their own build systems.
+    - Proof 2: Modern programming languages devs implement their own build systems: Rust, Zig, Go, etc.
     - Proof 3: Ask random C/C++ developers about `make`, `CMake`, etc.
-- Most if not all build systems have obtuse syntax, scale terribly to larger projects.
+- Most build systems have obtuse syntax, scale terribly to larger projects.
     - Makefiles makers exist (`premake`, `autoconf`/`autotools`) and compound this issue.
-    - Mix of imperative and declarative style, terrible.
+    - Mix of imperative and declarative style.
     - Personal experience: homemade `makefile` need constant updates and break in unexpected ways if the project structure changes slightly.
-- Build systems are general-purpose and complex.
+- Generality breeds complexity.
     - Complexity bad. Simplicity good.
 - Build system perfomance bottleneck is compilation.
     - Modern compilers (`gcc`, `clang`) are slow, maybe except `tcc`.
 
 ## Limitations
-- Linux only.
+- Tested on Linux only.
 - Cannot deal with circular dependencies in linked libraries.
 - C only, C99 and above, C++ not supported.
 
