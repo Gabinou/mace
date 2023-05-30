@@ -188,7 +188,7 @@ struct Target {
     char     **restrict _headers_checksum; /* header checksum filename in obj */
     int       *restrict _headers_checksum_cnt; /* # of headers with same path */
 
-    char     **restrict _headers;          /* header filename hashes          */
+    char     **restrict _headers;     /* [hdr_order] header filename hashes          */
     // need same number of _headers and _headers_checksum
     uint64_t  *restrict _headers_hash;/* [hdr_order] header filename hashes   */
     int                 _headers_num; /* len of headers                       */
@@ -199,6 +199,7 @@ struct Target {
 
     /* --- Recompile switches ---  */
     bool *_recompiles; /* [argc_source] */
+    bool *_hdrs_changed; /*[hdr_order] */
 };
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 
@@ -314,18 +315,20 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void Target_Object_Hash_Add_nocoll(struct Target *target, uint64_t hash);
     void Target_Object_Hash_Add(struct Target *target, uint64_t hash);
 
+    void mace_parse_object_dependencies(struct Target *target, int source_i);
+
     /* -- Target OOP -- */
     void mace_Target_Free(struct Target                *target);
     bool mace_Target_hasDep(struct Target              *target, uint64_t hash);
     void mace_Target_compile(struct Target             *target);
     void mace_Target_Deps_Add(struct Target            *target, uint64_t hash);
     bool mace_Source_Checksum(struct Target            *target, char *s, char *o);
-    bool mace_Headers_Checksums(struct Target          *target);
     void mace_Target_Free_argv(struct Target           *target);
     void mace_Target_Deps_Hash(struct Target           *target);
     void mace_Target_Deps_Grow(struct Target           *target);
     void mace_Target_argv_init(struct Target           *target);
     void mace_Target_argv_grow(struct Target           *target);
+    void mace_Headers_Checksums(struct Target          *target);
     bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token);
     bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token);
     uint64_t mace_Target_Header_Add(struct Target *restrict target, char *restrict header);
@@ -4117,7 +4120,7 @@ void mace_Target_compile_allatonce(struct Target *target) {
 }
 
 void mace_Target_precompile(struct Target *target) {
-    // printf("mace_Target_precompile\n");
+    printf("mace_Target_precompile\n");
     /* Compute latest object dependency */
     // TODO: only if source changed
     assert(target != NULL);
@@ -4167,9 +4170,15 @@ void mace_Target_precompile(struct Target *target) {
     }
     target->_argv[--target->_argc] = NULL;
 
-    /* Object dependencies (headers) */
-    // read .d file and hashes the filenames, write all headers to .ho files.
+    /* -- Object dependencies (headers) -- */
+    /* - Read .d file and hashes the filenames, write all headers to .ho files. - */
     mace_Target_parse_object_dependencies(target);
+
+    /* - Compute checksums of all headers - */
+    mace_Headers_Checksums(target);
+
+    /* - Check if any source's header changed - */
+    mace_Headers_Checksums_Checks(target);
 }
 
 void mace_Target_compile(struct Target *target) {
@@ -4322,17 +4331,32 @@ bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token
     return (exists);
 }
 
-bool mace_Headers_Checksums(struct Target *target) {
+void mace_Headers_Checksums_Checks(struct Target *target) {
+    // For every source file,
+    for (int i = 0; i < target->_argc_sources; i++) {        
+    // Check if any header file it depends on has changed
+        for (int j = 0; j < target->_deps_headers_num[i]; j++) {
+            int header_order = target->_deps_headers[i][j]; 
+            if (target->_hdrs_changed[header_order]) {
+                target->_recompiles[i] = true;    
+                break;
+            }
+        }
+    }
+}
+
+void mace_Headers_Checksums(struct Target *target) {
     /* --- HEADERS CHECKSUMS --- */
-    bool any_changed = false;
     assert(chdir(cwd) == 0);
     uint8_t hash_current[SHA1_LEN];
     uint8_t hash_previous[SHA1_LEN];
 
+    // printf("target->_headers_num %d \n", target->_headers_num);
     for (int i = 0; i < target->_headers_num; i++) {
         /* - Compute current checksum - */
         memset(hash_previous, 0, SHA1_LEN);
         char *checksum_path = target->_headers_checksum[i];
+        // printf("checksum_path %s \n", checksum_path);
         char *header_path = target->_headers[i];
         mace_sha1cd(header_path, hash_current);
 
@@ -4362,13 +4386,11 @@ bool mace_Headers_Checksums(struct Target *target) {
             fwrite(hash_current, 1, SHA1_LEN, fd); // SHA1_LEN
             fclose(fd);
         }
-        any_changed |= changed;
+        target->_hdrs_changed[i] = changed;
     }
 
     if (target->base_dir != NULL)
         assert(chdir(target->base_dir) == 0);
-
-    return(any_changed);
 }
 
 bool mace_Source_Checksum(struct Target *target, char *source_path, char *obj_path) {
@@ -4456,9 +4478,7 @@ void mace_Target_Parse_Source(struct Target *restrict target, char *path, char *
         bool exists  = mace_Target_Object_Add(target, object);
         size_t i = target->_argc_sources - 1;
         bool changed_src  = mace_Source_Checksum(target, target->_argv_sources[i], target->_argv_objects[i]);
-        bool changed_hdrs = mace_Headers_Checksums(target);
-        bool changed = changed_src || changed_hdrs;
-        mace_Target_Recompiles_Add(target, !excluded && (changed || !exists));
+        mace_Target_Recompiles_Add(target, !excluded && (changed_src || !exists));
     }
 }
 
@@ -5082,6 +5102,11 @@ void mace_grow_headers(struct Target *target) {
         target->_headers_hash  = calloc(target->_headers_len, sizeof(*target->_headers_hash));
     }
 
+    /* -- Alloc _hdrs_changed -- */
+    if (target->_hdrs_changed == NULL) {
+        target->_hdrs_changed  = calloc(target->_headers_len, sizeof(*target->_hdrs_changed));
+    }
+
     /* -- Alloc _headers_checksum -- */
     if (target->_headers_checksum == NULL) {
         target->_headers_checksum  = calloc(target->_headers_len, sizeof(*target->_headers_checksum));
@@ -5094,6 +5119,13 @@ void mace_grow_headers(struct Target *target) {
     if (target->_headers_checksum_cnt == NULL) {
         // Always less hashes than _headers_checksum
         target->_headers_checksum_cnt = calloc(target->_headers_len, sizeof(*target->_headers_checksum_cnt));
+    }
+
+    /* -- Realloc _headers_checksum -- */
+    if (target->_headers_num >= (target->_headers_len - 1)) {
+        size_t bytesize = target->_headers_len * 2 * sizeof(*target->_hdrs_changed);
+        target->_hdrs_changed = realloc(target->_hdrs_changed, bytesize);
+        memset(target->_hdrs_changed target->_headers_len, 0, bytesize / 2);
     }
 
     /* -- Realloc _headers_checksum -- */
@@ -5127,6 +5159,7 @@ void mace_grow_headers(struct Target *target) {
 }
 
 void mace_Target_read_obj_deps(struct Target *target, char *deps, int obj_hash_id) {
+    printf("mace_Target_read_obj_deps\n");
     /* --- Split links into tokens, --- */
     char *header = strtok(deps, " ");
 
@@ -5231,13 +5264,19 @@ void mace_Target_add_header_dep(struct Target *target, int header_order, int obj
 
 /* - Parse .d file, recording all header files to .ho files - */
 // Only be called if source file changed
-void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) {
+void mace_parse_object_dependencies(struct Target *target, int source_i) {
+    printf("mace_parse_object_dependencies A\n");
+    char *  obj_file_flag = target->_argv_objects[source_i];
+
     /* obj_file_flag should start with "-o" */
+    printf("obj_file_flag %s\n", obj_file_flag);
+    printf("-o flag\n");
     if ((obj_file_flag[0] != '-') || (obj_file_flag[1] != 'o')) {
         /* error? */
         fprintf(stderr, "obj_file_flag '%s' missing the -o flag.");
         exit(EPERM);
     }
+    printf("-o flag\n");
     int oflagl = 2;
     int obj_hash_id;
     size_t obj_len = strlen(obj_file_flag);
@@ -5246,67 +5285,83 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
     char buffer[MACE_OBJDEP_BUFFER];
     size_t size;
     size_t ext = obj_len - oflagl - 1;
-    do {
-        /* Check if .d exists */
-        obj_file[ext] = 'd';
-        FILE *fd = fopen(obj_file, "rb");
-        if (fd == NULL) {
-            fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
-            break;
-        }
-        /* Parse all dependencies, " " separated */
-        while (fgets(buffer, MACE_OBJDEP_BUFFER, fd) != NULL) {
-            size_t len = strlen(buffer);
 
-            /* - Replace \n with \0 ' ' - */
-            bool line_end = false;
-            if (buffer[len - 1] == '\n') {
-                line_end = true;
-                buffer[len - 1] = '\0';
-            }
 
-            /* Check that target has object with nocoll hashes */
-            obj_file[ext] = 'o';
-            uint64_t obj_hash = mace_hash(obj_file);
-            obj_hash_id = Target_hasObjectHash_nocoll(target, obj_hash);
-            assert(obj_hash_id < target->_objects_hash_nocoll_num);
-            assert(obj_hash_id > -1);
+    /* Check if .ho exists */
+    strncpy(obj_file + ext, "ho", 2);
+    FILE *fho = fopen(obj_file, "r");
+    bool fho_exists = (fho == NULL);
+    fclose(fho);
 
-            /* - Parsing dependencies - */
-            mace_Target_read_obj_deps(target, buffer, obj_hash_id);
+    /* - Only need to compute .ho file if source changed OR fho doesn't exist - */
+    bool source_changed = target->_recompiles[source_i];
+    if ((!source_changed) && (fho_exists)) {
+        free(obj_file);
+        return;
+    }
 
-            if (!line_end) {
-                /* - Go back to last ' ', to read line more - */
-                char *last_ptr = strrchr(buffer, ' ');
-                /* [                  size                  ]  */
-                /* [    last_ptr - buffer    ] [ last_space ]  */
-                /* b--------------------------l-------------\0 */
-                int last_space = (int)(last_ptr - buffer) - size;
-                fseek(fd, last_space, SEEK_CUR);
-            }
+    /* Check if .d exists */
+    obj_file[ext] = 'd';
+    obj_file[ext + 1] = '\0';
+    printf("obj_file %s \n", obj_file);
+    FILE *fho = fopen(obj_file, "rb");
+    if (fd == NULL) {
+        fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
+        exit(EPERM);
+    }
+    /* Parse all dependencies, " " separated */
+    while (fgets(buffer, MACE_OBJDEP_BUFFER, fd) != NULL) {
+        printf("buffer %s \n", buffer);
+        size_t len = strlen(buffer);
+
+        /* - Replace \n with \0 ' ' - */
+        bool line_end = false;
+        if (buffer[len - 1] == '\n') {
+            line_end = true;
+            buffer[len - 1] = '\0';
         }
 
-        fclose(fd);
+        /* Check that target has object with nocoll hashes */
+        obj_file[ext] = 'o';
+        uint64_t obj_hash = mace_hash(obj_file);
+        obj_hash_id = Target_hasObjectHash_nocoll(target, obj_hash);
+        assert(obj_hash_id < target->_objects_hash_nocoll_num);
+        assert(obj_hash_id > -1);
 
-        /* Write _deps_header to .ho file */
-        strncpy(obj_file + ext, "ho", 2);
-        FILE *fho = fopen(obj_file, "wb");
-        fwrite(target->_deps_headers[obj_hash_id], sizeof(**target->_deps_headers),
-               target->_deps_headers_num[obj_hash_id], fho);
-        fclose(fho);
-    } while (false);
+        /* - Parsing dependencies read from fd - */
+        mace_Target_read_obj_deps(target, buffer, obj_hash_id);
+
+        if (!line_end) {
+            /* - Go back to last ' ', to read line more - */
+            char *last_ptr = strrchr(buffer, ' ');
+            /* [                  size                  ]  */
+            /* [    last_ptr - buffer    ] [ last_space ]  */
+            /* b--------------------------l-------------\0 */
+            int last_space = (int)(last_ptr - buffer) - size;
+            fseek(fd, last_space, SEEK_CUR);
+        }
+    }
+
+    fclose(fd);
+
+    /* Write _deps_header to .ho file */
+    strncpy(obj_file + ext, "ho", 2);
+    fho = fopen(obj_file, "wb");
+    fwrite(target->_deps_headers[obj_hash_id], sizeof(**target->_deps_headers),
+           target->_deps_headers_num[obj_hash_id], fho);
+    fclose(fho);
 
     free(obj_file);
 }
 
 void mace_Target_parse_object_dependencies(struct Target *target) {
-    // Save header order dependencies to .djb2
+    printf("mace_Target_parse_object_dependencies\n");
+    // Save header order dependencies to .ho
     // .d should exist
 
     /* Loop over all _argv_sources */
     for (int i = 0; i < target->_argc_sources; i++) {
-        if (target->_recompiles[i])
-            mace_parse_object_dependencies(target, target->_argv_objects[i]);
+        mace_parse_object_dependencies(target, i);
     }
 }
 
@@ -5756,6 +5811,10 @@ int main(int argc, char *argv[]) {
 
     /* --- Make output directories. --- */
     mace_mkdir(obj_dir);
+    assert(chdir(obj_dir) == 0);
+    mace_mkdir("src");
+    mace_mkdir("include");
+    assert(chdir(cwd) == 0);
     mace_mkdir(build_dir);
 
     /* --- Compute build order using targets links list. --- */
