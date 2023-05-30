@@ -1224,8 +1224,8 @@ void test_parse_d() {
     for (int i = 0; i < target._deps_headers_num[0]; i++) {
         nourstest_true(target._deps_headers[0][i] == i);
     }
-
-    printf("%s \n", target._headers_checksum[0]);
+    printf("target._headers_checksum[0] %s \n", target._headers_checksum[0]);
+    nourstest_true(strcmp(target._headers_checksum[0], "obj/unit.sha1") == 0);
 
     mace_Target_Free(&target);
     mace_Target_Free(&target1);
