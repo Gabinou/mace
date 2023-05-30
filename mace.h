@@ -221,7 +221,8 @@ char *Target_Flags_Include(struct Target *target) {
 
     printf("target->includes %s\n", target->includes);
     if (target->includes == NULL) {
-        target->_include_flags = calloc(1, sizeof(*target->_include_flags));        
+        target->_link_flags = calloc(4, sizeof(*target->_link_flags));
+        strncpy(target->_link_flags, "-I.", 3);
     } else {
         target->_include_flags = mace_flags(target->includes, "-I");
     }
@@ -237,7 +238,12 @@ char *Target_Flags_Link(struct Target *target) {
         free(target->_link_flags);
     printf("target->links %s\n", target->links);
     if (target->links == NULL) {
-        target->_link_flags = calloc(1, sizeof(*target->_link_flags));        
+        //TODO: find better solution for NULL links.
+        // must be more elegant...
+        // 1- Cat all flags into one string and add it to arguments if not NULL
+        target->_link_flags = calloc(4, sizeof(*target->_link_flags));
+        strncpy(target->_link_flags, "-l.", 3);
+
     } else {
         target->_link_flags = mace_flags(target->links, "-l");
     }
@@ -361,7 +367,7 @@ void mace_wait_pid(int pid) {
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
 void mace_link(char *objects, char *target) {
-    char *arguments[] = {ar, "-rcs", target, objects};
+    char *arguments[] = {ar, "-rcs", target, objects, NULL};
     printf("Linking \t%s \n", target);
     // mace_exec_print(arguments, sizeof(arguments)/sizeof(*arguments));
     pid_t pid = mace_exec(ar, arguments);
@@ -383,13 +389,13 @@ void mace_compile(const char *restrict source, char *restrict object, const char
         size_t flags_len = strlen(user_flags);
         aflags = calloc(flags_len + 1, sizeof(*aflags));
         strncpy(aflags, user_flags, flags_len);
-    } else {
-        aflags = calloc(1, sizeof(*aflags));
+    // } else {
+        // aflags = calloc(1, sizeof(*aflags));
     }
-    char *const arguments[] = {cc, absrc, include_flags, link_flags, aflags, libflag, "-o", object, "\0"};
+    char *const arguments[] = {cc, absrc, include_flags, link_flags, libflag, "-o", object, aflags, NULL};
     printf("aflags %s\n", aflags);
-    printf("object %s\n", object);
-    // mace_exec_print(arguments, sizeof(arguments)/sizeof(*arguments));
+    printf("object %sAAAA\n", object);
+    mace_exec_print(arguments, sizeof(arguments)/sizeof(*arguments));
     pid_t pid = mace_exec(cc, arguments);
     mace_wait_pid(pid);
     printf("Compiled   \t%s \n", source_file);
