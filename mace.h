@@ -124,26 +124,25 @@ struct Target {
 
 
     /* --- This is only for targets with compilation ---  */
-    char **restrict _argv;         /* buffer for argv to exec build commands      */
-    int         _argc;             /* number of arguments in argv                 */
-    int         _arg_len;          /* alloced len of argv                         */
-    char **restrict _argv_includes;/* includes, in argv form                      */
-    int         _argc_includes;    /* number of arguments in argv_includes        */
-    char **restrict _argv_links;   /* linked libraries, in argv form              */
-    int         _argc_links;       /* number of arguments in argv_links           */
-    char **restrict _argv_flags;   /* user flags, in argv form                    */
-    int         _argc_flags;       /* number of arguments in argv_flags           */
+    char **restrict _argv;         /* buffer for argv to exec build commands  */
+    int             _argc;         /* number of arguments in argv             */
+    int             _arg_len;      /* alloced len of argv                     */
+    char **restrict _argv_includes;/* includes, in argv form                  */
+    int             _argc_includes;/* number of arguments in argv_includes    */
+    char **restrict _argv_links;   /* linked libraries, in argv form          */
+    int             _argc_links;   /* number of arguments in argv_links       */
+    char **restrict _argv_flags;   /* user flags, in argv form                */
+    int             _argc_flags;   /* number of arguments in argv_flags       */  
+    char **restrict _argv_sources; /* sources, in argv form                   */
+    int             _argc_sources; /* number of arguments in argv_sources     */
+    int             _len_sources;  /* alloc len of arguments in argv_sources  */
 
-    char **restrict _argv_sources; /* sources, in argv form                       */
-    int         _argc_sources;     /* number of arguments in argv_sources         */
-    int         _len_sources;      /* alloc len of arguments in argv_sources      */
-
-    uint64_t *restrict _argv_objects_hash;/* sources, in argv form                */
-    int *restrict _argv_objects_cnt; /* sources, in argv form                     */
-    int         _argc_objects_hash;/* number of arguments in argv_sources         */
-    char **restrict _argv_objects; /* sources, in argv form                       */
-    int         _argc_objects;     /* number of arguments in argv_sources         */
-    int         _len_objects;      /* alloc len of arguments in argv_sources      */
+    uint64_t *restrict _argv_objects_hash;/* sources, in argv form            */
+    int      *restrict _argv_objects_cnt; /* sources, in argv form            */
+    int             _argc_objects_hash;/* number of arguments in argv_sources */
+    char **restrict _argv_objects;   /* sources, in argv form                 */
+    int             _argc_objects;   /* number of arguments in argv_sources   */
+    int             _len_objects;    /* alloc len of arguments in argv_sources*/
 
     /* --- This is only for targets with dependencies ---  */
     uint64_t *restrict _deps_links;/* target or libs hashes                       */
@@ -226,8 +225,10 @@ void mace_Target_Free(struct Target                *target);
 bool mace_Target_hasDep(struct Target              *target, uint64_t hash);
 void mace_Target_compile(struct Target             *target);
 void Target_Free_notargv(struct Target             *target);
+void mace_Target_Deps_Add(struct Target            *target, uint64_t hash);
 void mace_Target_Free_argv(struct Target           *target);
 void mace_Target_Deps_Hash(struct Target           *target);
+void mace_Target_Deps_Grow(struct Target           *target);
 void mace_Target_argv_init(struct Target           *target);
 void mace_Target_argv_grow(struct Target           *target);
 bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token);
@@ -1724,9 +1725,23 @@ void mace_free() {
     build_order_num = 0;
 }
 
+void mace_Target_Deps_Grow(struct Target *target) {
+    if (target->_deps_links_len <= target->_deps_links_num) {
+        target->_deps_links_len *= 2;
+        target->_deps_links = realloc(target->_deps_links, target->_deps_links_len * sizeof(*target->_deps_links));
+    }
+}
+
+void mace_Target_Deps_Add(struct Target *target, uint64_t hash) {
+    if (!mace_Target_hasDep(target, hash)) {
+        mace_Target_Deps_Grow(target);
+        target->_deps_links[target->_deps_links_num++] = hash;
+    }
+}
+
 void mace_Target_Deps_Hash(struct Target *target) {
     /* --- Preliminaries --- */
-    if (target->links == NULL)
+    if ((target->links == NULL) && (target->dependencies == NULL))
         return;
 
     /* --- Alloc space for deps --- */
@@ -1736,17 +1751,45 @@ void mace_Target_Deps_Hash(struct Target *target) {
         free(target->_deps_links);
     }
     target->_deps_links = malloc(target->_deps_links_len * sizeof(*target->_deps_links));
-    /* --- Copy links into modifiable buffer --- */
-    char *buffer = mace_str_buffer(target->links);
-    /* --- Split links into tokens, --- */
-    char *token = strtok(buffer, " ");
 
-    /* --- Hash tokens into _deps_links --- */
+    /* --- Add links to _deps_links --- */
     do {
-        target->_deps_links[target->_deps_links_num++] = mace_hash(token);
-        token = strtok(NULL, " ");
-    } while (token != NULL);
-    free(buffer);
+        if (target->links == NULL)
+            break;
+
+        /* --- Copy links into modifiable buffer --- */
+        char *buffer = mace_str_buffer(target->links);
+        
+        /* --- Split links into tokens, --- */
+        char *token = strtok(buffer, " ");
+
+        /* --- Hash tokens into _deps_links --- */
+        do {
+            mace_Target_Deps_Add(target, mace_hash(token));
+            token = strtok(NULL, " ");
+        } while (token != NULL);
+        free(buffer);
+    } while(false);
+
+    /* --- Add dependencies to _deps_links --- */
+    do {
+        if (target->dependencies == NULL)
+            break;
+
+        /* --- Copy links into modifiable buffer --- */
+        char *buffer = mace_str_buffer(target->dependencies);
+        
+        /* --- Split links into tokens, --- */
+        char *token = strtok(buffer, " ");
+
+        /* --- Hash tokens into _deps_links --- */
+        do {
+            mace_Target_Deps_Add(target, mace_hash(token));
+            token = strtok(NULL, " ");
+        } while (token != NULL);
+        free(buffer);
+    } while(false);
+
 }
 
 /******************************** SHA1DC SOURCE *******************************/
