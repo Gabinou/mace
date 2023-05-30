@@ -10,7 +10,6 @@ struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
     .kind               = MACE_LIBRARY,
 };
 
-
 struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
     .includes           = ". include  include/bars  include/menu include/popup include/systems "
     "names names/popup names/menu "
