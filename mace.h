@@ -189,7 +189,9 @@ uint64_t mace_hash(char *str) {
 }
 
 /******************************* MACE_CHECKSUM ********************************/
-char *checksum = "sha256sum";
+// char *checksum = "sha256sum";
+char *checksum = "sha1DC";
+// -> git uses sha1DC and SO WILL I
 
 /******************************* MACE_COMPILER ********************************/
 char *cc;
@@ -378,6 +380,31 @@ void mace_compile2(char *source, char *object, char **argv, int *_argc, int *arg
                    char **argv_includes, char **argv_sources, char **argv_links, char **argv_flags, int kind) {
 
 }
+
+
+void mace_compile3(char *sources, char *objects, struct Target * target) {
+    // Sources might be ONE file, might be ALL files, depends.
+    /* - Reset argv - */
+
+    /* -- Parsing input strings to argv -- */
+    /* - Parse sources into _argv_sources - */
+    /* - Parse object into _argv_object - */
+
+    /* -- Building argv -- */
+    /* - Add Compiler to argv - */
+    /* - Add sources to argv - */
+    /* - Add objects to argv - */
+    /* - Add _argv_includes to argv - */
+    /* - Add _argv_sources to argv - */
+    /* - Add _argv_links to argv - */
+    /* - Add _argv_flags to argv - */
+
+    /* -- Actual compilation -- */
+    // pid_t pid = mace_exec(cc, argv);
+    // mace_wait_pid(pid);
+}
+
+
 
 /* Compile globbed files to objects */
 void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags, int kind) {
