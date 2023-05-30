@@ -8,8 +8,6 @@ Specificity, reduced scope, everything in service of *simplicity*.
 
 ## Features
 - C syntax.
-    - Macefiles are `.c` files.
-    - Targets are `structs`, 
 - Simple API
 - Single header build system: `mace.h`.
 - Convenience executable for `make`-like behavior
@@ -83,15 +81,12 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 ## Why?
 - I want a much simpler build system.
     - Complexity bad. Simplicity good.
-    - Simpler to develop, simpler to use, as simple as possible.
 - I want to build C projects, and only C projects.
-    - Generality breeds complexity.
 - Using C to build C gets me free lunches.
     - No weird syntax to create.
     - No bespoke parser to implement: C compilers already exist!
-- Using C to build C gets you free lunches! 
-    - Same skills needed to write and run `hello_world.c` for `mace` usage.
-    - Learn C syntax, write a C file, compile the C file and run resulting executable.
+- Using C to build C gets you free lunches.
+    - If you can write and run `hello_world.c`, you can use `mace`.
 
 ## Limitations
 - Tested on Linux only.
@@ -106,7 +101,6 @@ Use these macro definitions when compiling `installer` to customize `mace`:
     - Checksum recorded to `.sha1` files in `src` and `include`
 - Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
     - Parsed into binary `.ho` file for faster reading.
-    - Check if any header file changed to recompile.
 
 ### Lines
 - mace.h: ~6300 Lines
@@ -128,3 +122,4 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
+ 
