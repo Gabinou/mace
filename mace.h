@@ -62,7 +62,9 @@ void Target_Free(struct Target *target);
 /******************************** DECLARATIONS ********************************/
 int mace_isSource(const char *path);
 void mace_object_path(char *source);
+void mace_add_source(struct Target *target, char *token);
 char   *object;
+
 
 /******************************* MACE_ADD_TARGET ******************************/
 // Adds user-defined target to internal array of targets.
@@ -222,12 +224,13 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
 }
 
 /* Compile globbed files to objects */
-void mace_compile_glob(char *globsrc, char *flags, int kind) {
+void mace_compile_glob(struct Target * target, char *globsrc, char *flags, int kind) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
         assert(mace_isSource(globbed.gl_pathv[i]));
         char * pos = strrchr(globbed.gl_pathv[i], '/');
         char * source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos;
+        mace_add_source(target, source_file);
         mace_object_path(source_file);
         mace_compile(globbed.gl_pathv[i], object, flags, kind);
     }
@@ -241,7 +244,7 @@ int mace_isSource(const char *path) {
     size_t len  = strlen(path);
     int out     = path[len - 1]       == 'c'; /* C source extension: .c */
     out        &= path[len - 2]       == '.'; /* C source extension: .c */
-    out        &= access(path, F_OK)  ==  0;  /* file exists            */
+    // out        &= access(path, F_OK)  ==  0;  /* file exists            */
     return (out);
 }
 
@@ -294,13 +297,14 @@ void mace_object_path(char *source) {
         mace_grow_obj();
     char * rawpath = calloc(objdir_len, sizeof(*rawpath));
     strncpy(rawpath,              objdir, obj_len);
-    strncpy(rawpath + objdir_len, source, source_len);
-    rawpath[obj_len - 2] = 'o';
     char * temp = realpath(rawpath, NULL);
     assert(temp != NULL);
-    while(strlen(temp) > object_len)
+    while((strlen(temp) + source_len + 1) >= object_len)
         mace_grow_obj();
+    memset(object, 0, object_len * sizeof(*object));
     strncpy(object, temp, strlen(temp));
+    strncpy(object + strlen(temp), source, source_len);
+    object[strlen(object) - 1] = 'o';
     free(temp);
 }
 
@@ -350,27 +354,31 @@ void mace_build_target(struct Target *target) {
     do {
         // printf("token %s\n", token);
 
-        mace_add_source(target, token);
-        size_t i = target->_sources_num - 1;
-        if (mace_isDir(target->_sources[i])) {
+        if (mace_isDir(token)) {
             /* Glob all sources recursively */
-            size_t srclen = strlen(target->_sources[i]);
-            char *globstr = calloc(srclen + 6, sizeof(*globstr));
-            strncpy(globstr,              target->_sources[i], strlen(target->_sources[i]));
-            strncpy(globstr + srclen,     "/",                 1);
-            strncpy(globstr + srclen + 1, "**.c",              4);
+            // printf("isDir %s\n", token);
 
-            mace_compile_glob(globstr, target->flags, target->kind);            
+            size_t srclen = strlen(token);
+            char *globstr = calloc(srclen + 6, sizeof(*globstr));
+            strncpy(globstr,              token,  strlen(token));
+            strncpy(globstr + srclen,     "/",    1);
+            strncpy(globstr + srclen + 1, "**.c", 4);
+
+            mace_compile_glob(target, globstr, target->flags, target->kind);            
             free(globstr);
 
-        } else if (mace_isSource(target->_sources[i])) {
+        } else if (mace_isSource(token)) {
             /* token is a source file */
+            printf("isSource %s\n", token);
+            mace_add_source(target, token);
+            size_t i = target->_sources_num - 1;
             mace_object_path(token);
             mace_compile(target->_sources[i], object, target->flags, target->kind);
 
-        } else if (mace_isWildcard(target->_sources[i])) {
+        } else if (mace_isWildcard(token)) {
             /* token has a wildcard in it */
-            mace_compile_glob(target->_sources[i], target->flags, target->kind);            
+            printf("isWildcard %s\n", token);
+            mace_compile_glob(target, token, target->flags, target->kind);            
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
             exit(ENOENT);
