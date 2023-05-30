@@ -184,7 +184,7 @@ void Target_Free_argv(struct Target     *target);
 void Target_Deps_Hash(struct Target     *target);
 void Target_argv_init(struct Target     *target);
 void Target_argv_grow(struct Target     *target);
-void Target_Source_Add(struct Target    *target, char    *token);
+bool Target_Source_Add(struct Target    *target, char    *token);
 void Target_Object_Add(struct Target    *target, char    *token);
 void Target_Parse_User(struct Target    *target);
 void Target_Free_notargv(struct Target  *target);
@@ -205,8 +205,8 @@ void mace_link_executable(char *target, char **av_o, int ac_o, char **av_l,
                           int ac_l, char **av_f, int ac_f);
 
 /* -- compiling object files -> .o -- */
-void mace_compile(char *source, char *object, struct Target *target);
 void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags);
+void mace_compile_latest(struct Target *target);
 void mace_build_targets();
 
 /* -- build_order -- */
@@ -691,26 +691,24 @@ void mace_link_dynamic_library(char *target, char *objects) {
 }
 
 // mace_compile: SINGLE SOURCE
-// TODO: compile many files at once
-void mace_compile(char *source, char *object, struct Target *target) {
-    assert(source != NULL);
-    assert(object != NULL);
+void mace_compile_latest(struct Target *target) {
     assert(target != NULL);
     assert(target->_argv != NULL);
+    assert(target->_argv_sources[target->_argc_sources - 1] != NULL);
+    assert(target->_argv_objects[target->_argc_objects - 1] != NULL);
     /* - Single source argv - */
-    printf("Compile %s\n", source);
+    printf("Compile %s\n", target->_argv_sources[target->_argc_sources - 1]);
     // argv[0] is always cc
     // argv[1] is always source
-    target->_argv[MACE_ARGV_SOURCE] = source;
+    target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[target->_argc_sources - 1];
     // argv[2] is always object (includeing -o flag)
-    target->_argv[MACE_ARGV_OBJECT] = object;
+    target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
     // rest of argv should be set previously by Target_argv_init
-    // mace_exec_print(target->_argv, target->_argc);
 
     /* -- Actual compilation -- */
+    // mace_exec_print(target->_argv, target->_argc);
     pid_t pid = mace_exec(cc, target->_argv);
     mace_wait_pid(pid);
-
 }
 
 void Target_Object_Hash_Add(struct Target *target, uint64_t hash) {
@@ -787,14 +785,16 @@ void Target_Object_Add(struct Target *target, char *token) {
     target->_argv_objects[target->_argc_objects++] = arg;
 }
 
-void Target_Source_Add(struct Target *target, char *token) {
+bool Target_Source_Add(struct Target *target, char *token) {
+    bool excluded = false;
+    
     if (target->_argv_sources == NULL) {
         target->_len_sources = 8;
         target->_argv_sources = malloc(target->_len_sources * sizeof(*target->_argv_sources));
     }
 
     if (token == NULL)
-        return;
+        return (true);
 
     target->_argv_sources = argv_grows(&target->_len_sources, &target->_argc_sources,
                                        target->_argv_sources);
@@ -803,6 +803,9 @@ void Target_Source_Add(struct Target *target, char *token) {
     char *arg = calloc(token_len + 1, sizeof(*arg));
     strncpy(arg, token, token_len);
     target->_argv_sources[target->_argc_sources++] = arg;
+
+
+    return(excluded);
 }
 
 
@@ -815,11 +818,12 @@ void mace_compile_glob(struct Target *target, char *globsrc, const char *restric
         assert(mace_isSource(globbed.gl_pathv[i]));
         char *pos = strrchr(globbed.gl_pathv[i], '/');
         char *source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos + 1;
-        Target_Source_Add(target, globbed.gl_pathv[i]);
+        bool excluded = Target_Source_Add(target, globbed.gl_pathv[i]);
+        if (excluded) 
+            continue;
         mace_object_path(source_file);
         Target_Object_Add(target, object);
-        mace_compile(target->_argv_sources[target->_argc_sources - 1],
-                     target->_argv_objects[target->_argc_objects - 1], target);
+        mace_compile_latest(target);
     }
     globfree(&globbed);
 }
@@ -991,11 +995,12 @@ void mace_build_target(struct Target *target) {
             /* token is a source file */
             // printf("isSource %s\n", token);
 
-            Target_Source_Add(target, token);
-            mace_object_path(token);
-            Target_Object_Add(target, object);
-            mace_compile(target->_argv_sources[target->_argc_sources - 1],
-                         target->_argv_objects[target->_argc_objects - 1], target);
+            bool excluded = Target_Source_Add(target, token);
+            if (!excluded) {
+                mace_object_path(token);
+                Target_Object_Add(target, object);
+                mace_compile_latest(target);
+            }
 
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
