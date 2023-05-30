@@ -77,6 +77,9 @@ struct Target {
 void mace_init();
 void mace_free();
 char *mace_str_buffer(const char *strlit);
+char *mace_set_obj_dir(char *obj);
+char *mace_set_build_dir(char *build);
+char *mace_copy_str(char *buffer, char *str);
 
 /* --- mace_Target --- */
 void Target_Free(struct Target *target);
@@ -181,8 +184,23 @@ char *ar = "ar";
 
 /******************************* MACE_SET_obj_dir *******************************/
 // Sets where the object files will be placed during build.
-#define MACE_SET_OBJ_DIR(a)
-#define MACE_SET_BUILD_DIR(a)
+char *mace_set_obj_dir(char *obj) {
+    return(obj_dir = mace_copy_str(obj_dir, obj));
+}
+
+char *mace_set_build_dir(char *build) {
+    return(build_dir = mace_copy_str(build_dir, build));
+}
+
+char *mace_copy_str(char *buffer, char *str) {
+    if (buffer != NULL) {
+        free(buffer);
+    }
+    size_t len = strlen(str);
+    buffer = calloc(len + 1, sizeof(*buffer));
+    strncpy(buffer, str, len);
+    return(buffer);
+}
 
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
@@ -347,15 +365,14 @@ char *mace_library_path(char *target_name) {
 }
 
 /******************************* mace_globals *********************************/
-char   *obj_dir      = "obj/";
 char   *object      = NULL;
 size_t  object_len  = 16;
 char   *objects     = NULL;
 size_t  objects_len = 128;
 size_t  objects_num = 0;
 
-char   *build_dir   = "build/";
-size_t  build_len   = 16;
+char   *obj_dir     = NULL;
+char   *build_dir   = NULL;
 
 void mace_grow_obj() {
     object_len *= 2;
@@ -652,11 +669,17 @@ void Target_Source_Add(struct Target *target, char *token) {
     strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
 }
 
-void mace_init() {
+void mace_init() {    
     mace_free();
+    
+    /* --- Memory allocation --- */
     targets = malloc(target_len  * sizeof(*targets));
     object  = malloc(object_len  * sizeof(*object));
     objects = malloc(objects_len * sizeof(*objects));
+
+    /* --- Default output folders --- */
+    mace_set_build_dir("build/");
+    mace_set_obj_dir("obj/");
 }
 
 void mace_free() {
@@ -671,6 +694,12 @@ void mace_free() {
     }
     if (objects != NULL) {
         free(objects);
+    }
+    if (obj_dir != NULL) {
+        free(obj_dir);
+    }
+    if (build_dir != NULL) {
+        free(build_dir);
     }
 }
 
