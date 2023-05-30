@@ -103,7 +103,7 @@ void test_object() {
 }
 
 void test_target() {
-    mace_init();
+    mace_pre_user();
     nourstest_true(target_num                           == 0);
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -145,8 +145,8 @@ void test_target() {
     nourstest_true(targets[1]._deps_links[11]           == mace_hash("parg"));
 
     /* cleanup so that mace doesn't build targets */
-    mace_free();
-    mace_init();
+    mace_finish(NULL);
+    mace_pre_user();
 
     /* mace computing build order as a function of linking dependencies */
     struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -227,7 +227,7 @@ void test_target() {
     nourstest_true(targets[5]._hash == mace_hash("D"));
     nourstest_true(targets[6]._hash == mace_hash("F"));
 
-    mace_targets_build_order(targets, target_num);
+    mace_build_order_targets(targets, target_num);
     assert(build_order != NULL);
 
     // /* Print build order names */
@@ -245,8 +245,8 @@ void test_target() {
     nourstest_true(build_order[0]);
     nourstest_true(build_order[target_num - 1] == A_order);
 
-    mace_free();
-    mace_init();
+    mace_finish(NULL);
+    mace_pre_user();
 
     /* mace computing build order as a function of linking dependencies */
     struct Target AA = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -329,7 +329,7 @@ void test_target() {
     nourstest_true(targets[0]._deps_links[1] == mace_hash("CC"));
     nourstest_true(targets[0]._deps_links[2] == mace_hash("DD"));
 
-    mace_targets_build_order(targets, target_num);
+    mace_build_order_targets(targets, target_num);
     assert(build_order != NULL);
 
     // /* Print build order names */
@@ -347,11 +347,11 @@ void test_target() {
     nourstest_true(build_order[0]);
     nourstest_true(build_order[target_num - 1] == BB_order);
 
-    mace_free();
+    mace_finish(NULL);
 }
 
 void test_circular() {
-    mace_init();
+    mace_pre_user();
     /* mace detect circular dependency */
     struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -417,12 +417,12 @@ void test_circular() {
     nourstest_true(target_num == 7);
 
     nourstest_true(mace_circular_deps(targets, target_num));
-    mace_free();
+    mace_finish(NULL);
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
 void test_self_dependency() {
-    mace_init();
+    mace_pre_user();
     struct Target H = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
@@ -433,7 +433,7 @@ void test_self_dependency() {
     MACE_ADD_TARGET(H);
     mace_circular_deps(targets, target_num); /* Should print a warning*/
 
-    mace_free();
+    mace_finish(NULL);
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
@@ -543,7 +543,7 @@ void test_argv() {
     nourstest_true(CodenameFiresaga._argv[22] == NULL);
 
     mace_Target_Free(&CodenameFiresaga);
-    mace_free();
+    mace_finish(NULL);
 }
 
 void test_post_user() {
@@ -551,7 +551,7 @@ void test_post_user() {
     int status;
 
     // mace does not exit if nothing is wrong
-    mace_init();
+    mace_pre_user();
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
@@ -597,11 +597,11 @@ void test_post_user() {
     nourstest_true(WEXITSTATUS(status) == ENXIO);
 
     // MACE_SET_COMPILER(gcc);
-    mace_free();
+    mace_finish(NULL);
 }
 
 void test_separator() {
-    mace_init();
+    mace_pre_user();
     mace_set_separator(",");
     nourstest_true(strcmp(mace_separator, ",") == 0);
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -632,7 +632,7 @@ void test_separator() {
     nourstest_true(targets[1]._argc_links == 1);
     nourstest_true(strcmp(targets[1]._argv_links[0], "-ltnecs,baka,ta,mere") == 0);
 
-    mace_free();
+    mace_finish(NULL);
 
     int pid, status;
     // mace exits as expected if separator is NULL
@@ -938,8 +938,8 @@ void test_parse_args() {
 
 void test_build_order() {
     /* cleanup so that mace doesn't build targets */
-    mace_free();
-    mace_init();
+    mace_finish(NULL);
+    mace_pre_user();
 
     /* mace computing build order as a function of linking dependencies */
     struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -1020,7 +1020,7 @@ void test_build_order() {
     nourstest_true(targets[5]._hash == mace_hash("D"));
     nourstest_true(targets[6]._hash == mace_hash("F"));
 
-    mace_targets_build_order(targets, target_num);
+    mace_build_order_targets(targets, target_num);
     assert(build_order != NULL);
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("F")));
     nourstest_true(build_order[1] == mace_hash_order(mace_hash("G")));
@@ -1034,7 +1034,7 @@ void test_build_order() {
     // set default_target to "D" check build_order
     mace_default_target = mace_hash_order(mace_hash("D"));
     mace_user_target    = MACE_NULL_ORDER;  /* order */
-    mace_targets_build_order(targets, target_num);
+    mace_build_order_targets(targets, target_num);
     nourstest_true(build_order_num == 3);
 
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("F")));
@@ -1046,7 +1046,7 @@ void test_build_order() {
     // user_target should override mace_default_target
     mace_user_target    = mace_hash_order(mace_hash("E"));
     mace_default_target = mace_hash_order(mace_hash("D"));
-    mace_targets_build_order(targets, target_num);
+    mace_build_order_targets(targets, target_num);
     nourstest_true(build_order_num == 2);
 
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
@@ -1057,7 +1057,7 @@ void test_build_order() {
     // user_target should override mace_default_target
     mace_user_target    = mace_hash_order(mace_hash("A"));
     mace_default_target = mace_hash_order(mace_hash("D"));
-    mace_targets_build_order(targets, target_num);
+    mace_build_order_targets(targets, target_num);
     nourstest_true(build_order_num == 7);
 
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
@@ -1073,7 +1073,7 @@ void test_build_order() {
 }
 
 void test_checksum() {
-    mace_init();
+    mace_pre_user();
     mace_set_obj_dir("obj");
     char *allo = mace_checksum_filename("allo.c", MACE_CHECKSUM_MODE_NULL);
     nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
@@ -1099,11 +1099,11 @@ void test_checksum() {
     nourstest_true(strcmp(header_objpath, "obj/src/combat.sha1") == 0);
     free(header_objpath);
 
-    mace_free();
+    mace_finish(NULL);
 }
 
 void test_excludes() {
-    mace_init();
+    mace_pre_user();
     char *rpath = calloc(PATH_MAX, sizeof(*rpath));
     char *token = "tnecs.c";
     realpath(token, rpath);
@@ -1120,17 +1120,17 @@ void test_excludes() {
 
     mace_Target_Free(&tnecs);
     free(rpath);
-    mace_free();
+    mace_finish(NULL);
 }
 
 void test_parse_d() {
-    mace_init();
+    mace_pre_user();
 
     struct Target target1 = {0};
     MACE_ADD_TARGET(target1);
     mace_Target_Source_Add(&target1, "test1.c");
     mace_Target_Object_Add(&target1, "test1.o");
-    mace_parse_object_dependencies(&target1, "-otest1.o");
+    mace_parse_object_dependencies(&target1, 0);
     assert(target1._headers_hash != NULL);
     nourstest_true(target1._headers_num == 1);
     nourstest_true(target1._deps_headers_num[0] == 1);
@@ -1146,7 +1146,7 @@ void test_parse_d() {
 
     mace_Target_Source_Add(&target, "test2.c");
     mace_Target_Object_Add(&target, "test2.o");
-    mace_parse_object_dependencies(&target, "-otest2.o");
+    mace_parse_object_dependencies(&target, 0);
     assert(target._headers_hash != NULL);
     nourstest_true(target._headers_num == 72);
     nourstest_true(target._deps_headers_num[0] == 72);
@@ -1386,7 +1386,7 @@ void test_parse_d() {
 
     mace_Target_Free(&target);
     mace_Target_Free(&target1);
-    mace_free();
+    mace_finish(NULL);
 }
 
 int mace(int argc, char *argv[]) {

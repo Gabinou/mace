@@ -95,9 +95,8 @@ void    mace_add_target(struct Target *restrict target, char *restrict name);
 
 // By default, mace builds all targets.
 // When set by user, mace builds all only default target and its dependencies.
-void    mace_default_target(char *name);
-#define MACE_DEFAULT_TARGET(target) mace_default_target(#target)
-
+void    mace_set_default_target(char *name);
+#define MACE_SET_DEFAULT_TARGET(target) mace_set_default_target(#target)
 
 /* -- Target kinds -- */
 enum MACE_TARGET_KIND { /* for target.kind */
@@ -106,7 +105,6 @@ enum MACE_TARGET_KIND { /* for target.kind */
     MACE_SHARED_LIBRARY  = 3,
     MACE_DYNAMIC_LIBRARY = 3,
 };
-
 
 /******************************* TARGET STRUCT ********************************/
 struct Target {
@@ -174,7 +172,7 @@ struct Target {
     int                _argc_objects_hash;/* num of arguments in argv_sources */
     char    **restrict _argv_objects;     /* sources, in argv form            */
     int      *restrict _argv_objects_cnt; /* sources num                      */
-    // Includes objects with number to prevent collisions.
+    // Note: Includes objects with number to prevent collisions.
     uint64_t *restrict _objects_hash_nocoll;    /*       */
     int                _objects_hash_nocoll_num;/*       */
     int                _objects_hash_nocoll_len;/*       */
@@ -192,11 +190,11 @@ struct Target {
     size_t     _d_cnt;             /* dependency count, for build order       */
 
     /* -- Object dependencies --  */
-    uint64_t  *restrict _headers_checksum_hash;/*header checksum filename hash */
+    uint64_t  *restrict _headers_checksum_hash;/*header checksum filename hash*/
     char     **restrict _headers_checksum; /* header checksum filename in obj */
     int       *restrict _headers_checksum_cnt; /* # of headers with same path */
 
-    char     **restrict _headers;     /* [hdr_order] header filename hashes          */
+    char     **restrict _headers;     /* [hdr_order] header filename hashes   */
     // need same number of _headers and _headers_checksum
     uint64_t  *restrict _headers_hash;/* [hdr_order] header filename hashes   */
     int                 _headers_num; /* len of headers                       */
@@ -3462,7 +3460,7 @@ void mace_add_target(struct Target *target, char *name) {
     }
 }
 
-void mace_default_target(char *name) {
+void mace_set_default_target(char *name) {
     mace_default_target_hash = (name == NULL) ? 0 : mace_hash(name);
 }
 
@@ -3527,20 +3525,15 @@ uint64_t mace_hash(const char *str) {
 /****************************** MACE_SET_obj_dir ******************************/
 // Sets where the object files will be placed during build.
 char *mace_set_obj_dir(char *obj) {
-    return (obj_dir = mace_str_copy(obj_dir, obj));
+    if (obj_dir != NULL)
+        free(obj_dir);
+    return (obj_dir = mace_str_buffer(obj));
 }
 
 char *mace_set_build_dir(char *build) {
-    return (build_dir = mace_str_copy(build_dir, build));
-}
-
-char *mace_str_copy(char *restrict buffer, const char *restrict str) {
-    if (buffer != NULL)
-        free(buffer);
-    size_t len  = strlen(str);
-    buffer      = calloc(len + 1, sizeof(*buffer));
-    strncpy(buffer, str, len);
-    return (buffer);
+    if (build_dir != NULL)
+        free(build_dir);
+    return (build_dir = mace_str_buffer(build));
 }
 
 /************************************ argv ************************************/
