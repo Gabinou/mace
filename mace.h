@@ -236,22 +236,25 @@ char *mace_library_path(char   *target_name);
 
 /* --- mace_globals --- */
 
+/* -- build order -- */
+size_t *build_order = NULL;
+size_t  build_order_num = 0;
+
 /* -- list of targets added by user -- */
-struct Target  *targets;    /* [order] is as added by user      */
-size_t          target_num;
-size_t          target_len;
+struct Target  *targets    = NULL;   /* [order] is as added by user      */
+size_t          target_num = 0;
+size_t          target_len = 0;
 
 /* -- buffer to write object -- */
-char           *object;
-size_t          object_len;
+char           *object     = NULL;
+size_t          object_len = 0;
 
 /* -- directories -- */
-char           *obj_dir;    /* intermediary .o files            */
-char           *build_dir;  /* linked libraries, executables    */
+char           *obj_dir    = NULL;   /* intermediary .o files            */
+char           *build_dir  = NULL;   /* linked libraries, executables    */
 
 /* -- mace_globals control -- */
-void mace_grow_object();
-void mace_grow_objects();
+void mace_object_grow();
 
 /******************************* MACE_ADD_TARGET ******************************/
 
@@ -265,7 +268,8 @@ void mace_add_target(struct Target *target, char *name) {
     Target_argv_init(&targets[target_num]);
     if (++target_num == target_len) {
         target_len *= 2;
-        targets     = realloc(targets, target_len * sizeof(*targets));
+        targets     = realloc(targets,     target_len * sizeof(*targets));
+        build_order = realloc(build_order, target_len * sizeof(*build_order));
     }
 }
 
@@ -883,13 +887,7 @@ char *mace_library_path(char *target_name) {
 }
 
 /******************************* mace_globals *********************************/
-char   *object      = NULL;
-size_t  object_len  =  16;
-
-char   *obj_dir     = NULL;
-char   *build_dir   = NULL;
-
-void mace_grow_object() {
+void mace_object_grow() {
     object_len *= 2;
     object      = realloc(object,   object_len  * sizeof(*object));
 }
@@ -912,7 +910,7 @@ void mace_object_path(char *source) {
     size_t source_len = strlen(source);
     size_t path_len;
     while (((path_len = strlen(path)) + source_len + 2) >= object_len)
-        mace_grow_object();
+        mace_object_grow();
     memset(object, 0, object_len * sizeof(*object));
 
     /* --- Writing path to object --- */
@@ -1005,11 +1003,9 @@ void mace_build_target(struct Target *target) {
     free(buffer);
 }
 
-size_t *build_order = NULL;
-size_t  build_order_num = 0;
-
 bool mace_isTargetinBuildOrder(size_t order) {
     bool out = false;
+    assert(build_order != NULL);
     for (int i = 0; i < build_order_num; i++) {
         if (build_order[i] == order) {
             out = true;
@@ -1035,10 +1031,7 @@ int mace_target_order(struct Target target) {
 }
 
 void mace_build_order_add(size_t order) {
-    if (build_order == NULL) {
-        build_order = malloc(target_num * sizeof(*build_order));
-        build_order_num = 0;
-    }
+    assert(build_order != NULL);
     assert(build_order_num < target_num);
     build_order[build_order_num++] = order;
 }
@@ -1141,9 +1134,6 @@ void mace_build_targets() {
 /*----------------------------------------------------------------------------*/
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
-struct Target *targets = NULL;
-size_t target_num      = 0;
-size_t target_len      = 0;
 
 void Target_Free(struct Target *target) {
     Target_Free_notargv(target);
@@ -1226,6 +1216,11 @@ void mace_init() {
     }
 
     /* --- Memory allocation --- */
+    if (build_order == NULL) {
+        build_order = malloc(target_len * sizeof(*build_order));
+        build_order_num = 0;
+    }
+
     target_len  = MACE_DEFAULT_TARGET_LEN;
     object_len  = MACE_DEFAULT_OBJECT_LEN;
 
