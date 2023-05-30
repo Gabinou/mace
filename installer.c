@@ -64,14 +64,18 @@ int mace(int argc, char *argv[]) {
                 /* Install mace.h header*/
                 "install -T mace.h"  " " STRINGIFY(PREFIX) "/include/mace.h &&"
                 /* Install zsh completion */
-                "cp  _mace.zsh _mace.temp &&"
+                "cp _mace.zsh _mace.temp &&"
                 "sed -i s/macefile.c/" STRINGIFY(DEFAULT_MACEFILE) "/ _mace.temp &&"
                 "sed -i s/builder/" STRINGIFY(BUILDER) "/ _mace.temp &&"
                 "install -T _mace.temp"   " " STRINGIFY(ZSH_COMPLETION) "/_mace &&"
                 "rm _mace.temp &&"
                 /* Install bash completion */
                 // TODO: replace macefile.c/Macefile.c with default macefile
-                "install -T mace.bash"   " " STRINGIFY(BASH_COMPLETION) "/mace &&",
+                "cp mace.bash mace.temp &&"
+                "sed -i s/macefile.c/" STRINGIFY(DEFAULT_MACEFILE) "/ mace.temp &&"
+                "sed -i s/builder/" STRINGIFY(BUILDER) "/ mace.temp &&"
+                "install -T mace.temp"   " " STRINGIFY(BASH_COMPLETION) "/mace &&",
+                "rm mace.temp"
     };
 
     // Add target with different name, i.e. "mace"
