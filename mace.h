@@ -4029,11 +4029,12 @@ void mace_argv_add_config(struct Target *target, char **restrict *argv, int *res
             break;
 
         int config_order = mace_Config_hasTarget(&configs[mace_user_config], target->_order);
-
-        if (config_order <= 0)
+        if (config_order < 0)
             break;
 
-        char *flags = configs[mace_user_config]._flags[config_order];
+        size_t len = strlen(configs[mace_user_config]._flags[config_order]);
+        char *flags = calloc(len + 1, sizeof(*flags));
+        strncpy(flags, configs[mace_user_config]._flags[config_order], len);
 
         char *token = strtok(flags, mace_flag_separator);
         do {
@@ -4045,6 +4046,7 @@ void mace_argv_add_config(struct Target *target, char **restrict *argv, int *res
             (*argv)[i] = flag;
             token = strtok(NULL, mace_flag_separator);
         } while (token != NULL);
+        free(flags);
     } while (false);
 }
 
@@ -5152,10 +5154,13 @@ void mace_make_dirs() {
 
 int mace_Config_hasTarget(struct Config *config, int target_order) {
     if (config == NULL)
-        return (0);
+        return (-1);
 
     if (config->_target_orders == NULL)
-        return (0);
+        return (-1);
+
+    if (config->targets == NULL)
+        return (mace_user_config);
 
     for (int i = 0; i < config->_targets_len; i++) {
         if (target_order == config->_target_orders[i]) {
@@ -5177,26 +5182,36 @@ void mace_Config_Flag_Add(struct Config *config, const char *flag, int i) {
 }
 
 void mace_parse_config(struct Config *config) {
+    if (config->flags == NULL) {
+        fprintf(stderr, "Config has no flags.");
+        exit(EPERM);
+    }
+
     int targets_alloc = 8;
     config->_targets_len = 0;
     config->_target_orders = malloc(targets_alloc * sizeof(*config->_target_orders));
-
+    char *buffer, *token;
+    
     /* -- Split targets string into target orders -- */
-    char *buffer = mace_str_buffer(config->targets);
-    char *token = strtok(buffer, mace_separator);
-    do {
-        if ((config->_targets_len + 1) > targets_alloc) {
-            targets_alloc *= 2;
-            config->_target_orders = realloc(config->_target_orders, targets_alloc * sizeof(*config->targets));
-        }
-        mace_Config_Target_Add(config, mace_hash_order(mace_hash(token)), config->_targets_len++);
-        token = strtok(NULL, mace_separator);
-    } while (token != NULL);
-    free(buffer);
-    config->_target_orders = realloc(config->_target_orders,
-                                     config->_targets_len * sizeof(*config->_target_orders));
-    config->_flags = malloc(config->_targets_len * sizeof(*config->_flags));
+    if (config->targets != NULL) {
+        buffer = mace_str_buffer(config->targets);
+        token = strtok(buffer, mace_separator);
+        do {
+            if ((config->_targets_len + 1) > targets_alloc) {
+                targets_alloc *= 2;
+                config->_target_orders = realloc(config->_target_orders, targets_alloc * sizeof(*config->targets));
+            }
+            mace_Config_Target_Add(config, mace_hash_order(mace_hash(token)), config->_targets_len++);
+            token = strtok(NULL, mace_separator);
+        } while (token != NULL);
+        free(buffer);
+        config->_target_orders = realloc(config->_target_orders,
+                                         config->_targets_len * sizeof(*config->_target_orders));
+    } else {
+        config->_targets_len = 1;
+    }
 
+    config->_flags = malloc(config->_targets_len * sizeof(*config->_flags));
     /* -- Split flags string into target orders -- */
     int i = 0;
     buffer = mace_str_buffer(config->flags);
@@ -5925,6 +5940,7 @@ void mace_finish(struct Mace_Arguments *args) {
     }
 
     target_num      = 0;
+    config_num      = 0;
     object_len      = 0;
     build_order_num = 0;
 }

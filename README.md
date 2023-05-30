@@ -110,6 +110,11 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
     - Parsed into binary `.ho` file for faster reading.
     - Check if any header file changed to recompile.
+### Lines
+- mace.h: ~6300 Lines
+    - parg:     ~600 lines
+    - sha1cd:   ~3000 lines
+    - mace:     ~3700 lines
 
 ### Running tests
 1. `cd` into test folder
