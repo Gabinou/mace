@@ -94,6 +94,95 @@ void test_target() {
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(firesaga);
+    nourstest_true(targets[1]._hash                     == mace_hash("firesaga"));
+    nourstest_true(targets[1]._deps_links_num           == 12);
+    nourstest_true(targets[1]._deps_links[0]            == mace_hash("SDL2"));
+    nourstest_true(targets[1]._deps_links[1]            == mace_hash("SDL2_image"));
+    nourstest_true(targets[1]._deps_links[2]            == mace_hash("SDL2_ttf"));
+    nourstest_true(targets[1]._deps_links[3]            == mace_hash("m"));
+    nourstest_true(targets[1]._deps_links[4]            == mace_hash("GLEW"));
+    nourstest_true(targets[1]._deps_links[5]            == mace_hash("cJSON"));
+    nourstest_true(targets[1]._deps_links[6]            == mace_hash("nmath"));
+    nourstest_true(targets[1]._deps_links[7]            == mace_hash("physfs"));
+    nourstest_true(targets[1]._deps_links[8]            == mace_hash("tinymt"));
+    nourstest_true(targets[1]._deps_links[9]            == mace_hash("tnecs"));
+    nourstest_true(targets[1]._deps_links[10]           == mace_hash("nstr"));
+    nourstest_true(targets[1]._deps_links[11]           == mace_hash("parg"));
+
+    target_num = 0; /* cleanup so that mace doesn't build targets */
+
+    struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "B C D",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target B = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "D E",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target D = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "F G",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target C = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target E = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "G",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target F = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    struct Target G = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_EXECUTABLE,
+    };
+
+    MACE_ADD_TARGET(B);
+    MACE_ADD_TARGET(C);
+    MACE_ADD_TARGET(E);
+    MACE_ADD_TARGET(A);
+    MACE_ADD_TARGET(G);
+    MACE_ADD_TARGET(D);
+    MACE_ADD_TARGET(F);
+    nourstest_true(target_num == 7);
+
+    mace_target_build_order(targets, target_num);
+
+    /* Print build order names */
+    for (int i = 0; i < target_num; ++i) {
+        printf("%s ", targets[build_order[i]]._name);
+    }
+
+    /* A should be compiled last, has the most dependencies */
+    nourstest_true(build_order[target_num - 1] == mace_hash_order(mace_hash("A")));
+    
 
 
     target_num = 0; /* cleanup so that mace doesn't build targets */
