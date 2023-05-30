@@ -95,12 +95,6 @@ void mace_flags_link(struct Target targets) {
 
 }
 
-/******************************* mace_find_sources *****************************/
-// 1- if glob pattern, find all matches, add to list
-// 2- if file add to list
-void mace_find_sources(struct Target *targets, size_t len) {
-
-}
 
 /**************************** mace_target_dependency ***************************/
 // Build target dependency graph from target links
@@ -108,25 +102,29 @@ void mace_target_dependency(struct Target *targets, size_t len) {
 
 }
 
+/******************************* mace_find_sources *****************************/
+// 1- if glob pattern, find all matches, add to list
+// 2- if file add to list
+void mace_glob_sources(struct Target * target) {
+    /* If source is a folder, get all .c files in it */
+
+    /* If source has a * in it, expland it */
+}
+
+// Splits user input string into ** char array
+void mace_split_sources(struct Target * target) {
+
+}
+
+void mace_parse_sources(struct Target * target) {
+    target->_sources = malloc(sizeof(*target->_sources));
+    mace_split_sources(target);
+    mace_split_sources(target);
+}
+
+
 /********************************* mace_build **********************************/
-/* Cuild all sources from target to object */
-void mace_build_targets(struct Target *targets, size_t len) {
-
-}
-
-void mace_build_target(struct Target *target) {
-
-
-    /* --- Linking --- */
-    printf("Linking %s", target->_name);
-    if (target->kind == MACE_LIBRARY) {
-        // mace_link(objects, target);
-    } else if (target->kind == MACE_EXECUTABLE) {
-        // mace_compile(char *source, char *object, char *flags);
-    }
-
-}
-
+/* Build all sources from target to object */
 void mace_link(char *objects, char *target) {
     char *arguments[] = {ar, "-rcs", target, objects};
     printf("Linking  %d\n", target);
@@ -140,6 +138,29 @@ void mace_compile(char *source, char *object, char *flags) {
     printf("%s\n", source);
     execvp(cc, arguments);
 }
+
+void mace_build_target(struct Target *target) {
+    /* --- Parse sources, put into array --- */
+
+    /* --- Compile sources --- */
+    for (int i = 0; i < target->_sources_num; i++) {
+        // mace_compile(sources[i], object[i], flags);
+    }
+    /* --- Linking --- */
+    if (target->kind == MACE_LIBRARY) {
+        // mace_link(objects, target);
+    } else if (target->kind == MACE_EXECUTABLE) {
+        // mace_compile(source, object, flags);
+    }
+
+}
+
+void mace_build_targets(struct Target *targets, size_t len) {
+    for (int i = 0; i < len; i++) {
+        mace_build_target(&targets[i]);
+    }
+}
+
 
 /************************************ mace *************************************/
 // User-implemented function.
@@ -162,6 +183,21 @@ struct Target *targets = NULL;
 size_t target_num = 0;
 size_t target_len = 2;
 
+
+void Target_Free(struct Target * target) {
+    if (target->_sources != NULL) {
+        free(target->_sources);
+        target->_sources = NULL;
+    }
+}
+
+void mace_free() {
+    for (int i = 0; i < target_num; i++) {
+        Target_Free(&targets[i]);
+    }
+    free(targets);
+}
+
 int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
     targets = malloc(target_len * sizeof(*targets));
@@ -172,5 +208,6 @@ int main(int argc, char *argv[]) {
     // mace_compile(arguments);
     mace_compile("mace.c", "baka.out", NULL);
     mace_build_targets(targets, target_num);
+    mace_free();
     return (0);
 }
