@@ -150,24 +150,29 @@ struct Target {
     char **restrict _argv_sources; /* sources, in argv form                   */
     int             _argc_sources; /* number of arguments in argv_sources     */
     int             _len_sources;  /* alloc len of arguments in argv_sources  */
+    
 
     uint64_t *restrict _argv_objects_hash;/* sources, in argv form            */
-    int      *restrict _argv_objects_cnt; /* sources, in argv form            */
-    int             _argc_objects_hash;/* number of arguments in argv_sources */
-    char **restrict _argv_objects;   /* sources, in argv form                 */
+    int                _argc_objects_hash;/* num of arguments in argv_sources */
+    char    **restrict _argv_objects;     /* sources, in argv form            */
+    int      *restrict _argv_objects_cnt; /* sources num                      */
 
     /* -- Exclusions --  */
-    uint64_t  *restrict _excludes;
+    uint64_t  *restrict _excludes;  /* hash of excluded source files          */
     int _excludes_num;
     int _excludes_len;
 
     /* --- Dependencies ---  */
+    /* -- Target dependencies --  */
     uint64_t *restrict _deps_links;/* target or libs hashes                   */
     size_t     _deps_links_num;    /* target or libs hashes                   */
     size_t     _deps_links_len;    /* target or libs hashes                   */
     size_t     _d_cnt;             /* dependency count, for build order       */
+    /* -- Object dependencies --  */
+    uint64_t **restrict _deps_obj;    /* header filename hashes               */
+    int       *restrict _deps_obj_num;/* number of dependencies in argv_deps  */
 
-    /* --- Recompile switched ---  */
+    /* --- Recompile switches ---  */
     bool *_recompiles;
 };
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
@@ -799,7 +804,6 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
             /* - Expand path - */
             rpath = calloc(PATH_MAX, sizeof(*rpath));
             if (realpath(token, rpath) == NULL) {
-                // TODO: remove those prints during tests.
                 // printf("Warning! realpath error : %s '%s'\n", strerror(errno), token);
                 to_use = token;
                 free(rpath);
@@ -951,16 +955,30 @@ void mace_Target_sources_grow(struct Target *target) {
         bytesize = sizeof(*target->_argv_objects_hash);
         target->_argv_objects_hash  = calloc(target->_len_sources, bytesize);
     }
+    /* -- Alloc object dependencies -- */
+    if (target->_deps_obj == NULL) {
+        bytesize = sizeof(*target->_deps_obj);
+        target->_deps_obj  = calloc(target->_len_sources, bytesize);
+    }
+    if (target->_deps_obj_num == NULL) {
+        bytesize = sizeof(*target->_deps_obj_num);
+        target->_deps_obj_num  = calloc(target->_len_sources, bytesize);
+    }
 
-    /* -- Realloc recompiles -- */
     if (target->_argc_sources >= target->_len_sources) {
+        /* -- Realloc recompiles -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_recompiles);
         target->_recompiles = realloc(target->_recompiles, bytesize);
-    }
-    /* -- Realloc objects -- */
-    if (target->_argc_sources >= target->_len_sources) {
+        
+        /* -- Realloc objects -- */
         bytesize = target->_len_sources * 2 * sizeof(*target->_argv_objects);
         target->_argv_objects = realloc(target->_argv_objects, bytesize);
+
+        /* -- Realloc object dependencies -- */
+        bytesize = target->_len_sources * 2 * sizeof(*target->_deps_obj);
+        target->_deps_obj = realloc(target->_deps_obj, bytesize);
+        bytesize = target->_len_sources * 2 * sizeof(*target->_deps_obj);
+        target->_deps_obj_num = realloc(target->_deps_obj_num, bytesize);
     }
 
     /* -- Realloc sources -- */
@@ -1356,8 +1374,7 @@ void mace_Target_precompile(struct Target *target) {
 }
 
 void mace_Target_compile(struct Target *target) {
-    // TODO compile all objects
-    // Compile latest object
+    // compile all objects
     assert(target != NULL);
     assert(target->_argv != NULL);
     int argc = 0;
@@ -2036,7 +2053,20 @@ void mace_Target_Free_notargv(struct Target *target) {
         free(target->_recompiles);
         target->_recompiles = NULL;
     }
-
+    if (target->_deps_obj != NULL) {
+        for (int i = 0; i < target->_argc_sources; i++) {
+            if (target->_deps_obj[i] != NULL) {
+                free(target->_deps_obj[i]);
+                target->_deps_obj[i] = NULL;
+            }
+        }
+        free(target->_deps_obj);
+        target->_deps_obj= NULL;
+    }
+    if (target->_deps_obj_num != NULL) {
+        free(target->_deps_obj_num);
+        target->_deps_obj_num = NULL;
+    }
 }
 
 void mace_Target_Free_argv(struct Target *target) {
@@ -2079,6 +2109,24 @@ void mace_post_build_order() {
         printf("No targets in build order. Exiting.\n");
         exit(EDOM);
     }
+}
+
+void mace_parse_object_dependencies(struct Target *target) {
+    // TODO: save hashed filenames dependencies to .djb2
+    //  test if faster to read: .djb2 vs .d 
+    /* Loop over all _argv_sources */
+    /* Check if .djb2 exists */
+    FILE *fdjb2 = fopen(file, "rb");
+    bool dbj2_exists = (fdjb2 == NULL);
+
+    /* Check if .d exists */
+    FILE *fd = fopen(file, "r");
+    bool d_exists = (fd == NULL);
+    /* read all files, starting from 3rd (check if .h) */
+    /* hash name */
+    /* Put hash into array */
+    /* Write bytes to .djb2 */
+    
 }
 
 void mace_post_user(struct Mace_Arguments args) {
