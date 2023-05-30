@@ -318,8 +318,8 @@ void mace_post_user(struct Mace_Arguments *args);
 char  *mace_str_buffer(const char *const strlit);
 
 /* --- mace_checksum --- */
-void  mace_sha1cd(char *file, uint8_t hash2[SHA1_LEN]);
-bool  mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]);
+void  mace_sha1dc(char *file, uint8_t hash2[SHA1_LEN]);
+bool  mace_sha1dc_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]);
 char *mace_checksum_filename(char *file, int mode);
 
 /* --- mace_hashing --- */
@@ -4606,7 +4606,7 @@ void mace_Headers_Checksums(struct Target *target) {
         memset(hash_previous, 0, SHA1_LEN);
         char *checksum_path = target->_headers_checksum[i];
         char *header_path = target->_headers[i];
-        mace_sha1cd(header_path, hash_current);
+        mace_sha1dc(header_path, hash_current);
 
         /* - Check if previous checksum exists - */
         bool changed = true; // set to false only if checksum file exists, changed
@@ -4620,7 +4620,7 @@ void mace_Headers_Checksums(struct Target *target) {
                 remove(checksum_path);
                 exit(EIO);
             }
-            changed = !mace_sha1cd_cmp(hash_previous, hash_current);
+            changed = !mace_sha1dc_cmp(hash_previous, hash_current);
             fclose(fd);
         }
 
@@ -4645,7 +4645,7 @@ bool mace_Source_Checksum(struct Target *target, char *source_path, char *obj_pa
     /* --- SOURCE CHECKSUM --- */
     /* - Compute current checksum - */
     uint8_t hash_current[SHA1_LEN];
-    mace_sha1cd(source_path, hash_current);
+    mace_sha1dc(source_path, hash_current);
 
     /* - Read existing checksum file - */
     assert(chdir(cwd) == 0);
@@ -4662,7 +4662,7 @@ bool mace_Source_Checksum(struct Target *target, char *source_path, char *obj_pa
             remove(checksum_path);
             exit(EIO);
         }
-        changed = !mace_sha1cd_cmp(hash_previous, hash_current);
+        changed = !mace_sha1dc_cmp(hash_previous, hash_current);
         fclose(fd);
     }
 
@@ -6102,11 +6102,11 @@ char *mace_checksum_filename(char *file, int mode) {
     return (sha1);
 }
 
-inline bool mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]) {
+inline bool mace_sha1dc_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]) {
     return (memcmp(hash1, hash2, SHA1_LEN) == 0);
 }
 
-void mace_sha1cd(char *file, uint8_t hash[SHA1_LEN]) {
+void mace_sha1dc(char *file, uint8_t hash[SHA1_LEN]) {
     assert(file != NULL);
     size_t size;
     int i, j, foundcollision;

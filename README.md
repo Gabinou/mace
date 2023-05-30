@@ -66,7 +66,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 ### Lines
 - mace.h: ~6300 Lines
     - parg:     ~600 lines
-    - sha1cd:   ~3000 lines
+    - sha1dc:   ~3000 lines
     - mace:     ~3700 lines
 
 ### Running tests
