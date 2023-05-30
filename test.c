@@ -1,6 +1,7 @@
 
 #include "mace.h"
 
+/* --- Testing library --- */
 #ifndef __NOURSTEST_H__
 #define __NOURSTEST_H__
 #include <time.h>
@@ -8,14 +9,12 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-/* Testing library */
 static int test_num = 0, fail_num = 0;
 
 static void nourstest_results() {
     char message[4] = "FAIL";
-    if (fail_num == 0) {
+    if (fail_num == 0)
         strncpy(message, "PASS", 4);
-    }
     printf("%s (%d/%d)\n", message, test_num - fail_num, test_num);
 }
 #define nourstest_true(test) do {\
@@ -53,7 +52,6 @@ void test_globbing() {
     globbed = mace_glob_sources("../mace/*.h");
     nourstest_true(globbed.gl_pathc == 1);
     nourstest_true(strcmp(globbed.gl_pathv[0], "../mace/mace.h") == 0);
-
 }
 
 int mace(int argc, char *argv[]) {
