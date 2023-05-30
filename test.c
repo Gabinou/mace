@@ -1,3 +1,11 @@
+/*
+* test.c
+*
+* Copyright (C) Gabriel Taillon, 2023
+*
+* Tests for mace C-based build system.
+*
+*/
 
 #include "mace.h"
 #include <fcntl.h>
