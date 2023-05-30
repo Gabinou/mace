@@ -1269,25 +1269,29 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
     char *checksum_path = mace_checksum_filename(rpath);
     uint8_t hash_previous[SHA1_LEN] = {0};
     bool exists = (access(checksum_path, F_OK) == 0);
-    FILE *fd = fopen(checksum_path, "rwb");
-    if (exists) {
+    FILE *fd = fopen(checksum_path, "r");
+    if (fd != NULL) {
+        fseek(fd, 0, SEEK_SET);
         size_t size = fread(hash_previous, 1, SHA1_LEN, fd);
         if (size != SHA1_LEN) {
-            fprintf(stderr, "Could not read checksum from '%s'.\n", checksum_path);
+            fprintf(stderr, "Could not read checksum from '%s'. Deleting. \n", checksum_path);
+            fprintf(stderr, "Could not read checksum from '%s'. Deleting. \n", checksum_path);
+            fclose(fd);
+            remove(checksum_path);
             exit(EIO);
         }
         changed = !mace_sha1cd_cmp(hash_previous, hash_current);
+        fclose(fd);
     }
 
     /* - Write existing checksum file - */
     if (changed) {
-        rewind(fd);
+        fd = fopen(checksum_path, "w");
         fwrite(hash_current, 1, SHA1_LEN, fd); // SHA1_LEN
+        fclose(fd);
     }
-
-    fclose(fd);
     
-    return (excluded);
+    return (!changed || excluded);
 }
 
 
@@ -1299,8 +1303,7 @@ void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
         assert(mace_isSource(globbed.gl_pathv[i]));
         char *pos = strrchr(globbed.gl_pathv[i], '/');
         char *source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos + 1;
-        bool excluded = mace_Target_Source_Add(target, globbed.gl_pathv[i]);
-        if (excluded)
+        if (mace_Target_Source_Add(target, globbed.gl_pathv[i]))
             continue;
         mace_object_path(source_file);
         mace_Target_Object_Add(target, object);
@@ -1514,8 +1517,7 @@ void mace_build_target(struct Target *target) {
             /* token is a source file */
             // printf("isSource %s\n", token);
 
-            bool excluded = mace_Target_Source_Add(target, token);
-            if (!excluded) {
+            if (!mace_Target_Source_Add(target, token)) {
                 mace_object_path(token);
                 mace_Target_Object_Add(target, object);
                 if (!target->allatonce)
@@ -4808,14 +4810,14 @@ char *mace_checksum_filename(char *file) {
     size_t obj_dir_len  = strlen(obj_dir);
     size_t file_len  = dot_i - slash_i;
 
-    size_t checksum_len  = (file_len + 3) + obj_dir_len + 1; 
+    size_t checksum_len  = (file_len + 5) + obj_dir_len + 1; 
 
     char *sha1  = calloc(checksum_len, sizeof(*sha1));
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
     strncpy(sha1 + total, file + slash_i, file_len);
     total += file_len;
-    strncpy(sha1 + total, "sha1", 3);
+    strncpy(sha1 + total, ".sha1", 5);
     return(sha1);
 }
 
