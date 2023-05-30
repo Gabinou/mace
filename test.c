@@ -850,7 +850,7 @@ void test_parse_args() {
     Mace_Arguments_Free(&args);
     argc = 0;
 
-   const char *command_9     = "mace -j2";
+    const char *command_9     = "mace -j2";
     argv = mace_argv_flags(&len, &argc, argv, command_9, NULL, false);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
@@ -1026,7 +1026,7 @@ void test_build_order() {
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
     nourstest_true(build_order[1] == mace_hash_order(mace_hash("E")));
 
- 
+
     // set user_target to A check build_order
     // user_target should override mace_default_target
     mace_user_target    = mace_hash_order(mace_hash("A"));
