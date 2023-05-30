@@ -563,7 +563,7 @@ void test_post_user() {
         exit(ENOENT);
     } else if (pid == 0) {
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(args);
