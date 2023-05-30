@@ -803,6 +803,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
                 // printf("Warning! realpath error : %s '%s'\n", strerror(errno), token);
                 to_use = token;
                 free(rpath);
+                rpath = NULL;
             } else {
                 rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
                 to_use = rpath;
@@ -826,7 +827,9 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
         argv[(*argc)++] = arg;
 
         token = strtok_r(NULL, mace_separator, &sav);
-        free(rpath);
+        if (rpath != NULL) {
+            free(rpath);
+        }
     }
 
     free(buffer);
@@ -2191,8 +2194,8 @@ void mace_free() {
 void mace_Target_Deps_Grow(struct Target *target) {
     if (target->_deps_links_len <= target->_deps_links_num) {
         target->_deps_links_len *= 2;
-        target->_deps_links = realloc(target->_deps_links,
-                                      target->_deps_links_len * sizeof(*target->_deps_links));
+        size_t bytesize = target->_deps_links_len * sizeof(*target->_deps_links);
+        target->_deps_links = realloc(target->_deps_links, bytesize);
     }
 }
 

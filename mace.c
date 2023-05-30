@@ -35,16 +35,12 @@ int main(int argc, char *argv[]) {
     struct Mace_Arguments args = mace_parse_args(argc, argv);
 
     /* -- Override c compiler-- */
-    char *cc;
-    printf("args.cc %s \n", args.cc);
+    char *cc;   
     if (args.cc != NULL) {
-        printf("SET\n");
         cc = args.cc;
     } else {
-        printf("DEFAULT\n");
         cc = STRINGIFY(CC);
     }
-    printf("cc %s \n", cc);
 
     /* --- Compile the macefile --- */
     /* - Read macefile name from args - */
