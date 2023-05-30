@@ -15,10 +15,16 @@
 /*----------------------------------------------------------------------------*/
 
 /************************************ mace ************************************/
-// User entry point.
+// User entry point. User responsibilities:
 //   1- Set compiler
 //   2- Add targets
 extern int mace(int argc, char *argv[]);
+
+/******************************* MACE_TARGET_KIND ******************************/
+enum MACE_TARGET_KIND { // for target.kind
+    MACE_EXECUTABLE      = 1,
+    MACE_LIBRARY         = 2,
+};
 
 /**************************** Target struct ***********************************/
 // Contains all information necessary to compile target
@@ -43,7 +49,6 @@ struct Target {
     size_t  _sources_len;
     char   *_name;
 };
-void Target_Free(struct Target *target);
 
 /* --- EXAMPLE TARGET --- */
 // Use struct Designated Initializer, guaranteeing unitialized values to 0/NULL.
@@ -60,11 +65,52 @@ void Target_Free(struct Target *target);
 
 
 /******************************** DECLARATIONS ********************************/
-int mace_isSource(const char *path);
-void mace_object_path(char *source);
-void mace_add_source(struct Target *target, char *token);
-char   *object;
 
+/* --- mace_Target --- */
+void Target_Free(struct Target *target);
+void Target_Source_Add(struct Target *target, char *token);
+
+int globerr(const char *path, int eerrno);
+glob_t mace_glob_sources(const char *path);
+
+/* --- mace_exec --- */
+pid_t mace_exec(char *exec, char *arguments[]);
+void  mace_wait_pid(int pid);
+
+/* --- mace_build --- */
+void mace_link(char *objects, char *target);
+void mace_compile(char *source, char *object, char *flags, int kind);
+void mace_compile_glob(struct Target * target, char *globsrc, char *flags, int kind);
+
+/* --- mace_is --- */
+int mace_isWildcard(const   char *str);
+int mace_isSource(const     char *path);
+int mace_isObject(const     char *path);
+int mace_isDir(const        char *path);
+
+/* --- mace_filesystem --- */
+void mace_mkdir(const char *path);
+char *mace_library_path(char *target_name);
+void mace_object_path(char *source);
+void mace_free();
+
+
+/* --- mace_globals --- */
+struct Target *targets;
+size_t  target_num;
+size_t  target_len;
+char   *objdir;
+char   *object;
+size_t  object_len;
+char   *objects;
+size_t  objects_len;
+size_t  objects_num;
+char   *builddir;
+size_t  build_len;
+
+
+void mace_grow_obj();
+void mace_grow_objs();
 
 /******************************* MACE_ADD_TARGET ******************************/
 // Adds user-defined target to internal array of targets.
@@ -106,11 +152,6 @@ char *ar = "ar";
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
 
-/******************************* MACE_TARGET_KIND ******************************/
-enum MACE_TARGET_KIND {
-    MACE_EXECUTABLE      = 1,
-    MACE_LIBRARY         = 2,
-};
 
 // build include flags from target.include
 void mace_flags_include(struct Target targets) {
@@ -154,20 +195,8 @@ glob_t mace_glob_sources(const char *path) {
     return (globbed);
 }
 
-/* Replaces spaces with -I */
-void mace_include_flags(struct Target *target) {
-
-}
-
-void mace_parse_sources(struct Target *target) {
-    target->_sources = malloc(sizeof(*target->_sources));
-}
-
-
-/********************************* mace_build **********************************/
-/* Build all sources from target to object */
-
-
+/********************************* mace_exec **********************************/
+// Execute command in forked process.
 pid_t mace_exec(char *exec, char *arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
@@ -180,6 +209,7 @@ pid_t mace_exec(char *exec, char *arguments[]) {
     return (pid);
 }
 
+// Wait on process with pid to finish
 void mace_wait_pid(int pid) {
     int status;
     if (waitpid(pid, &status, 0) > 0) {
@@ -200,6 +230,8 @@ void mace_wait_pid(int pid) {
     }
 }
 
+/********************************* mace_build **********************************/
+/* Build all sources from target to object */
 void mace_link(char *objects, char *target) {
     char *arguments[] = {ar, "-rcs", target, objects, NULL};
     printf("Linking \t%s \n", target);
@@ -231,12 +263,13 @@ void mace_compile_glob(struct Target * target, char *globsrc, char *flags, int k
         assert(mace_isSource(globbed.gl_pathv[i]));
         char * pos = strrchr(globbed.gl_pathv[i], '/');
         char * source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos;
-        mace_add_source(target, source_file);
+        Target_Source_Add(target, source_file);
         mace_object_path(source_file);
         mace_compile(globbed.gl_pathv[i], object, flags, kind);
     }
 }
 
+/********************************** mace_is ***********************************/
 int mace_isWildcard(const char *str) {
     return ((strchr(str, '*') != NULL));
 }
@@ -263,6 +296,7 @@ int mace_isDir(const char *path) {
     return S_ISDIR(statbuf.st_mode);
 }
 
+/****************************** mace_filesystem ********************************/
 void mace_mkdir(const char *path) {
     struct stat st = {0};
     if (stat(path, &st) == -1) {
@@ -270,6 +304,16 @@ void mace_mkdir(const char *path) {
     }
 }
 
+char *mace_library_path(char *target_name) {
+    assert(target_name != NULL);
+    char *lib = calloc((strlen(target_name) + 6), sizeof(*lib));
+    strncpy(lib,                            "lib",       3);
+    strncpy(lib + 3,                        target_name, strlen(target_name));
+    strncpy(lib + 3 + strlen(target_name),  ".a",        2);
+    return (lib);
+}
+
+/******************************* mace_globals *********************************/
 char   *objdir      = "obj/";
 char   *object      = NULL;
 size_t  object_len  = 16;
@@ -309,33 +353,8 @@ void mace_object_path(char *source) {
     free(temp);
 }
 
-void mace_add_source(struct Target *target, char *token) {
-    size_t i = target->_sources_num++;
-    size_t srcdir_len = strlen(target->base_dir);
-    size_t source_len = strlen(token);
-    size_t full_len   = srcdir_len + source_len + 2;
-    target->_sources[i] = malloc(full_len * sizeof(**target->_sources));
 
-    if (target->_sources_num >= target->_sources_len) {
-        target->_sources_len *= 2;
-        size_t bytesize = target->_sources_len * sizeof(*target->_sources);
-        target->_sources = realloc(target->_sources, bytesize);
-    }
-
-    strncpy(target->_sources[i],              target->base_dir, full_len);
-    strncpy(target->_sources[i] + srcdir_len, "/",              1);
-    strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
-}
-
-char *mace_library_path(char *target_name) {
-    assert(target_name != NULL);
-    char *lib = calloc((strlen(target_name) + 6), sizeof(*lib));
-    strncpy(lib,                            "lib",       3);
-    strncpy(lib + 3,                        target_name, strlen(target_name));
-    strncpy(lib + 3 + strlen(target_name),  ".a",        2);
-    return (lib);
-}
-
+/******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
     /* --- Parse sources, put into array --- */
     // printf("mace_build_target\n");
@@ -376,7 +395,7 @@ void mace_build_target(struct Target *target) {
         } else if (mace_isSource(token)) {
             /* token is a source file */
             // printf("isSource %s\n", token);
-            mace_add_source(target, token);
+            Target_Source_Add(target, token);
             size_t i = target->_sources_num - 1;
             mace_object_path(token);
             mace_compile(target->_sources[i], object, target->flags, target->kind);
@@ -423,14 +442,6 @@ void mace_build_targets(struct Target *targets, size_t len) {
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
 
-/************************************ main ************************************/
-// 1- Runs mace function, get all info from user:
-//   a- Get compiler
-//   b- Get targets
-// 2- Builds dependency graph from targets
-// 3- Determine which targets need to be recompiled
-// 4- Build the targetskee
-// if `mace clean` is called (clean target), rm all targets
 
 struct Target *targets = NULL;
 size_t target_num      = 0;
@@ -450,6 +461,24 @@ void Target_Free(struct Target *target) {
     }
 }
 
+void Target_Source_Add(struct Target *target, char *token) {
+    size_t i = target->_sources_num++;
+    size_t srcdir_len = strlen(target->base_dir);
+    size_t source_len = strlen(token);
+    size_t full_len   = srcdir_len + source_len + 2;
+    target->_sources[i] = malloc(full_len * sizeof(**target->_sources));
+
+    if (target->_sources_num >= target->_sources_len) {
+        target->_sources_len *= 2;
+        size_t bytesize = target->_sources_len * sizeof(*target->_sources);
+        target->_sources = realloc(target->_sources, bytesize);
+    }
+
+    strncpy(target->_sources[i],              target->base_dir, full_len);
+    strncpy(target->_sources[i] + srcdir_len, "/",              1);
+    strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
+}
+
 void mace_free() {
     for (int i = 0; i < target_num; i++) {
         Target_Free(&targets[i]);
@@ -464,6 +493,15 @@ void mace_free() {
         free(objects);
     }
 }
+
+/************************************ main ************************************/
+// 1- Runs mace function, get all info from user:
+//   a- Get compiler
+//   b- Get targets
+// 2- Builds dependency graph from targets
+// 3- Determine which targets need to be recompiled
+// 4- Build the targetskee
+// if `mace clean` is called (clean target), rm all targets
 
 int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
