@@ -380,6 +380,12 @@ void mace_object_path(char *source) {
     free(path);
 }
 
+char* mace_str_buffer(const char * strlit) {
+    size_t litlen = strlen(strlit);
+    char *buffer = calloc(litlen + 1, sizeof(*buffer));
+    strncpy(buffer, target->sources, litlen);
+    return(buffer);
+}
 
 /******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
@@ -396,10 +402,11 @@ void mace_build_target(struct Target *target) {
     target->_sources        = malloc(target->_sources_len * sizeof(*target->_sources));
     memset(objects, 0, objects_len * sizeof(*objects));
     objects_num = 0;
-    /* --- Copy sources into modifiable buffer --- */
-
+    /* -- Copy sources into modifiable buffer -- */
+   char* buffer = mace_str_buffer(target->sources);
+    
     /* --- Split sources into tokens --- */
-    char *token = strtok(target->sources, " ");
+    char *token = strtok(buffer, " ");
     do {
         // printf("token %s\n", token);
 
@@ -544,7 +551,7 @@ void Target_Deps(struct Target *target) {
     }
     target->_deps_links = malloc(target->_deps_links_len * sizeof(*target->_deps_links));
     /* --- Copy links into modifiable buffer --- */
-
+   char* buffer = mace_str_buffer(target->links);
     /* --- Split links into tokens --   - */
     char *token = strtok(target->links, " ");
     do {
