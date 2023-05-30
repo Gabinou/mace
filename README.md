@@ -58,7 +58,6 @@ int mace(int argc, char *argv[]) {
 ```
 
 ## Why?
-
 - No build systems for C is truly good.
     - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
     - Proof 2: Modern programming languages devs implement their own build systems.
@@ -70,6 +69,9 @@ int mace(int argc, char *argv[]) {
 - Build systems are general-purpose and complex.
     - Complexity bad. Simplicity good.
 
+## About performance
+Build system perfomance bottleneck is compilation.
+Smaller projects don't benefit much from dependency computation.
 
 
 ## Credits
