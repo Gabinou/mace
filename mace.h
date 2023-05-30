@@ -32,16 +32,16 @@ enum MACE_TARGET_KIND { // for target.kind
 // Contains all information necessary to compile target
 struct Target {
     /* User-set public members */
-    char *includes;          /* directories,           ' ' separated */
-    char *sources;           /* files, glob patterns,  ' ' separated */
-    char *sources_exclude;   /* files, glob patterns,  ' ' separated */
-    char *base_dir;          /* directory,                           */
-    char *links;             /* libraries or targets   ' ' separated */
-    char *flags;             /* passed as is to compiler             */
-    char *message_pre_build;
-    char *command_pre_build;
-    char *message_post_build;
-    char *command_post_build;
+    const char *includes;          /* directories,           ' ' separated */
+    const char *sources;           /* files, glob patterns,  ' ' separated */
+    const char *sources_exclude;   /* files, glob patterns,  ' ' separated */
+    const char *base_dir;          /* directory,                           */
+    const char *links;             /* libraries or targets   ' ' separated */
+    const char *flags;             /* passed as is to compiler             */
+    const char *message_pre_build;
+    const char *command_pre_build;
+    const char *message_post_build;
+    const char *command_post_build;
     int   kind;              /* MACE_TARGET_KIND                     */
 
     /* Private members */
@@ -54,7 +54,7 @@ struct Target {
     char      *_name;
     size_t     _deps_links_num; /* target or libs hashes             */
     size_t     _deps_links_len; /* target or libs hashes             */
-    size_t d_cnt;
+    size_t      d_cnt;          /* for build order search*/
 };
 
 /* --- EXAMPLE TARGET --- */
@@ -76,29 +76,31 @@ struct Target {
 /* --- mace --- */
 void mace_init();
 void mace_free();
-char *mace_str_buffer(const char *strlit);
-char *mace_set_obj_dir(char *obj);
-char *mace_set_build_dir(char *build);
-char *mace_copy_str(char *buffer, char *str);
+char *mace_str_buffer(const char * const strlit);
+char *mace_copy_str(char *restrict buffer, const char *str);
+
+/* --- mace_setters --- */
+char *mace_set_obj_dir(char    *obj);
+char *mace_set_build_dir(char  *build);
 
 /* --- mace_Target --- */
-void Target_Free(struct Target *target);
-void Target_Source_Add(struct Target *target, char *token);
-void Target_Deps_Hash(struct Target *target);
-bool Target_hasDep(struct Target *target, uint64_t hash);
+void Target_Free(struct Target          *target);
+bool Target_hasDep(struct Target        *target, uint64_t hash);
+void Target_Deps_Hash(struct Target     *target);
+void Target_Source_Add(struct Target    *target, char    *token);
 int Target_Order();
 
 int globerr(const char *path, int eerrno);
 glob_t mace_glob_sources(const char *path);
 
 /* --- mace_exec --- */
-pid_t mace_exec(char *exec, char *arguments[]);
+pid_t mace_exec(const char *exec, char * const arguments[]);
 void  mace_wait_pid(int pid);
 
 /* --- mace_build --- */
 void mace_link(char *objects, char *target);
-void mace_compile(char *source, char *object, char *flags, int kind);
-void mace_compile_glob(struct Target *target, char *globsrc, char *flags, int kind);
+void mace_compile(const char * restrict source, char *restrict object, const char *restrict flags, int kind);
+void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags, int kind);
 
 /* --- mace_is --- */
 int mace_isWildcard(const   char *str);
@@ -107,9 +109,9 @@ int mace_isObject(const     char *path);
 int mace_isDir(const        char *path);
 
 /* --- mace_filesystem --- */
-void mace_mkdir(const char *path);
-char *mace_library_path(char *target_name);
-void mace_object_path(char *source);
+void  mace_mkdir(const char    *path);
+void  mace_object_path(char    *source);
+char *mace_library_path(char   *target_name);
 
 /* --- mace_globals --- */
 struct Target  *targets;        /* [order] is as added by user */
@@ -180,26 +182,24 @@ char *ar = "ar";
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) cc = #compiler
 
-#define MACE_SET_BUILDDIR(dir)
-
 /******************************* MACE_SET_obj_dir *******************************/
 // Sets where the object files will be placed during build.
 char *mace_set_obj_dir(char *obj) {
-    return(obj_dir = mace_copy_str(obj_dir, obj));
+    return (obj_dir = mace_copy_str(obj_dir, obj));
 }
 
 char *mace_set_build_dir(char *build) {
-    return(build_dir = mace_copy_str(build_dir, build));
+    return (build_dir = mace_copy_str(build_dir, build));
 }
 
-char *mace_copy_str(char *buffer, char *str) {
+char *mace_copy_str(char *restrict buffer, const char *str) {
     if (buffer != NULL) {
         free(buffer);
     }
     size_t len = strlen(str);
     buffer = calloc(len + 1, sizeof(*buffer));
     strncpy(buffer, str, len);
-    return(buffer);
+    return (buffer);
 }
 
 /**************************** parg ***********************************/
@@ -207,7 +207,7 @@ char *mace_copy_str(char *buffer, char *str) {
 
 
 // build include flags from target.include
-void mace_flags_include(struct Target targets) {
+void mace_flags_include(const char * ) {
 
 }
 
@@ -244,7 +244,7 @@ glob_t mace_glob_sources(const char *path) {
 
 /********************************* mace_exec **********************************/
 // Execute command in forked process.
-pid_t mace_exec(char *exec, char *arguments[]) {
+pid_t mace_exec(const char *exec, char * const arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
         printf("Error: forking issue. \n");
@@ -287,7 +287,7 @@ void mace_link(char *objects, char *target) {
 }
 
 /* Compile a single source file to object */
-void mace_compile(char *source, char *object, char *flags, int kind) {
+void mace_compile(const char * restrict source, char *restrict object, const char *restrict flags, int kind) {
     char libflag[3] = "";
     if (kind == MACE_LIBRARY) {
         strncpy(libflag, "-c", 2);
@@ -296,14 +296,21 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
     char *pos = strrchr(absrc, '/');
     char *source_file = (pos == NULL) ? absrc : pos + 1;
     printf("Compiling   \t%s \n", source_file);
-    char *arguments[] = {cc, absrc, libflag, "-o", object, flags, NULL};
+    char * aflags = NULL;
+    if (flags != NULL) {
+        size_t flags_len = strlen(flags);
+        aflags = calloc(flags_len + 1, sizeof(*aflags));
+        strncpy(aflags, flags, flags_len);
+    }
+    char *const arguments[] = {cc, absrc, libflag, "-o", object, aflags, NULL};
     pid_t pid = mace_exec(cc, arguments);
     mace_wait_pid(pid);
     free(absrc);
+    free(aflags);
 }
 
 /* Compile globbed files to objects */
-void mace_compile_glob(struct Target *target, char *globsrc, char *flags, int kind) {
+void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags, int kind) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
         assert(mace_isSource(globbed.gl_pathv[i]));
@@ -520,6 +527,7 @@ size_t mace_hash_order(uint64_t hash) {
 size_t mace_target_order(struct Target target) {
     return (mace_hash_order(target._hash));
 }
+
 void mace_build_order_add(size_t order) {
     if (build_order == NULL) {
         build_order = malloc(target_num * sizeof(*build_order));
@@ -598,7 +606,7 @@ bool mace_circular_deps(struct Target *targs, size_t len) {
 
 void mace_target_build_order(struct Target *targs, size_t len) {
     assert(targs != NULL);
-    assert(len      > 0);
+    assert(len    > 0);
     size_t o_cnt = 0;
 
     /* Check for circular dependency */
@@ -606,20 +614,24 @@ void mace_target_build_order(struct Target *targs, size_t len) {
         printf("Circular dependency in linked library detected. Exiting\n");
         exit(EDOM);
     }
-
-    /* Visit all targs */
-    while (o_cnt < target_num) {
-        mace_deps_build_order(targs[o_cnt], &o_cnt);
-        o_cnt++;
-    }
+    if (len == 1)
+        /* Visit all targs */
+        while (o_cnt < target_num) {
+            mace_deps_build_order(targs[o_cnt], &o_cnt);
+            o_cnt++;
+        }
 }
+
 void mace_build_targets(struct Target *targs, size_t len) {
-    assert(targs != NULL);
+    assert(targs            != NULL);
+    assert(build_order      != NULL);
+    assert(build_order_num   > 0);
     if (len == 0) {
         printf("No targets to compile. Exiting.\n");
         return;
     }
-    for (int i = 0; i < len; i++) {
+    for (int z = 0; z < build_order_num; z++) {
+        int i = build_order[z];
         mace_build_target(&targs[i]);
     }
 }
@@ -627,8 +639,6 @@ void mace_build_targets(struct Target *targs, size_t len) {
 /*----------------------------------------------------------------------------*/
 /*                               MACE INTERNALS                               */
 /*----------------------------------------------------------------------------*/
-
-
 struct Target *targets = NULL;
 size_t target_num      = 0;
 size_t target_len      = 8;
@@ -669,9 +679,9 @@ void Target_Source_Add(struct Target *target, char *token) {
     strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
 }
 
-void mace_init() {    
+void mace_init() {
     mace_free();
-    
+
     /* --- Memory allocation --- */
     targets = malloc(target_len  * sizeof(*targets));
     object  = malloc(object_len  * sizeof(*object));
@@ -741,13 +751,13 @@ void Target_Deps_Hash(struct Target *target) {
 int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
     printf("START\n");
-    mace_init();      
+    mace_init();
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
     mace(argc, argv);
 
-    // mace_target_build_order(targets, target_num);
+    mace_target_build_order(targets, target_num);
     mace_build_targets(targets, target_num);
     mace_free(targets);
     printf("FINISH\n");
