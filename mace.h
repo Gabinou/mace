@@ -76,12 +76,13 @@ struct Target {
 /* --- mace --- */
 void mace_init();
 void mace_free();
-char *mace_str_buffer(const char * const strlit);
+char *mace_str_buffer(const char *const strlit);
 char *mace_copy_str(char *restrict buffer, const char *str);
 
 /* --- mace_setters --- */
 char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
+char *mace_include_flags(const char *includes);
 
 /* --- mace_Target --- */
 void Target_Free(struct Target          *target);
@@ -94,12 +95,13 @@ int globerr(const char *path, int eerrno);
 glob_t mace_glob_sources(const char *path);
 
 /* --- mace_exec --- */
-pid_t mace_exec(const char *exec, char * const arguments[]);
+pid_t mace_exec(const char *exec, char *const arguments[]);
 void  mace_wait_pid(int pid);
 
 /* --- mace_build --- */
 void mace_link(char *objects, char *target);
-void mace_compile(const char * restrict source, char *restrict object, const char *restrict flags, int kind);
+void mace_compile(const char *restrict source, char *restrict object, const char *restrict flags,
+                  int kind);
 void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags, int kind);
 
 /* --- mace_is --- */
@@ -160,7 +162,7 @@ struct Command {
 //  - If command has NO dependencies, user can set order
 
 /********************************* mace_hash **********************************/
-uint64_t mace_hash(const char *str) {
+uint64_t mace_hash(char *str) {
     /* djb2 hashing algorithm by Dan Bernstein.
     * Description: This algorithm (k=33) was first reported by dan bernstein many
     * years ago in comp.lang.c. Another version of this algorithm (now favored by bernstein)
@@ -205,15 +207,43 @@ char *mace_copy_str(char *restrict buffer, const char *str) {
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
 
-
 // build include flags from target.include
-void mace_flags_include(const char * ) {
+char *Target_Flags_Include(struct Target *target) {
+    /* -- Skip if no includes -- */
+    if (target->includes == NULL)
+        return (NULL);
 
+    return (mace_include_flags(target->includes));
 }
 
-// build linker flags from target.links
-void mace_flags_link(struct Target targets) {
+char *mace_include_flags(const char *includes) {
+    assert(includes != NULL);
+    /* -- Copy sources into modifiable buffer -- */
+    char *buffer = mace_str_buffer(includes);
+    // Pathological case where includes have length 1: "A B C D",
+    // With n the number of folders:
+    //  1- len of target->includes                           = 2n - 1
+    //  2- len to add because of -I                          = 2n
+    //  3- Total len of include_flags is the sum: of 1 and 2 = 4n - 1
+    //  4- 2 * (len of target->includes + 1) > total len     = 4n (includes null terminator)
+    char *include_flags = calloc((strlen(includes) + 1) * 2, sizeof(*include_flags));
 
+    /* --- Split sources into tokens --- */
+    char *token = strtok(buffer, " ");
+
+    int total_len = 0;
+    do {
+        // for every token, add -I
+        strncpy(include_flags + total_len, "-I", (total_len += 2));
+        strncpy(include_flags + total_len, token, (total_len += strlen(token)));
+        strncpy(include_flags + total_len, " ", (total_len += 1));
+        token = strtok(NULL, " ");
+    } while (token != NULL);
+
+    include_flags = realloc(include_flags, (strlen(include_flags) + 1) * sizeof(*include_flags));
+
+    free(buffer);
+    return (include_flags);
 }
 
 
@@ -244,7 +274,7 @@ glob_t mace_glob_sources(const char *path) {
 
 /********************************* mace_exec **********************************/
 // Execute command in forked process.
-pid_t mace_exec(const char *exec, char * const arguments[]) {
+pid_t mace_exec(const char *exec, char *const arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
         printf("Error: forking issue. \n");
@@ -287,7 +317,8 @@ void mace_link(char *objects, char *target) {
 }
 
 /* Compile a single source file to object */
-void mace_compile(const char * restrict source, char *restrict object, const char *restrict flags, int kind) {
+void mace_compile(const char *restrict source, char *restrict object, const char *restrict flags,
+                  int kind) {
     char libflag[3] = "";
     if (kind == MACE_LIBRARY) {
         strncpy(libflag, "-c", 2);
@@ -296,7 +327,7 @@ void mace_compile(const char * restrict source, char *restrict object, const cha
     char *pos = strrchr(absrc, '/');
     char *source_file = (pos == NULL) ? absrc : pos + 1;
     printf("Compiling   \t%s \n", source_file);
-    char * aflags = NULL;
+    char *aflags = NULL;
     if (flags != NULL) {
         size_t flags_len = strlen(flags);
         aflags = calloc(flags_len + 1, sizeof(*aflags));
@@ -513,8 +544,8 @@ bool mace_isTargetinBuildOrder(size_t order) {
     return (out);
 }
 
-size_t mace_hash_order(uint64_t hash) {
-    size_t order;
+int mace_hash_order(uint64_t hash) {
+    int order = -1;
     for (int i = 0; i < target_num; i++) {
         if (hash == targets[i]._hash) {
             order = i;
@@ -524,7 +555,7 @@ size_t mace_hash_order(uint64_t hash) {
     return (order);
 }
 
-size_t mace_target_order(struct Target target) {
+int mace_target_order(struct Target target) {
     return (mace_hash_order(target._hash));
 }
 
