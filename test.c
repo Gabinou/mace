@@ -481,7 +481,6 @@ void test_argv() {
                               "third_party/physfs third_party/tinymt third_party/stb "
                               "third_party/cJson",
         .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
-        .flags              = "",
         .links              = "tnecs",
         .kind               = MACE_EXECUTABLE,
     };
@@ -556,7 +555,7 @@ void test_post_user() {
         .kind               = MACE_STATIC_LIBRARY,
     };
     MACE_ADD_TARGET(tnecs);
-    struct Mace_Arguments args;
+    struct Mace_Arguments args = Mace_Arguments_default;
 
     pid = fork();
     if (pid < 0) {
