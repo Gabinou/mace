@@ -10,67 +10,23 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - C syntax.
 - Simple API
 - Single header build system: `mace.h`.
-- Convenience executable for `make`-like behavior
+- Convenience executable for `make`-like usage
 
-## Usage
+## How to
 1. Get `mace.h`
-2. Write your own macefile e.g. `macefile.c`
+2. Write your own macefile e.g. `macefile.c` ([example](https://github.com/Gabinou/mace/blob/master/example_macefile.c))
 3. Compile builder executable `gcc macefile.c -o builder`
 4. Build `./builder` 
-    1. Same as `./builder all` by default.
-    2. Remove all objects and targets: `./builder clean`
-    3. Usage mostly the same as `make`
-
-### Example macefile
-```c
-#include "mace.h"
-
-/* CC might be set when calling the compiler e.g. with "-DCC=tcc" */
-#ifndef CC
-    #define CC gcc
-#endif
-
-struct Config debug = {.flags = "-g -O0"};
-struct Config release = {.flags = "-O2"};
-
-/******************************* WARNING ********************************/
-/* 1. main is defined in mace.h                                         */
-/* 2. arguments from main are passed to mace                            */
-/* 3. mace function is declared in mace.h, MUST be defined by user      */
-/*======================================================================*/
-int mace(int argc, char *argv[]) {
-    MACE_SET_COMPILER(CC)
-    MACE_SET_BUILD_DIR(build);
-    MACE_SET_OBJ_DIR(obj);
-
-    // Note: 'clean' and 'all' are reserved target names with expected behavior.
-    struct Target foo = { /* Unitialized values guaranteed to be 0 / NULL */
-        /* Default separator is ',', but can be set with MACE_SET_SEPARATOR */
-        .includes           = "include,include/sub/a.h",
-        .sources            = "src,src/sub/*",
-        .base_dir           = "foo",
-        .kind               = MACE_STATIC_LIBRARY,
-    };
-    MACE_ADD_TARGET(foo);
-
-    // Change default target from 'all' to input.
-    MACE_DEFAULT_TARGET(foo);
-
-    /* -- Configs -- */
-    MACE_ADD_CONFIG(debug);   /* First config is default config */
-    MACE_ADD_CONFIG(release); /* To use this config: -g flag */
-}
-
-```
 
 ### Convenience executable
+The convenience executable compiles a macefile and runs with a single `mace` command.
+
 1. Install `mace` convenience executable
     1. Compile `installer.c` macefile: `gcc installer.c -o installer`
     2. Run installer: `sudo ./installer`. 
 2. Write your own macefile e.g. `macefile.c`
 3. Run `mace` to build
-    1. Compiles macefile and runs builder executable
-    2. Default macefile: `macefile.c`
+    1. Default macefile: `macefile.c`
 
 Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
