@@ -1,3 +1,4 @@
+# Copyright (C) Gabriel Taillon, 2023
 # Astyle option file aka config
 
 # Show only formatted files

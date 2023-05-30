@@ -11,7 +11,7 @@ Specificity, reduced scope, all in service of *simplicity*.
     - Targets are `structs`. 
     - Function `mace` is user entry point.
 - Single header build system.
-    - Compiling macefile as easy as compiling `hello_world.c`.
+    - Compiling macefile as easy as compiling `hello_world.c`, or easier!
     - Build project by running resulting executable.
 - Easy to learn
     - Familiar syntax.
@@ -32,12 +32,18 @@ Specificity, reduced scope, all in service of *simplicity*.
 ### Convenience executable
 1. Install `mace` convenience executable
     1. Compile `installer.c` macefile: `gcc installer.c -o installer`
-    2. Run installer: `./install`
+    2. Run installer: `sudo ./installer`
 2. Write your own macefile e.g. `macefile.c`
 3. Build `mace macefile.c`
 
 The convenience executable `mace` will compile the `macefile.c` into the `build` executable, and run it.
 Nothing more, nothing less.
+
+You can modify the default install path `/usr/local` with `-DPREFIX=\"<path>\"` when compiling `installer`.
+
+Some default behaviour of the convenience executable can be customized, see `installer.c`:
+- Default compiler with the target flag `-DCC=gcc`
+- Builder executable name with the target flag `-DBUILDER=build`
 
 ## Example macefile
 ```c

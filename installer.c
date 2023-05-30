@@ -1,14 +1,26 @@
+/*
+* installer.c
+*
+* Copyright (C) Gabriel Taillon, 2023
+*
+* Macefile for 'mace' convenience executable.
+*   - Builds 'mace' executable.
+*   - Installs: 'mace' to PREFIX/bin, mace.h PREFIX/include
+*
+*/
 
 #include "mace.h"
 
-// Compiler used to compile installer executable
+/* Compiler used to compile 'mace' */
 #ifndef CC
     #define CC gcc
 #endif /* CC */
-#define BUILD_DIR "bin"
-#define OBJ_DIR "obj"
-#define EXECUTABLE_NAME "mace"
-#define HEADER_NAME "mace.h"
+#ifndef BUILD_DIR
+    #define BUILD_DIR "bin"
+#endif /* BUILD_DIR */
+#ifndef OBJ_DIR
+    #define OBJ_DIR "obj"
+#endif /* OBJ_DIR */
 #ifndef PREFIX
     #define PREFIX "/usr/local"
 #endif /* PREFIX */
@@ -32,16 +44,16 @@ int mace(int argc, char *argv[]) {
         .flags              = "-DMACE_OVERRIDE_MAIN -DCC=gcc -DBUILDER=build",
     };
     // Add target with different name, i.e. "mace"
-    mace_add_target(&MACE, EXECUTABLE_NAME);
+    mace_add_target(&MACE, "mace");
 
-    // /* - mace install - */
-    // // 1. Copies mace convenience executable to `/usr/local/bin`
-    // // 2. Copies mace header                 to `/usr/local/include`
-    // struct Command install_mace = {
-    // .commands =
-    //         "install " BUILD_DIR "/" EXECUTABLE_NAME " " PREFIX "/bin/" EXECUTABLE_NAME
-    //         "&&install " HEADER_NAME " " PREFIX "/include/" HEADER_NAME"",
-    // };
-    // MACE_ADD_COMMAND(install_mace);
+    /* - mace install - */
+    // 1. Copies mace convenience executable to `/usr/local/bin` by default
+    // 2. Copies mace header                 to `/usr/local/include` by default
+    struct Command install_mace = {
+        .commands =
+                "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
+                "install -T mace.h"          " " PREFIX "/include/mace.h",
+    };
+    MACE_ADD_COMMAND(install_mace);
 }
 
