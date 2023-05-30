@@ -80,7 +80,13 @@ void test_target() {
         .kind               = MACE_LIBRARY,
     };
     MACE_ADD_TARGET(tnecs);
-    
+
+    nourstest_true(target_num                           == 1);
+    nourstest_true(targets[0]._hash                     == mace_hash("tnecs"));
+    nourstest_true(targets[0]._order                    == 0);
+    nourstest_true(strcmp(targets[0]._name, "tnecs")    == 0);
+
+    target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
 int mace(int argc, char *argv[]) {
@@ -88,6 +94,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("isFunc ",    test_isFunc);
     nourstest_run("globbing ",  test_globbing);
     nourstest_run("object ",    test_object);
+    nourstest_run("target ",    test_target);
     nourstest_results();
     printf("Tests done\n");
 }
