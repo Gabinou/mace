@@ -201,12 +201,13 @@ struct Mace_Arguments {
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
 enum MACE {
-    MACE_DEFAULT_TARGET_LEN     =   8,
-    MACE_MAX_COMMANDS           =   8,
-    MACE_DEFAULT_OBJECT_LEN     =  16,
-    MACE_DEFAULT_OBJECTS_LEN    = 128,
-    MACE_CWD_BUFFERSIZE         = 128,
-    SHA1_LEN                    =  20, /* [bytes] */
+    MACE_DEFAULT_TARGET_LEN     =    8,
+    MACE_MAX_COMMANDS           =    8,
+    MACE_DEFAULT_OBJECT_LEN     =   16,
+    MACE_DEFAULT_OBJECTS_LEN    =  128,
+    MACE_CWD_BUFFERSIZE         =  128,
+    SHA1_LEN                    =   20, /* [bytes] */
+    MACE_OBJDEP_BUFFER          = 4096,
 };
 
 #define MACE_CLEAN "clean"
@@ -2128,7 +2129,8 @@ void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj,
     }
     memset(file, 0, len);
     strncpy(file, objfile + oflagl, objlen - oflagl);
-
+    char buffer[MACE_OBJDEP_BUFFER];
+    
     size_t ext = objlen - oflagl - 1;
     do {
 
@@ -2142,8 +2144,22 @@ void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj,
             fprintf(stderr, "Object dependency file '%s' does not exist.\n", file);
             break;
         }
-        /* Parse all dependencies */
+        /* Parse all dependencies, " " separated */
+        while (true) {
+            size = fread(buffer, 1, MACE_OBJDEP_BUFFER, fd);
+            
+            /* - Go back to last ' ' - */
+            char *last_ptr = strrchr(buffer, ' ');
+            /* [                  size                  ]  */
+            /* [    last_ptr - buffer    ] [ last_space ]  */
+            /* b--------------------------l-------------\0 */
+            int last_space = (int)(last_ptr - buffer) - size; 
+            fseek(fp, SEEK_CUR);
 
+            if (size != MACE_OBJDEP_BUFFER)
+                break;
+        }
+        
         /* Write dependencies to .djb2 file */
         strncpy(file + ext, "djb2", 4);
         printf("file %s\n", file);
