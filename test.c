@@ -489,8 +489,8 @@ void test_separator() {
         .links              = "tnecs,baka,ta,mere",
         .kind               = MACE_STATIC_LIBRARY,
     };
-    MACE_ADD_TARGET(tnecs);    
-    
+    MACE_ADD_TARGET(tnecs);
+
     mace_Target_Parse_User(&targets[0]);
     nourstest_true(targets[0]._argc_links == 4);
     nourstest_true(strcmp(targets[0]._argv_links[0], "-ltnecs") == 0);
@@ -505,7 +505,7 @@ void test_separator() {
         .links              = "tnecs,baka,ta,mere",
         .kind               = MACE_STATIC_LIBRARY,
     };
-    MACE_ADD_TARGET(tnecs2);    
+    MACE_ADD_TARGET(tnecs2);
 
     mace_Target_Parse_User(&targets[1]);
     nourstest_true(targets[1]._argc_links == 1);
@@ -532,7 +532,7 @@ void test_separator() {
     }
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) == EPERM);
-    
+
     // mace exits as expected if separator is too long
     pid = fork();
     status;
