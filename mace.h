@@ -332,6 +332,9 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void mace_add_target(struct Target   *restrict target,  char *restrict name);
     void mace_add_config(struct Config   *restrict config,  char *restrict name);
 
+    /* -- Config struct OOP -- */
+    void mace_Config_Free(struct Config              *config);
+
     /* -- Target struct OOP -- */
     /* - Free - */
     void mace_Target_Free(struct Target              *target);
@@ -431,7 +434,9 @@ void mace_user_config_set(uint64_t hash, char* name);
 void mace_default_target_order();
 
 /* -- configs -- */
+void mace_Config_Target_Add(struct Target *target, int order);
 void mace_parse_configs();
+void mace_parse_config(struct Config *config);
 
 /* - build order of all targets - */
 void mace_build_order_targets();
@@ -5074,9 +5079,47 @@ void mace_make_dirs() {
     mace_mkdir(build_dir);
 }
 
-void mace_parse_configs() {
+void mace_Config_Flag_Add(struct Target *target, int order) {
+    config->targets[target_len++] = order;
+}
+
+void mace_Config_Target_Add(struct Target *target, const char* flag) {
+    size_t bytesize = (strlen(flag) + 1) * sizeof(**config->flags);
+    config->flags[target_len] = malloc(bytsize);
+    strncpy(config->flags[target_len++], flag, bytesize);
+}
+
+void mace_parse_config(struct Config *config) {
     /* -- Split targets string into target orders -- */
+    int targets_alloc = 0;
+    config->target_len = 0;
+    char *buffer = mace_str_buffer(config->targets);
+    char *token = strtok(buffer, mace_separator);
+    do {
+        if ((config->target_len + 1) > targets_alloc) {
+            realloc(config->targets);
+        }
+        mace_Config_Target_Add(target, mace_hash_order(mace_hash(token)));
+        token = strtok(NULL, mace_separator);
+    } while (token != NULL);
+    free(buffer)
+
     /* -- Split flags string into target orders -- */
+    buffer = mace_str_buffer(config->flags);
+    token = strtok(buffer, mace_separator);
+    do {
+        mace_Config_Flag_Add(target, token);
+        token = strtok(NULL, mace_separator);
+    } while (token != NULL);    
+    free(buffer);
+
+    if ()
+}
+
+void mace_parse_configs() {
+    for (int i = 0; i < count; i++) {
+        mace_parse_config(&configs[i]);
+    }
 }
 
 void mace_build_order_targets() {
@@ -5147,6 +5190,10 @@ void mace_build_targets() {
         mace_print_message(targets[build_order[z]].message_post_build);
         mace_run_commands(targets[build_order[z]].command_post_build);
     }
+}
+
+void mace_Config_Free(struct Config *config) {
+
 }
 
 void mace_Target_Free(struct Target *target) {
@@ -5727,6 +5774,10 @@ void mace_finish(struct Mace_Arguments *args) {
 
     for (int i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
+    }
+
+    for (int i = 0; i < config_num; i++) {
+        mace_Target_Free(&configs[i]);
     }
 
     if (pqueue != NULL) {
