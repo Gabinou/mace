@@ -57,7 +57,7 @@ struct Target {
 */
 
 /******************************* MACE_ADD_TARGET *******************************/
-// Adds user-defined target to internal array of targets. 
+// Adds user-defined target to internal array of targets.
 // Also Saves target name hash.
 #define MACE_ADD_TARGET(target) do {\
         targets[target_num] = target;\
@@ -74,9 +74,9 @@ struct PHONY {
     char *command;
     char *dependencies;      /* targets,               ' ' separated */
 
-/******************************** MACE_ADD_PHONY *******************************/
-// Phony targets are only built when called explicitely e.g. <./build> install
-// Default phony: 'clean' removes all targets.
+    /******************************** MACE_ADD_PHONY *******************************/
+    // Phony targets are only built when called explicitely e.g. <./build> install
+    // Default phony: 'clean' removes all targets.
 #define MACE_ADD_PHONY(a)
 };
 
@@ -201,9 +201,9 @@ int mace_isDir(const char *path) {
     return S_ISDIR(statbuf.st_mode);
 }
 
-char *objdir = "build/";
-char *object = NULL;
-size_t object_len = 0;
+char *objdir        = "build/";
+char *object        = NULL;
+size_t object_len   = 0;
 
 void mace_grow_obj() {
     object_len *= 2;
@@ -239,7 +239,7 @@ void mace_build_target(struct Target *target) {
         } else if (mace_isSource(token)) {
             // token is a source file
             // mace_object_path(globbed.gl_pathv[i]);
-                // mace_compile(globbed.gl_pathv[i], object, char *flags);
+            // mace_compile(globbed.gl_pathv[i], object, char *flags);
 
         } else if (mace_isWildcard(token)) {
             // token has a wildcard in it
@@ -247,7 +247,7 @@ void mace_build_target(struct Target *target) {
             for (int i = 0; i < globbed.gl_pathc; i++) {
                 assert(mace_isSource(globbed.gl_pathv[i]));
                 mace_object_path(globbed.gl_pathv[i]);
-                // mace_compile(globbed.gl_pathv[i], object, char *flags);
+                mace_compile(globbed.gl_pathv[i], object, target->flags);
             }
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it");

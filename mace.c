@@ -4,11 +4,9 @@
 #define CC gcc
 
 struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = "",
-    .sources            = "",
-    .sources_exclude    = "",
-    .base_dir           = "",
-    .dependencies       = "",
+    .includes           = "tnecs.h",
+    .sources            = "tnecs.c",
+    .base_dir           = "tnecs",
     .kind               = MACE_LIBRARY,
 };
 
@@ -28,14 +26,5 @@ struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NU
 // 3. mace is declared in mace.h, MUST be implemented by user
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC);
-
-    assert(tnecs.links == NULL);
-    printf("%d \n", strlen(CodenameFiresaga.links));
-    printf("%d \n", sizeof(CodenameFiresaga.links));
-    printf("%d \n", sizeof(*CodenameFiresaga.links));
-    printf("%s \n", cc);
-
     MACE_ADD_TARGET(tnecs);
-    printf("%s \n", tnecs._name);
-    MACE_ADD_TARGET(CodenameFiresaga);
 }
