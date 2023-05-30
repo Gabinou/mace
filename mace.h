@@ -168,16 +168,16 @@ struct Target {
 
 /********************************** STRUCTS *********************************/
 struct Mace_Arguments {
-    char *user_target;
-    uint64_t user_target_hash;
-    uint64_t skip;
-    char *macefile;
-    char *dir;
-    int jobs;
-    bool debug;
-    bool silent;
-    bool skip_checksum;
-    bool dry_run;
+    char        *user_target;
+    char        *macefile;
+    char        *dir;
+    uint64_t     user_target_hash;
+    uint64_t     skip;
+    int          jobs;
+    bool         debug         : 1;
+    bool         silent        : 1;
+    bool         skip_checksum : 1;
+    bool         dry_run       : 1;
 };
 
 /********************************** CONSTANTS *********************************/
@@ -192,9 +192,12 @@ enum MACE {
     MACE_DEFAULT_OBJECT_LEN     =  16,
     MACE_DEFAULT_OBJECTS_LEN    = 128,
     MACE_CWD_BUFFERSIZE         = 128,
+    SHA1_LEN                    =  20, /* [bytes] */
 };
+
 #define MACE_CLEAN "clean"
 #define MACE_ALL "all"
+
 enum MACE_RESERVED_TARGETS {
     MACE_ALL_ORDER              =  -1,
     MACE_CLEAN_ORDER            =  -2,
@@ -217,13 +220,16 @@ enum MACE_ARGV { // for various argv
 };
 
 /******************************** DECLARATIONS ********************************/
-bool mace_isTargetinBuildOrder(size_t order, int *build_order, int num);
-
 /* --- mace --- */
 void mace_init();
 void mace_free();
 void mace_post_user(struct Mace_Arguments args);
 void mace_exec_print(char *const arguments[], size_t argnum);
+
+/* --- mace_checksum --- */
+void mace_sha1cd(char *file, uint8_t hash2[SHA1_LEN]);
+char *mace_checksum_filename(char *file);
+bool mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]);
 
 /* --- mace_hashing --- */
 uint64_t mace_hash(const char *str);
@@ -287,6 +293,7 @@ void mace_build_targets();
 /* -- build_order -- */
 void mace_default_target_order();
 void mace_user_target_order(uint64_t hash);
+bool mace_in_build_order(size_t order, int *build_order, int num);
 
 /* build order of all targets */
 void mace_targets_build_order();
@@ -339,7 +346,7 @@ size_t          object_len = 0;
 
 /* -- directories -- */
 char           *restrict obj_dir     = NULL;   /* intermediary .o files       */
-char           *restrict build_dir   = NULL;   /* linked libraries, execs*/
+char           *restrict build_dir   = NULL;   /* linked libraries, execs     */
 
 /* -- mace_globals control -- */
 void mace_object_grow();
@@ -446,7 +453,7 @@ void SHA1DCUpdate(SHA1_CTX *, const char *, size_t);
 
 /* obtain SHA-1 hash from SHA-1 context */
 /* returns: 0 = no collision detected, otherwise = collision found => warn user for active attack */
-int  SHA1DCFinal(unsigned char[20], SHA1_CTX *);
+int  SHA1DCFinal(unsigned char[SHA1_LEN], SHA1_CTX *);
 
 #ifdef SHA1DC_CUSTOM_TRAILING_INCLUDE_SHA1_H
     #include SHA1DC_CUSTOM_TRAILING_INCLUDE_SHA1_H
@@ -1251,6 +1258,35 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
         target->_argv_sources[target->_argc_sources++] = rpath;
         free(arg);
     }
+
+    /* -- Checksum -- */
+    /* - Compute current checksum - */
+    uint8_t hash_current[SHA1_LEN];
+    mace_sha1cd(rpath, hash_current);
+    bool changed = true;
+
+    /* - Read existing checksum file - */
+    char *checksum_path = mace_checksum_filename(rpath);
+    uint8_t hash_previous[SHA1_LEN] = {0};
+    bool exists = (access(checksum_path, F_OK) == 0);
+    FILE *fd = fopen(checksum_path, "rwb");
+    if (exists) {
+        size_t size = fread(hash_previous, 1, SHA1_LEN, fd);
+        if (size != SHA1_LEN) {
+            fprintf(stderr, "Could not read checksum from '%s'.\n", checksum_path);
+            exit(EIO);
+        }
+        changed = !mace_sha1cd_cmp(hash_previous, hash_current);
+    }
+
+    /* - Write existing checksum file - */
+    if (changed) {
+        rewind(fd);
+        fwrite(hash_current, 1, SHA1_LEN, fd); // SHA1_LEN
+    }
+
+    fclose(fd);
+    
     return (excluded);
 }
 
@@ -1515,7 +1551,7 @@ void mace_build_target(struct Target *target) {
     free(buffer);
 }
 
-bool mace_isTargetinBuildOrder(size_t order, int *b_order, int num) {
+bool mace_in_build_order(size_t order, int *b_order, int num) {
     bool out = false;
     assert(b_order != NULL);
     for (int i = 0; i < num; i++) {
@@ -1545,7 +1581,7 @@ int mace_target_order(struct Target target) {
 void mace_build_order_add(size_t order) {
     assert(build_order != NULL);
     assert(build_order_num < target_num);
-    if (mace_isTargetinBuildOrder(order, build_order, build_order_num)) {
+    if (mace_in_build_order(order, build_order, build_order_num)) {
         fprintf(stderr, "Target ID is already in build_order. Exiting.");
         exit(EPERM);
     }
@@ -1561,7 +1597,7 @@ void mace_deps_links_build_order(struct Target target, size_t *restrict o_cnt) {
 
     size_t order = mace_target_order(target); // target order
     /* Target already in build order, skip */
-    if (mace_isTargetinBuildOrder(order, build_order, build_order_num))
+    if (mace_in_build_order(order, build_order, build_order_num))
         return;
 
     /* Target has no dependencies, add target to build order */
@@ -1581,7 +1617,7 @@ void mace_deps_links_build_order(struct Target target, size_t *restrict o_cnt) {
     }
 
     /* Target already in build order, skip */
-    if (mace_isTargetinBuildOrder(order, build_order, build_order_num))
+    if (mace_in_build_order(order, build_order, build_order_num))
         return;
 
     /* All dependencies of target were built, add it to build order */
@@ -1648,7 +1684,7 @@ void mace_targets_build_order() {
         mace_deps_links_build_order(targets[o_cnt], &o_cnt);
 
         // int user_order = mace_target_order(targets[o_cnt]);
-        // if (mace_isTargetinBuildOrder(user_order, build_order, build_order_num)) {
+        // if (mace_in_build_order(user_order, build_order, build_order_num)) {
 
         // }
         return;
@@ -1746,6 +1782,7 @@ void mace_post_user(struct Mace_Arguments args) {
     //   5- Compute user_target order.
     //   6- Computes default target order from default target_hash.
     // If not exit with error.
+
     if (args.dir != NULL) {
         assert(chdir(args.dir) == 0);
     }
@@ -3763,7 +3800,7 @@ static const unsigned char sha1_padding[64] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-int SHA1DCFinal(unsigned char output[20], SHA1_CTX *ctx) {
+int SHA1DCFinal(unsigned char output[SHA1_LEN], SHA1_CTX *ctx) {
     uint32_t last = ctx->total & 63;
     uint32_t padn = (last < 56) ? (56 - last) : (120 - last);
     uint64_t total;
@@ -4753,6 +4790,82 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     }
 
     return (out_args);
+}
+
+/********************************** checksums *********************************/
+char *mace_checksum_filename(char *file) {
+    // Files should be .c or .h
+    size_t path_len  = strlen(file); 
+    char *dot   = strchr(file, '.'); // last dot in path
+    char *slash = strrchr(file, '/'); // last slash in path
+    if (dot == NULL){
+        fprintf(stderr, "Could not find extension in filename");
+        exit(EPERM);
+    }
+
+    int dot_i   = (int)(dot   - file);
+    int slash_i = (slash == NULL) ? 0 : (int)(slash - file);
+    size_t obj_dir_len  = strlen(obj_dir);
+    size_t file_len  = dot_i - slash_i;
+
+    size_t checksum_len  = (file_len + 3) + obj_dir_len + 1; 
+
+    char *sha1  = calloc(checksum_len, sizeof(*sha1));
+    strncpy(sha1, obj_dir, obj_dir_len);
+    size_t total = obj_dir_len;
+    strncpy(sha1 + total, file + slash_i, file_len);
+    total += file_len;
+    strncpy(sha1 + total, "sha1", 3);
+    return(sha1);
+}
+
+inline bool mace_sha1cd_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]) {
+    return(memcmp(hash1, hash2, SHA1_LEN) == 0);
+}
+
+// Files to checksum:
+//  - sources
+//  - includes
+void mace_sha1cd(char *file, uint8_t hash[SHA1_LEN]) {
+    assert(file != NULL);
+    size_t size;
+    int i, j, foundcollision;
+
+    /* - open file - */
+    FILE *fd = fopen(file, "rb");
+    if (fd == NULL) {
+        fprintf(stderr, "cannot open file: %s: %s\n", file, strerror(errno));
+        exit(EPERM);
+    }
+
+    /* - compute checksum - */
+    SHA1_CTX ctx2;
+    SHA1DCInit(&ctx2);
+    char buffer[USHRT_MAX + 1];
+    while (true) {
+        size = fread(buffer, 1, (USHRT_MAX + 1), fd);
+        SHA1DCUpdate(&ctx2, buffer, (unsigned)(size));
+        if (size != (USHRT_MAX + 1))
+            break;
+    }
+    if (ferror(fd)) {
+        fprintf(stderr, " file read error: %s: %s\n", file, strerror(errno));
+        exit(EPERM);
+    }
+    if (!feof(fd)) {
+        fprintf(stderr, "not end of file?: %s: %s\n", file, strerror(errno));
+        exit(EPERM);
+    }
+
+    /* - check for collision - */
+    foundcollision = SHA1DCFinal(hash, &ctx2);
+
+    if (foundcollision) {
+        fprintf(stderr, "sha1dc: collision detected");
+        exit(EPERM);
+    }
+
+    fclose(fd);
 }
 
 /************************************ main ************************************/
