@@ -95,7 +95,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - Most build systems have obtuse syntax, scale terribly to larger projects.
     - Makefiles makers exist (`premake`, `autoconf`/`autotools`) and compound this issue.
     - Mix of imperative and declarative style.
-    - Personal experience: homemade `makefile` need constant updates and break in unexpected ways if the project structure changes slightly.
+    - Personal experience: build systems break in unexpected ways if the project structure changes slightly.
 
 ## Limitations
 - Tested on Linux only.

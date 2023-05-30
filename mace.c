@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
     /* -- Parse inputs -- */
     struct Mace_Arguments args = mace_parse_args(argc, argv);
 
+    /* --- TODO parse compiler --- */
+
     /* --- Compile the macefile --- */
     /* - Read macefile name from args - */
     char *macefile;
