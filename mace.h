@@ -199,7 +199,7 @@ void mace_wait_pid(int pid) {
 
 void mace_link(char *objects, char *target) {
     char *arguments[] = {ar, "-rcs", target, objects, NULL};
-    printf("Linking  %s\n", target);
+    printf("Linking  %s \n", target);
     pid_t pid = mace_exec(ar, arguments);
     mace_wait_pid(pid);
 }
@@ -298,9 +298,9 @@ void mace_add_source(struct Target *target, char *token) {
     strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
 }
 
-char *mace_libary_path(char *target_name) {
+char *mace_library_path(char *target_name) {
     assert(target_name != NULL);
-    char *lib = malloc(sizeof(*lib) * (strlen(target_name) + 6));
+    char *lib = calloc((strlen(target_name) + 6), sizeof(*lib));
     strncpy(lib,                            "lib",       3);
     strncpy(lib + 3,                        target_name, strlen(target_name));
     strncpy(lib + 3 + strlen(target_name),  ".a",        2);
@@ -320,7 +320,7 @@ void mace_build_target(struct Target *target) {
     target->_sources_len    = 16;
     target->_sources        = malloc(target->_sources_len * sizeof(*target->_sources));
     memset(objects, 0, objects_len * sizeof(*objects));
-
+    objects_num = 0;
     /* --- Split sources into tokens --- */
     char *token = strtok(target->sources, " ");
     printf("COMPILING?\n");
@@ -354,9 +354,12 @@ void mace_build_target(struct Target *target) {
             mace_grow_objs();
         }
         if (objects_num > 0) {
-            objects = strncpy((objects + objects_num),     " ",    1);
+            strncpy(objects + objects_num,     " ",    1);
+            strncpy(objects + objects_num + 1, object, strlen(object));
+        } else {
+            strncpy(objects + objects_num,     object, strlen(object));
         }
-        objects = strncpy((objects + objects_num + 1), object, strlen(object));
+
         objects_num += strlen(object) + 2;
         token = strtok(NULL, " ");
     } while (token != NULL);
@@ -364,7 +367,7 @@ void mace_build_target(struct Target *target) {
 
     /* --- Linking --- */
     if (target->kind == MACE_LIBRARY) {
-        char *lib = mace_libary_path(target->_name);
+        char *lib = mace_library_path(target->_name);
         mace_link(objects, lib);
         free(lib);
     } else if (target->kind == MACE_EXECUTABLE) {
@@ -405,7 +408,7 @@ size_t target_len      = 2;
 void Target_Free(struct Target *target) {
     if (target->_sources != NULL) {
         for (int i = 0; i < target->_sources_num; ++i) {
-            if (target->_sources[i]== NULL)
+            if (target->_sources[i] == NULL)
                 continue;
 
             free(target->_sources[i]);
