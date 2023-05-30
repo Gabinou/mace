@@ -98,11 +98,6 @@ char *ar = "ar";
 /**************************** parg ***********************************/
 // Slightly pruned version of parg for arguments parsing.
 
-
-
-
-
-
 /******************************* MACE_TARGET_KIND ******************************/
 enum MACE_TARGET_KIND {
     MACE_EXECUTABLE      = 1,
@@ -323,7 +318,6 @@ void mace_build_target(struct Target *target) {
     objects_num = 0;
     /* --- Split sources into tokens --- */
     char *token = strtok(target->sources, " ");
-    printf("COMPILING?\n");
     do {
         printf("token %s\n", token);
 
@@ -331,7 +325,15 @@ void mace_build_target(struct Target *target) {
         size_t i = target->_sources_num - 1;
         if (mace_isDir(target->_sources[i])) {
             // token is a directory
-            // glob_t globbed = mace_glob_sources(token);
+            // Glob recursively?
+            // if no / at end, add it
+            char * globstr =target->_sources[i] + "/" + "**.c";
+            glob_t globbed = mace_glob_sources();
+            for (int i = 0; i < globbed.gl_pathc; i++) {
+                assert(mace_isSource(globbed.gl_pathv[i]));
+                mace_object_path(globbed.gl_pathv[i]);
+                mace_compile(globbed.gl_pathv[i], object, target->flags, target->kind);
+            }
 
         } else if (mace_isSource(target->_sources[i])) {
             // token is a source file
