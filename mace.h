@@ -85,6 +85,7 @@ struct Target {
     /*-----------------------------------------------------------------*/
 
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
+
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
     char      *_name;              /* target name set by user                 */
     uint64_t   _hash;              /* target name hash,                       */
@@ -135,7 +136,7 @@ enum MACE_TARGET_KIND { // for target.kind
     MACE_EXECUTABLE      = 1,
     MACE_STATIC_LIBRARY  = 2,
     MACE_SHARED_LIBRARY  = 3,
-    MACE_DYNAMIC_LIBRARY  = 3,
+    MACE_DYNAMIC_LIBRARY = 3,
 };
 
 enum MACE_ARGV { // for various argv
@@ -144,18 +145,6 @@ enum MACE_ARGV { // for various argv
     MACE_ARGV_OBJECT     = 2, // single source compilation
     MACE_ARGV_OTHER      = 3, // single source compilation
 };
-
-/********************************** GLOBALS ***********************************/
-/* --- Checksum --- */
-// char *checksum = "sha256sum";
-char *checksum = "sha1DC";
-// -> git uses sha1DC and SO WILL I
-
-/* --- Compiler --- */
-char *cc = NULL; // DESIGN QUESTION: Should I set a default?
-char *ar = "ar";
-/* --- current working directory --- */
-char cwd[MACE_CWD_BUFFERSIZE];
 
 /******************************** DECLARATIONS ********************************/
 
@@ -196,10 +185,9 @@ void Target_Object_Add(struct Target    *target, char    *token);
 void Target_Parse_User(struct Target    *target);
 void Target_Free_notargv(struct Target  *target);
 
-
 /* --- mace_glob --- */
-int mace_globerr(const char *path, int eerrno);
-glob_t mace_glob_sources(const char *path);
+int     mace_globerr(const char *path, int eerrno);
+glob_t  mace_glob_sources(const char *path);
 
 /* --- mace_exec --- */
 pid_t mace_exec(const char *exec, char *const arguments[]);
@@ -207,10 +195,10 @@ void  mace_wait_pid(int pid);
 
 /* --- mace_build --- */
 /* -- linking -- */
-void mace_link_static_library(char *target, char **argv_objects, int argc_objects);
+void mace_link_static_library(char *target, char **av_o, int ac_o);
 void mace_link_dynamic_library(char *target, char *objects);
-void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links,
-                          int argc_links, char **argv_flags, int argc_flags);
+void mace_link_executable(char *target, char **av_o, int ac_o, char **av_l,
+                          int ac_l, char **av_f, int ac_f);
 
 /* -- compiling object files -> .o -- */
 void mace_compile(char *source, char *object, struct Target *target);
@@ -218,9 +206,9 @@ void mace_compile_glob(struct Target *target, char *globsrc, const char *restric
 void mace_build_targets();
 
 /* -- build_order -- */
-// build order of all targets
+/* build order of all targets */
 void mace_targets_build_order();
-// build order of target links
+/* build order of target links */
 void mace_links_build_order(struct Target target, size_t *o_cnt);
 
 /* --- mace_is --- */
@@ -235,6 +223,21 @@ void  mace_object_path(char    *source);
 char *mace_library_path(char   *target_name);
 
 /* --- mace_globals --- */
+
+/* -- separator -- */
+char *separator = " ";
+
+/* -- Checksum -- */
+// char *checksum = "sha256sum";
+char *checksum = "sha1DC";
+// -> git uses sha1DC and SO WILL I
+
+/* -- Compiler -- */
+char *cc = NULL; // DESIGN QUESTION: Should I set a default?
+char *ar = "ar";
+
+/* -- current working directory -- */
+char cwd[MACE_CWD_BUFFERSIZE];
 
 /* -- build order -- */
 size_t *build_order = NULL;
@@ -316,16 +319,15 @@ char *mace_set_build_dir(char *build) {
 }
 
 char *mace_str_copy(char *restrict buffer, const char *str) {
-    if (buffer != NULL) {
+    if (buffer != NULL)
         free(buffer);
-    }
-    size_t len = strlen(str);
-    buffer = calloc(len + 1, sizeof(*buffer));
+    size_t len  = strlen(str);
+    buffer      = calloc(len + 1, sizeof(*buffer));
     strncpy(buffer, str, len);
     return (buffer);
 }
 
-/**************************** parg ***********************************/
+/************************************ parg ************************************/
 // Slightly pruned version of parg for arguments parsing.
 
 /************************************ argv ************************************/
@@ -368,7 +370,7 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
     /* -- Copy user_str into modifiable buffer -- */
     char *buffer = mace_str_buffer(user_str);
 
-    char *token = strtok(buffer, " ");
+    char *token = strtok(buffer, separator);
     while (token != NULL) {
         argv = argv_grows(len, argc, argv);
         size_t token_len = strlen(token);
@@ -389,7 +391,7 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
 
         argv[(*argc)++] = arg;
 
-        token = strtok(NULL, " ");
+        token = strtok(NULL, separator);
     }
 
     free(buffer);
@@ -400,17 +402,18 @@ void Target_Parse_User(struct Target *target) {
     // Makes flags for target includes, links libraries, and flags
     //  NOT sources: they can be folders, so need to be globbed
     Target_Free_argv(target);
-    int len;
+    int len, bytesize;
 
     /* -- Make _argv_includes to argv -- */
     if (target->includes != NULL) {
         len = 8;
         target->_argc_includes = 0;
         target->_argv_includes = malloc(len * sizeof(*target->_argv_includes));
-        target->_argv_includes = mace_argv_flags(&len, &target->_argc_includes, target->_argv_includes,
+        target->_argv_includes = mace_argv_flags(&len, &target->_argc_includes,
+                                                 target->_argv_includes,
                                                  target->includes, "-I");
-        target->_argv_includes = realloc(target->_argv_includes,
-                                         target->_argc_includes * sizeof(*target->_argv_includes));
+        bytesize               = target->_argc_includes * sizeof(*target->_argv_includes);
+        target->_argv_includes = realloc(target->_argv_includes, bytesize);
     }
 
     /* -- Make _argv_links to argv -- */
@@ -420,8 +423,8 @@ void Target_Parse_User(struct Target *target) {
         target->_argv_links = malloc(len * sizeof(*target->_argv_links));
         target->_argv_links = mace_argv_flags(&len, &target->_argc_links, target->_argv_links,
                                               target->links, "-l");
-        target->_argv_links = realloc(target->_argv_links,
-                                      target->_argc_links * sizeof(*target->_argv_links));
+        bytesize            = target->_argc_links * sizeof(*target->_argv_links);
+        target->_argv_links = realloc(target->_argv_links, bytesize);
     }
 
     /* -- Make _argv_flags to argv -- */
@@ -431,8 +434,8 @@ void Target_Parse_User(struct Target *target) {
         target->_argv_flags = malloc(len * sizeof(*target->_argv_flags));
         target->_argv_flags = mace_argv_flags(&len, &target->_argc_flags, target->_argv_flags,
                                               target->flags, NULL);
-        target->_argv_flags = realloc(target->_argv_flags,
-                                      target->_argc_flags * sizeof(*target->_argv_flags));
+        bytesize            = target->_argc_flags * sizeof(*target->_argv_flags);
+        target->_argv_flags = realloc(target->_argv_flags, bytesize);
     }
 }
 
@@ -946,7 +949,7 @@ void mace_build_target(struct Target *target) {
     char *buffer = mace_str_buffer(target->sources);
 
     /* --- Split sources into tokens --- */
-    char *token = strtok(buffer, " ");
+    char *token = strtok(buffer, separator);
     do {
         // printf("token %s\n", token);
 
@@ -983,7 +986,7 @@ void mace_build_target(struct Target *target) {
             exit(ENOENT);
         }
 
-        token = strtok(NULL, " ");
+        token = strtok(NULL, separator);
     } while (token != NULL);
 
     /* --- Move back to cwd to link --- */
