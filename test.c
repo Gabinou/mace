@@ -1308,7 +1308,6 @@ void test_parse_d() {
     nourstest_true(target._headers_checksum[70] != NULL);
     nourstest_true(target._headers_checksum[71] != NULL);
 
-
     nourstest_true(strcmp(target._headers_checksum[0], "obj/include/unit.sha1") == 0);
     nourstest_true(strcmp(target._headers_checksum[1], "obj/include/types.sha1") == 0);
     nourstest_true(strcmp(target._headers_checksum[2], "obj/include/enums.sha1") == 0);
