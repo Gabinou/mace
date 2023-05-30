@@ -22,7 +22,7 @@
     #define OBJ_DIR obj
 #endif /* OBJ_DIR */
 #ifndef PREFIX
-    #define PREFIX /usr/local
+    #define PREFIX /usr
 #endif /* PREFIX */
 /* -- Default macefile used by convenience executable -- */
 #ifndef DEFAULT_MACEFILE
