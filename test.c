@@ -1110,26 +1110,28 @@ void test_excludes() {
 
 void test_parse_d() {
     mace_init();
+
+    struct Target target1 = {0};
+    MACE_ADD_TARGET(target1);
+    mace_Target_Source_Add(&target1, "test1.c");
+    mace_Target_Object_Add(&target1, "test1.o");
+    mace_parse_object_dependencies(&target1, "-otest1.o");
+    assert(target1._headers_hash != NULL);
+    nourstest_true(target1._headers_num == 1);
+    nourstest_true(target1._deps_headers_num[0] == 1);
+    nourstest_true(target1._headers_len == 8);
+    nourstest_true(target1._headers_hash[0] == mace_hash("tnecs.h"));
+
     struct Target target = {0};
     MACE_ADD_TARGET(target);
 
-    mace_Target_Source_Add(&target, "test1.c");
-    mace_Target_Object_Add(&target, "test1.o");
-    mace_parse_object_dependencies(&target, "-otest1.o");
-    assert(target._headers_hash != NULL);
-    nourstest_true(target._headers_num == 1);
-    nourstest_true(target._deps_headers_num[0] == 1);
-    nourstest_true(target._headers_len == 8);
-    nourstest_true(target._headers_hash[0] == mace_hash("tnecs.h"));
-
-    target._headers_num = 0;
     mace_Target_Source_Add(&target, "test2.c");
     mace_Target_Object_Add(&target, "test2.o");
     mace_parse_object_dependencies(&target, "-otest2.o");
+    assert(target._headers_hash != NULL);
     nourstest_true(target._headers_num == 72);
-    printf("target._deps_headers_num[1] %d \n", target._deps_headers_num[1]);
-    nourstest_true(target._deps_headers_num[1] == 72);
-    nourstest_true(target._deps_headers_num[1] == 72);
+    nourstest_true(target._deps_headers_num[0] == 72);
+    nourstest_true(target._deps_headers_num[0] == 72);
     nourstest_true(target._headers_len == 128);
 // *INDENT-OFF*
     nourstest_true(target._headers_hash[0] ==  mace_hash("/home/gabinours/Sync/Firesaga/include/unit.h"));
@@ -1205,7 +1207,8 @@ void test_parse_d() {
     nourstest_true(target._headers_hash[70] == mace_hash("/home/gabinours/Sync/Firesaga/include/combat.h"));
     nourstest_true(target._headers_hash[71] == mace_hash("/home/gabinours/Sync/Firesaga/names/units_struct_stats.h"));
 // *INDENT-ON*
-    mace_Target_Free(&target);
+    // mace_Target_Free(&target);
+    // mace_Target_Free(&target1);
     mace_free();
 }
 

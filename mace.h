@@ -2060,8 +2060,9 @@ void mace_Target_Free(struct Target *target) {
     mace_Target_Free_excludes(target);
     mace_Target_Free_deps_headers(target);
 }
+
 void mace_Target_Free_deps_headers(struct Target *target) {
-    if (target->_headers!= NULL) {
+    if (target->_headers != NULL) {
         for (int i = 0; i < target->_headers_num; i++) {
             if (target->_headers[i] != NULL) {
                 free(target->_headers[i]);
@@ -2090,9 +2091,10 @@ void mace_Target_Free_deps_headers(struct Target *target) {
         free(target->_deps_headers_num);
         target->_deps_headers_num = NULL;
     }
-
-
-
+    if (target->_headers_hash != NULL) {
+        free(target->_headers_hash);
+        target->_headers_hash = NULL;
+    }
 }
 
 void mace_Target_Free_excludes(struct Target *target) {
@@ -2310,6 +2312,7 @@ void mace_parse_object_dependencies(struct Target *target, char *obj_file_flag) 
                 int last_space = (int)(last_ptr - buffer) - size;
                 fseek(fd, last_space, SEEK_CUR);
             }
+            fclose(fd);
         }
 
         // /* Write dependencies to .djb2 file */
