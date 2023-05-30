@@ -170,8 +170,13 @@ void mace_link(char *objects, char *target) {
 
 
 /* Compile a single source file to object */
-void mace_compile(char *source, char *object, char *flags) {
-    char *arguments[] = {cc, source, "-o", object, flags};
+void mace_compile(char *source, char *object, char *flags, int kind) {
+    char libflag[3] = "";
+    if (kind == MACE_LIBRARY) {
+        strncpy(libflag, "-c", 2);
+    }
+    char *arguments[] = {cc, source, libflag, "-o", object, flags};
+
     printf("%s\n", source);
     execvp(cc, arguments);
 }
@@ -202,9 +207,17 @@ int mace_isDir(const char *path) {
     return S_ISDIR(statbuf.st_mode);
 }
 
+
+void mace_mkdir(const char *path) {
+    struct stat st = {0};
+    if (stat(path, &st) == -1) {
+        mkdir(path, 0700);
+    }
+}
+
 char *objdir        = "build/";
 char *object        = NULL;
-size_t object_len   = 0;
+size_t object_len   = 16;
 
 void mace_grow_obj() {
     object_len *= 2;
@@ -222,50 +235,50 @@ void mace_object_path(char *source) {
     object[obj_len - 2] = 'o';
 }
 
+void mace_add_source(struct Target *target, char* token) {
+    size_t i = target->_sources_num++;
+    size_t srcdir_len = strlen(target->base_dir);
+    size_t source_len = strlen(token);
+    size_t full_len   = srcdir_len + source_len + 2;
+    target->_sources[i] = malloc(full_len * sizeof(**target->_sources));
+
+    if (target->_sources_num >= target->_sources_len) {
+        target->_sources_len *= 2;
+        size_t bytesize = target->_sources_len * sizeof(*target->_sources);
+        target->_sources = realloc(target->_sources, bytesize);   
+    }
+
+    strncpy(target->_sources[i],              target->base_dir, full_len);
+    strncpy(target->_sources[i] + srcdir_len, "/",              1);
+    strncpy(target->_sources[i] + srcdir_len + 1, token,        source_len);
+}
+
 void mace_build_target(struct Target *target) {
     /* --- Parse sources, put into array --- */
     printf("mace_build_target\n");
+
+    mace_mkdir(objdir);
     assert(target->kind != 0);
     /* --- Compile sources --- */
     /* --- Preliminaries --- */
     Target_Free(target);
-    target->_sources_num = 0;
-    target->_sources_len = 16;
-    target->_sources = malloc(target->_sources_len * sizeof(*target->_sources));
+    target->_sources_num    = 0;
+    target->_sources_len    = 16;
+    target->_sources        = malloc(target->_sources_len * sizeof(*target->_sources));
 
     /* --- Split sources into tokens --- */
     char *token = strtok(target->sources, " ");
     while (token != NULL) {
-        size_t i = target->_sources_num++;
-        size_t srcdir_len = strlen(target->base_dir);
-        size_t source_len = strlen(token);
-        size_t full_len   = srcdir_len + source_len + 2;
-        target->_sources[i] = malloc(full_len * sizeof(**target->_sources));
-
-        if (target->_sources_num >= target->_sources_len) {
-            target->_sources_len *= 2;
-            size_t bytesize = target->_sources_len * sizeof(*target->_sources);
-            target->_sources = realloc(target->_sources, bytesize);   
-        }
-
-        strncpy(target->_sources[i],              target->base_dir, full_len);
-        strncpy(target->_sources[i] + srcdir_len, "/",              1);
-        strncpy(target->_sources[i] + srcdir_len + 1, token,            source_len);
-        
-        printf("objdir %s\n", objdir);
-        printf("target->_sources[i] %s\n", target->_sources[i]);
-        printf("target->_sources[i] %d\n", strlen(target->_sources[i]));
-        printf("target->_sources[i] %s\n", target->_sources[i]);
-        printf("target->_sources[i] %d\n", strlen(token));
-        printf("target->_sources[i] %d\n", mace_isSource(token));
+        mace_add_source(target, token);
+        size_t i = target->_sources_num - 1;
         if (mace_isDir(target->_sources[i])) {
             // token is a directory
             // glob_t globbed = mace_glob_sources(token);
 
         } else if (mace_isSource(target->_sources[i])) {
             // token is a source file
-            mace_object_path(target->_sources[i]);
-            mace_compile(target->_sources[i], object, target->flags);
+            mace_object_path(token);
+            mace_compile(target->_sources[i], object, target->flags, target->kind);
 
         } else if (mace_isWildcard(target->_sources[i])) {
             // token has a wildcard in it
@@ -273,7 +286,7 @@ void mace_build_target(struct Target *target) {
             for (int i = 0; i < globbed.gl_pathc; i++) {
                 assert(mace_isSource(globbed.gl_pathv[i]));
                 mace_object_path(globbed.gl_pathv[i]);
-                mace_compile(globbed.gl_pathv[i], object, target->flags);
+                mace_compile(globbed.gl_pathv[i], object, target->flags, target->kind);
             }
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
@@ -335,11 +348,13 @@ void mace_free() {
         Target_Free(&targets[i]);
     }
     free(targets);
+    free(object);
 }
 
 int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
     targets = malloc(target_len * sizeof(*targets));
+    object  = malloc(object_len * sizeof(*object));
 
     mace(argc, argv);
     size_t len = 0;
