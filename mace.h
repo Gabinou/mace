@@ -84,7 +84,7 @@ void  mace_wait_pid(int pid);
 /* --- mace_build --- */
 void mace_link(char *objects, char *target);
 void mace_compile(char *source, char *object, char *flags, int kind);
-void mace_compile_glob(struct Target * target, char *globsrc, char *flags, int kind);
+void mace_compile_glob(struct Target *target, char *globsrc, char *flags, int kind);
 
 /* --- mace_is --- */
 int mace_isWildcard(const   char *str);
@@ -247,9 +247,9 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
     if (kind == MACE_LIBRARY) {
         strncpy(libflag, "-c", 2);
     }
-    char * absrc = realpath(source, NULL);
-    char * pos = strrchr(absrc, '/');
-    char * source_file = (pos == NULL) ? absrc : pos + 1;
+    char *absrc = realpath(source, NULL);
+    char *pos = strrchr(absrc, '/');
+    char *source_file = (pos == NULL) ? absrc : pos + 1;
     printf("Compiling   \t%s \n", source_file);
     char *arguments[] = {cc, absrc, libflag, "-o", object, flags, NULL};
     pid_t pid = mace_exec(cc, arguments);
@@ -258,16 +258,17 @@ void mace_compile(char *source, char *object, char *flags, int kind) {
 }
 
 /* Compile globbed files to objects */
-void mace_compile_glob(struct Target * target, char *globsrc, char *flags, int kind) {
+void mace_compile_glob(struct Target *target, char *globsrc, char *flags, int kind) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
         assert(mace_isSource(globbed.gl_pathv[i]));
-        char * pos = strrchr(globbed.gl_pathv[i], '/');
-        char * source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos;
+        char *pos = strrchr(globbed.gl_pathv[i], '/');
+        char *source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos;
         Target_Source_Add(target, source_file);
         mace_object_path(source_file);
         mace_compile(globbed.gl_pathv[i], object, flags, kind);
     }
+    globfree(&globbed);
 }
 
 /********************************** mace_is ***********************************/
@@ -279,7 +280,6 @@ int mace_isSource(const char *path) {
     size_t len  = strlen(path);
     int out     = path[len - 1]       == 'c'; /* C source extension: .c */
     out        &= path[len - 2]       == '.'; /* C source extension: .c */
-    // out        &= access(path, F_OK)  ==  0;  /* file exists            */
     return (out);
 }
 
@@ -343,15 +343,11 @@ void mace_object_path(char *source) {
 
     if (obj_len > object_len)
         mace_grow_obj();
-    printf("objdir_len %d\n", objdir_len);
-    printf("objdir %s\n", objdir);
-    char * rawpath = calloc(obj_len, sizeof(char));
+    char *rawpath = calloc(obj_len, sizeof(char));
     strncpy(rawpath,              objdir, obj_len);
-    printf("rawpath %s\n", rawpath);
-    char * temp = realpath(rawpath, NULL);
-    printf("temp %s\n", temp);
+    char *temp = realpath(rawpath, NULL);
     assert(temp != NULL);
-    while((strlen(temp) + source_len + 1) >= object_len)
+    while ((strlen(temp) + source_len + 1) >= object_len)
         mace_grow_obj();
     memset(object, 0, object_len * sizeof(*object));
     strncpy(object, temp, strlen(temp));
@@ -392,14 +388,14 @@ void mace_build_target(struct Target *target) {
             strncpy(globstr + srclen,     "/",    1);
             strncpy(globstr + srclen + 1, "**.c", 4);
 
-            mace_compile_glob(target, globstr, target->flags, target->kind);            
+            mace_compile_glob(target, globstr, target->flags, target->kind);
             free(globstr);
 
         } else if (mace_isWildcard(token)) {
             /* token has a wildcard in it */
             // printf("isWildcard %s\n", token);
-            mace_compile_glob(target, token, target->flags, target->kind);            
-        
+            mace_compile_glob(target, token, target->flags, target->kind);
+
         } else if (mace_isSource(token)) {
             /* token is a source file */
             // printf("isSource %s\n", token);
@@ -415,7 +411,7 @@ void mace_build_target(struct Target *target) {
         if ((objects_num + strlen(object) + 2) >= objects_len) {
             mace_grow_objs();
         }
-        
+
         if (objects_num > 0) {
             strncpy(objects + objects_num,     " ",    1);
             strncpy(objects + objects_num + 1, object, strlen(object));
