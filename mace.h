@@ -259,7 +259,6 @@ struct Mace_Arguments {
     char        *cc;
     uint64_t     user_target_hash;
     uint64_t     user_config_hash;
-    uint64_t     skip;
     int          jobs;
     bool         debug          : 1;
     bool         silent         : 1;
@@ -6160,10 +6159,9 @@ static struct parg_opt longopts[] = {
     {"cc",          PARG_REQARG, 0, 'c', "CC",   "Override C compiler"},
     {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
     {"config",      PARG_REQARG, 0, 'g', "NAME", "Name of config"},
-    {"help",        PARG_NOARG,  0, 'h', NULL,   "display help and exit"},
+    {"help",        PARG_NOARG,  0, 'h', NULL,   "Display help and exit"},
     {"jobs",        PARG_REQARG, 0, 'j', "INT",  "Allow N jobs at once"},
     {"dry-run",     PARG_NOARG,  0, 'n', NULL,   "Don't build, just echo commands"},
-    {"old-file",    PARG_REQARG, 0, 'o', "FILE", "Skip target/file"},
     {"silent",      PARG_NOARG,  0, 's', NULL,   "Don't echo commands"},
     {"version",     PARG_NOARG,  0, 'v', NULL,   "Display version and exit"},
     {NULL,          PARG_NOARG,  0,  0,  NULL,   "Convenience executable options:"},
@@ -6242,9 +6240,6 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 break;
             case 'n':
                 out_args.dry_run    = true;
-                break;
-            case 'o':
-                out_args.skip       = mace_hash(ps.optarg);
                 break;
             case 's':
                 out_args.silent     = true;
