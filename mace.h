@@ -143,7 +143,7 @@ struct Target {
     char **restrict _argv_links;   /* linked libraries, in argv form          */
     int             _argc_links;   /* number of arguments in argv_links       */
     char **restrict _argv_flags;   /* user flags, in argv form                */
-    int             _argc_flags;   /* number of arguments in argv_flags       */  
+    int             _argc_flags;   /* number of arguments in argv_flags       */
     char **restrict _argv_sources; /* sources, in argv form                   */
     int             _argc_sources; /* number of arguments in argv_sources     */
     int             _len_sources;  /* alloc len of arguments in argv_sources  */
@@ -168,9 +168,8 @@ struct Target {
 
 /********************************** STRUCTS *********************************/
 struct Mace_Arguments {
-    char * target;
-    uint64_t target_hash;
-    int reserved_target;
+    char *user_target;
+    uint64_t user_target_hash;
     uint64_t skip;
     char *macefile;
     int jobs;
@@ -195,8 +194,9 @@ enum MACE {
 #define MACE_CLEAN "clean"
 #define MACE_ALL "all"
 enum MACE_RESERVED_TARGETS {
-    MACE_CLEAN_I                =   0,
-    MACE_ALL_I                  =   1,
+    MACE_ALL_ORDER              =  -1,
+    MACE_CLEAN_ORDER            =  -2,
+    MACE_NULL_ORDER             =  -3,
     MACE_RESERVED_TARGETS_NUM   =   2,
 };
 
@@ -215,6 +215,7 @@ enum MACE_ARGV { // for various argv
 };
 
 /******************************** DECLARATIONS ********************************/
+bool mace_isTargetinBuildOrder(size_t order, int *build_order, int num);
 
 /* --- mace --- */
 void mace_init();
@@ -274,14 +275,17 @@ void  mace_wait_pid(int pid);
 void mace_link_static_library(char  *restrict target, char **restrict av_o, int ac_o);
 void mace_link_dynamic_library(char *restrict target, char *restrict objects);
 void mace_link_executable(char *restrict target, char **restrict av_o, int ac_o,
-                          char **restrict av_l,int ac_l, char **restrict av_f, int ac_f);
+                          char **restrict av_l, int ac_l, char **restrict av_f, int ac_f);
 
 /* -- compiling object files -> .o -- */
-void mace_compile_glob(struct Target *restrict target, char *restrict globsrc, const char *restrict flags);
+void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
+                       const char *restrict flags);
 void mace_build_targets();
 
 /* -- build_order -- */
 void mace_default_target_order();
+void mace_user_target_order(uint64_t hash);
+
 /* build order of all targets */
 void mace_targets_build_order();
 /* build order of target links */
@@ -314,17 +318,13 @@ char cwd[MACE_CWD_BUFFERSIZE];
 
 /* -- Reserved targets hashes -- */
 uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
-uint64_t mace_default_target_hash = 0; 
-int mace_default_target = -1;   /* [order] */
-int mace_user_target = -1;      /* [order] */
+uint64_t mace_default_target_hash = 0;
+int mace_default_target = MACE_ALL_ORDER;   /* order */
+int mace_user_target    = MACE_NULL_ORDER;  /* order */
 
-/* -- build order for current target -- */
-size_t *restrict build_order     = NULL;
-size_t  build_order_num = 0;
-
-/* -- build order of all -- */
-size_t *restrict build_order_all = NULL;
-size_t  build_order_all_num = 0;
+/* -- build order for user target -- */
+int *restrict build_order     = NULL;
+int  build_order_num          = 0;
 
 /* -- list of targets added by user -- */
 struct Target  *restrict targets     = NULL;   /* [order] is as added by user */
@@ -539,43 +539,43 @@ enum PARG_HAS_ARG {
 };
 
 struct parg_state {
-    const char * optarg;  /* option argument*/
+    const char *optarg;   /* option argument*/
     int optind;           /* next index */
     int optopt;           /* error option */
-    const char * nextchar;
+    const char *nextchar;
 };
 extern struct parg_state parg_state_default;
 
 /* Long options for `parg_getopt_long()` */
 struct parg_opt {
-    const char * name;
+    const char *name;
     int has_arg;
-    int * flag;
+    int *flag;
     int val;
-    const char * arg;
-    const char * doc;
+    const char *arg;
+    const char *doc;
 };
 
 /* - parg help - */
-extern void mace_parg_usage(const char * n, const struct parg_opt * lo);
+extern void mace_parg_usage(const char *n, const struct parg_opt *lo);
 
 /* - option matching - */
-extern int match_long(struct parg_state * ps, int c, char * const v[], const char * o,
-                      const struct parg_opt * lo, int * li);
-extern int match_short(struct parg_state * ps, int c, char * const v[], const char * os);
+extern int match_long(struct parg_state *ps, int c, char *const v[], const char *o,
+                      const struct parg_opt *lo, int *li);
+extern int match_short(struct parg_state *ps, int c, char *const v[], const char *os);
 
 /* - utilities - */
-extern void reverse(char * v[], int i, int j);
-extern int is_argv_end(const struct parg_state * ps, int c, char * const v[]);
+extern void reverse(char *v[], int i, int j);
+extern int is_argv_end(const struct parg_state *ps, int c, char *const v[]);
 
 /* - argv reordering - */
-extern int parg_reorder_simple(int c, char * v[], const char * os, const struct parg_opt * lo);
-extern int parg_reorder(int c, char * v[], const char * os, const struct parg_opt * lo);
+extern int parg_reorder_simple(int c, char *v[], const char *os, const struct parg_opt *lo);
+extern int parg_reorder(int c, char *v[], const char *os, const struct parg_opt *lo);
 
 /* - parg public API: getopt and getopt_long - */
-extern int parg_getopt(struct parg_state * ps, int c, char * const v[], const char * os);
-extern int parg_getopt_long(struct parg_state * ps, int c, char * const v[],
-                            const char * os, const struct parg_opt * lo, int * li);
+extern int parg_getopt(struct parg_state *ps, int c, char *const v[], const char *os);
+extern int parg_getopt_long(struct parg_state *ps, int c, char *const v[],
+                            const char *os, const struct parg_opt *lo, int *li);
 
 #endif /* PARG_INCLUDED */
 
@@ -591,10 +591,7 @@ extern int parg_getopt_long(struct parg_state * ps, int c, char * const v[],
 void mace_grow_targets() {
     target_len *= 2;
     targets     = realloc(targets,     target_len * sizeof(*targets));
-    // commands    = realloc(commands,    target_len * sizeof(*commands));
     build_order = realloc(build_order, target_len * sizeof(*build_order));
-    if (mace_default_target >= 0) 
-        build_order_all = realloc(build_order_all, target_len * sizeof(*build_order_all));
 }
 
 void mace_add_target(struct Target *target, char *name) {
@@ -602,7 +599,7 @@ void mace_add_target(struct Target *target, char *name) {
     size_t len = strlen(name);
     targets[target_num]._name  = name;
     uint64_t hash = mace_hash(name);
-    for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++){
+    for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++) {
         if (hash == mace_reserved_targets[i]) {
             fprintf(stderr,  "Error: '%s' is a reserved target name.\n", name);
             exit(EPERM);
@@ -631,7 +628,7 @@ void mace_default_target_order() {
     if (mace_default_target_hash == 0)
         return;
 
-    for (int i = 0; i < target_num; i++){
+    for (int i = 0; i < target_num; i++) {
         if (mace_default_target_hash == targets[i]._hash) {
             mace_default_target = i;
             return;
@@ -640,6 +637,22 @@ void mace_default_target_order() {
 
     fprintf(stderr, "Default target not found. Exiting");
     exit(EPERM);
+}
+
+void mace_user_target_order(uint64_t hash) {
+    if (hash == 0)
+        return;
+
+    for (int i = 0; i < target_num; i++) {
+        if (hash == targets[i]._hash) {
+            mace_user_target = i;
+            return;
+        }
+    }
+
+    fprintf(stderr, "Default target not found. Exiting");
+    exit(EPERM);
+
 }
 
 /********************************* mace_hash **********************************/
@@ -989,7 +1002,8 @@ void mace_wait_pid(int pid) {
 
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
-void mace_link_static_library(char *restrict target, char **restrict argv_objects, int argc_objects) {
+void mace_link_static_library(char *restrict target, char **restrict argv_objects,
+                              int argc_objects) {
     vprintf("Linking \t%s \n", target);
     int arg_len = 8;
     int argc = 0;
@@ -1239,7 +1253,8 @@ bool mace_Target_Source_Add(struct Target *restrict target, char *restrict token
 
 
 /* Compile globbed files to objects */
-void mace_compile_glob(struct Target *restrict target, char *restrict globsrc, const char *restrict flags) {
+void mace_compile_glob(struct Target *restrict target, char *restrict globsrc,
+                       const char *restrict flags) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
         assert(mace_isSource(globbed.gl_pathv[i]));
@@ -1497,11 +1512,11 @@ void mace_build_target(struct Target *target) {
     free(buffer);
 }
 
-bool mace_isTargetinBuildOrder(size_t order) {
+bool mace_isTargetinBuildOrder(size_t order, int *b_order, int num) {
     bool out = false;
-    assert(build_order != NULL);
-    for (int i = 0; i < build_order_num; i++) {
-        if (build_order[i] == order) {
+    assert(b_order != NULL);
+    for (int i = 0; i < num; i++) {
+        if (b_order[i] == order) {
             out = true;
             break;
         }
@@ -1516,7 +1531,7 @@ int mace_hash_order(uint64_t hash) {
             order = i;
             break;
         }
-    } 
+    }
     return (order);
 }
 
@@ -1527,19 +1542,23 @@ int mace_target_order(struct Target target) {
 void mace_build_order_add(size_t order) {
     assert(build_order != NULL);
     assert(build_order_num < target_num);
+    if (mace_isTargetinBuildOrder(order, build_order, build_order_num)) {
+        fprintf(stderr, "Target ID is already in build_order. Exiting.");
+        exit(EPERM);
+    }
     build_order[build_order_num++] = order;
 }
 
 /* - Depth first search through depencies - */
 // Builds all target dependencies before building target
-void mace_deps_links_build_order(struct Target target, size_t *o_cnt) {
+void mace_deps_links_build_order(struct Target target, size_t *restrict o_cnt) {
     /* o_cnt should never be geq to target_num */
     if ((*o_cnt) >= target_num)
         return;
 
     size_t order = mace_target_order(target); // target order
     /* Target already in build order, skip */
-    if (mace_isTargetinBuildOrder(order))
+    if (mace_isTargetinBuildOrder(order, build_order, build_order_num))
         return;
 
     /* Target has no dependencies, add target to build order */
@@ -1559,7 +1578,7 @@ void mace_deps_links_build_order(struct Target target, size_t *o_cnt) {
     }
 
     /* Target already in build order, skip */
-    if (mace_isTargetinBuildOrder(order))
+    if (mace_isTargetinBuildOrder(order, build_order, build_order_num))
         return;
 
     /* All dependencies of target were built, add it to build order */
@@ -1610,18 +1629,39 @@ void mace_targets_build_order() {
         mace_build_order_add(0);
         return;
     }
+    /* If user_target is clean, no build order */
+    if (mace_user_target == MACE_CLEAN_ORDER)
+        return;
     
-    // mace_isTargetinBuildOrder(order);
-    if (mace_default_target >= 0) {
+    /* If user_target not set and default taregt is clean, no build order */
+    if ((mace_user_target == MACE_NULL_ORDER) && (mace_default_target == MACE_CLEAN_ORDER))
+        return;
+
+    // If user_target is not all, or default_target is not all
+    //  - Build only specified target
+    if ((mace_user_target > MACE_ALL_ORDER) || (mace_default_target > MACE_ALL_ORDER)) {
         /* Build dependencies of default target, and itself only */
-        o_cnt = mace_default_target;
+        o_cnt = mace_user_target > MACE_ALL_ORDER ? mace_user_target : mace_default_target;
+
         mace_deps_links_build_order(targets[o_cnt], &o_cnt);
-    } else {
-        /* Visit all targets */
-        while (o_cnt < target_num) {
-            mace_deps_links_build_order(targets[o_cnt], &o_cnt);
-            o_cnt++;
+
+        int user_order = mace_target_order(targets[o_cnt]);
+        if (mace_isTargetinBuildOrder(user_order, build_order, build_order_num)) {
+
         }
+        return;
+    }
+    // If user_target is all, or default_target is all and no user_target
+    bool cond;
+    cond = (mace_user_target == MACE_NULL_ORDER) && (mace_default_target == MACE_ALL_ORDER);
+    cond |= (mace_user_target == MACE_ALL_ORDER);
+    assert(cond);
+
+    o_cnt = 0;
+    /* Visit all targets */
+    while (o_cnt < target_num) {
+        mace_deps_links_build_order(targets[o_cnt], &o_cnt);
+        o_cnt++;
     }
 }
 
@@ -1700,7 +1740,8 @@ void mace_post_user(struct Mace_Arguments args) {
     //   1- Checks set compiler,
     //   1- Checks that at least one target exists,
     //   3- Checks that there are no circular dependency.
-    //   4- Computes default target order from default target_hash.
+    //   4- Compute user_target order.
+    //   5- Computes default target order from default target_hash.
     // If not exit with error.
 
     /* Check that compiler is set */
@@ -1722,15 +1763,8 @@ void mace_post_user(struct Mace_Arguments args) {
     }
 
     /* Check which target user wants to compile */
-    if (args.target > 0) { 
-        mace_user_target = mace_hash_order(args.target_hash);
-        if (mace_user_target == -1) {
-            fprintf(stderr, "Target '%s' not found. Exiting.", args.target);
-            exit(EPERM);
-        }
-    }
-
     mace_default_target_order();
+    mace_user_target_order(args.user_target_hash);
 }
 
 
@@ -1742,8 +1776,10 @@ void mace_init() {
     }
 
     /* --- Reserved target names --- */
-    mace_reserved_targets[MACE_CLEAN_I] = mace_hash(MACE_CLEAN);
-    mace_reserved_targets[MACE_ALL_I]   = mace_hash(MACE_ALL);
+    int i = MACE_CLEAN_ORDER + MACE_RESERVED_TARGETS_NUM;
+    mace_reserved_targets[i]    = mace_hash(MACE_CLEAN);
+    i = MACE_ALL_ORDER + MACE_RESERVED_TARGETS_NUM;
+    mace_reserved_targets[i]    = mace_hash(MACE_ALL);
 
     /* --- Memory allocation --- */
     target_len      = MACE_DEFAULT_TARGET_LEN;
@@ -1752,9 +1788,7 @@ void mace_init() {
 
     object      = calloc(object_len, sizeof(*object));
     targets     = calloc(target_len, sizeof(*targets));
-    // commands    = calloc(target_len, sizeof(*commands));
     build_order = calloc(target_len, sizeof(*build_order));
-    build_order_all = calloc(target_len, sizeof(*build_order_all));
 
     /* --- Default output folders --- */
     mace_set_build_dir("build/");
@@ -1793,21 +1827,17 @@ void mace_free() {
         free(build_order);
         build_order = NULL;
     }
-    if (build_order_all != NULL) {
-        free(build_order_all);
-        build_order_all = NULL;
-    }
 
     target_num              = 0;
     object_len              = 0;
     build_order_num         = 0;
-    build_order_all_num = 0;
 }
 
 void mace_Target_Deps_Grow(struct Target *target) {
     if (target->_deps_links_len <= target->_deps_links_num) {
         target->_deps_links_len *= 2;
-        target->_deps_links = realloc(target->_deps_links, target->_deps_links_len * sizeof(*target->_deps_links));
+        target->_deps_links = realloc(target->_deps_links,
+                                      target->_deps_links_len * sizeof(*target->_deps_links));
     }
 }
 
@@ -1838,7 +1868,7 @@ void mace_Target_Deps_Hash(struct Target *target) {
 
         /* --- Copy links into modifiable buffer --- */
         char *buffer = mace_str_buffer(target->links);
-        
+
         /* --- Split links into tokens, --- */
         char *token = strtok(buffer, " ");
 
@@ -1848,7 +1878,7 @@ void mace_Target_Deps_Hash(struct Target *target) {
             token = strtok(NULL, " ");
         } while (token != NULL);
         free(buffer);
-    } while(false);
+    } while (false);
 
     /* --- Add dependencies to _deps_links --- */
     do {
@@ -1857,7 +1887,7 @@ void mace_Target_Deps_Hash(struct Target *target) {
 
         /* --- Copy links into modifiable buffer --- */
         char *buffer = mace_str_buffer(target->dependencies);
-        
+
         /* --- Split links into tokens, --- */
         char *token = strtok(buffer, " ");
 
@@ -1867,7 +1897,7 @@ void mace_Target_Deps_Hash(struct Target *target) {
             token = strtok(NULL, " ");
         } while (token != NULL);
         free(buffer);
-    } while(false);
+    } while (false);
 
 }
 
@@ -4217,14 +4247,14 @@ struct parg_state parg_state_default = {
 };
 
 /* Automatic usage/help printing */
-void mace_parg_usage(const char * name, const struct parg_opt * longopts) {
+void mace_parg_usage(const char *name, const struct parg_opt *longopts) {
     assert(longopts);
     printf("\nmace builder executable: %s \n", name);
     printf("Usage: %s [TARGET] [OPTIONS]\n", name);
     for (int i = 0; longopts[i].doc; ++i) {
         if (longopts[i].val)
             printf(" -%c", longopts[i].val);
- 
+
         if (longopts[i].name)
             printf(",  --%s", longopts[i].name);
 
@@ -4242,9 +4272,9 @@ void mace_parg_usage(const char * name, const struct parg_opt * longopts) {
     }
 }
 
-void reverse(char * v[], int i, int j) {
+void reverse(char *v[], int i, int j) {
     while (j - i > 1) {
-        char * tmp = v[i];
+        char *tmp = v[i];
         v[i] = v[j - 1];
         v[j - 1] = tmp;
         ++i;
@@ -4253,76 +4283,76 @@ void reverse(char * v[], int i, int j) {
 }
 
 /* Check if state is at end of argv */
-int is_argv_end(const struct parg_state * ps, int argc, char * const argv[]) {
+int is_argv_end(const struct parg_state *ps, int argc, char *const argv[]) {
     return ps->optind >= argc || argv[ps->optind] == NULL;
 }
 
 
 /* Match string at nextchar against longopts. */
-int match_long(struct parg_state * ps, int argc, char * const argv[], const char * optstring,
-               const struct parg_opt * longopts, int * longindex) {
-    int i, match = -1, num_match = 0;
-    size_t len = strcspn(ps->nextchar, "=");
+int match_long(struct parg_state *ps, int argc, char *const argv[], const char *optstring,
+                   const struct parg_opt *longopts, int *longindex) {
+        int i, match = -1, num_match = 0;
+        size_t len = strcspn(ps->nextchar, "=");
 
-    for (i = 0; longopts[i].name; ++i) {
-        if (strncmp(ps->nextchar, longopts[i].name, len) == 0) {
-            match = i;
-            num_match++;
-            /* Take if exact match */
-            if (longopts[i].name[len] == '\0') {
-                num_match = 1;
-                break;
+        for (i = 0; longopts[i].name; ++i) {
+            if (strncmp(ps->nextchar, longopts[i].name, len) == 0) {
+                match = i;
+                num_match++;
+                /* Take if exact match */
+                if (longopts[i].name[len] == '\0') {
+                    num_match = 1;
+                    break;
+                }
             }
         }
-    }
 
-    /* Return '?' on no or ambiguous match */
-    if (num_match != 1) {
-        ps->optopt = 0;
+        /* Return '?' on no or ambiguous match */
+        if (num_match != 1) {
+            ps->optopt = 0;
+            ps->nextchar = NULL;
+            return '?';
+        }
+
+        assert(match != -1);
+
+        if (longindex) {
+            *longindex = match;
+        }
+
+        if (ps->nextchar[len] == '=') {
+            /* Option argument present, check if extraneous */
+            if (longopts[match].has_arg == PARG_NOARG) {
+                ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
+                ps->nextchar = NULL;
+                return optstring[0] == ':' ? ':' : '?';
+            } else {
+                ps->optarg = &ps->nextchar[len + 1];
+            }
+        } else if (longopts[match].has_arg == PARG_REQARG) {
+            /* Option argument required, so return next argv element */
+            if (is_argv_end(ps, argc, argv)) {
+                ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
+                ps->nextchar = NULL;
+                return optstring[0] == ':' ? ':' : '?';
+            }
+
+            ps->optarg = argv[ps->optind++];
+        }
+
         ps->nextchar = NULL;
-        return '?';
-    }
 
-    assert(match != -1);
-
-    if (longindex) {
-        *longindex = match;
-    }
-
-    if (ps->nextchar[len] == '=') {
-        /* Option argument present, check if extraneous */
-        if (longopts[match].has_arg == PARG_NOARG) {
-            ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
-            ps->nextchar = NULL;
-            return optstring[0] == ':' ? ':' : '?';
-        } else {
-            ps->optarg = &ps->nextchar[len + 1];
-        }
-    } else if (longopts[match].has_arg == PARG_REQARG) {
-        /* Option argument required, so return next argv element */
-        if (is_argv_end(ps, argc, argv)) {
-            ps->optopt = longopts[match].flag ? 0 : longopts[match].val;
-            ps->nextchar = NULL;
-            return optstring[0] == ':' ? ':' : '?';
+        if (longopts[match].flag != NULL) {
+            *longopts[match].flag = longopts[match].val;
+            return 0;
         }
 
-        ps->optarg = argv[ps->optind++];
+        return longopts[match].val;
     }
-
-    ps->nextchar = NULL;
-
-    if (longopts[match].flag != NULL) {
-        *longopts[match].flag = longopts[match].val;
-        return 0;
-    }
-
-    return longopts[match].val;
-}
 
 
 /* Match nextchar against optstring */
-int match_short(struct parg_state * ps, int argc, char * const argv[], const char * optstring) {
-    const char * p = strchr(optstring, *ps->nextchar);
+int match_short(struct parg_state *ps, int argc, char *const argv[], const char *optstring) {
+    const char *p = strchr(optstring, *ps->nextchar);
 
     if (p == NULL) {
         ps->optopt = *ps->nextchar++;
@@ -4361,54 +4391,54 @@ int match_short(struct parg_state * ps, int argc, char * const argv[], const cha
  * Check GNU getopt_long example for details:
  * https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html
  */
-int parg_getopt_long(struct parg_state * ps, int argc, char * const argv[], const char * optstring,
-                     const struct parg_opt * longopts, int * longindex) {
-    assert(ps != NULL);
-    assert(argv != NULL);
-    assert(optstring != NULL);
+int parg_getopt_long(struct parg_state *ps, int argc, char *const argv[], const char *optstring,
+                         const struct parg_opt *longopts, int *longindex) {
+        assert(ps != NULL);
+        assert(argv != NULL);
+        assert(optstring != NULL);
 
-    ps->optarg = NULL;
+        ps->optarg = NULL;
 
-    if (argc < 2) {
-        return -1;
-    }
-
-    /* Advance to next element if needed */
-    if (ps->nextchar == NULL || *ps->nextchar == '\0') {
-        if (is_argv_end(ps, argc, argv)) {
+        if (argc < 2) {
             return -1;
         }
 
-        ps->nextchar = argv[ps->optind++];
-
-        /* Check for argument element (including '-') */
-        if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
-            ps->optarg = ps->nextchar;
-            ps->nextchar = NULL;
-            return 1;
-        }
-
-        /* Check for '--' */
-        if (ps->nextchar[1] == '-') {
-            if (ps->nextchar[2] == '\0') {
-                ps->nextchar = NULL;
+        /* Advance to next element if needed */
+        if (ps->nextchar == NULL || *ps->nextchar == '\0') {
+            if (is_argv_end(ps, argc, argv)) {
                 return -1;
             }
 
-            if (longopts != NULL) {
-                ps->nextchar += 2;
+            ps->nextchar = argv[ps->optind++];
 
-                return match_long(ps, argc, argv, optstring,
-                                  longopts, longindex);
+            /* Check for argument element (including '-') */
+            if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
+                ps->optarg = ps->nextchar;
+                ps->nextchar = NULL;
+                return 1;
             }
+
+            /* Check for '--' */
+            if (ps->nextchar[1] == '-') {
+                if (ps->nextchar[2] == '\0') {
+                    ps->nextchar = NULL;
+                    return -1;
+                }
+
+                if (longopts != NULL) {
+                    ps->nextchar += 2;
+
+                    return match_long(ps, argc, argv, optstring,
+                                      longopts, longindex);
+                }
+            }
+
+            ps->nextchar++;
         }
 
-        ps->nextchar++;
+        /* Match nextchar */
+        return match_short(ps, argc, argv, optstring);
     }
-
-    /* Match nextchar */
-    return match_short(ps, argc, argv, optstring);
-}
 
 /*
  * Reorder elements of `argv` with no special cases.
@@ -4419,8 +4449,8 @@ int parg_getopt_long(struct parg_state * ps, int argc, char * const argv[], cons
  * The algorithm is described here:
  * http://hardtoc.com/2016/11/07/reordering-arguments.html
  */
-int parg_reorder_simple(int argc, char * argv[], const char * optstring,
-                        const struct parg_opt * longopts) {
+int parg_reorder_simple(int argc, char *argv[], const char *optstring,
+                        const struct parg_opt *longopts) {
     struct parg_state ps;
     int change, l = 0, m = 0, r = 0;
 
@@ -4494,7 +4524,7 @@ int parg_reorder_simple(int argc, char * argv[], const char * optstring,
  * Check GNU getopt example for details:
  * https://www.gnu.org/software/libc/manual/html_node/Example-of-Getopt.html
  */
-int parg_getopt(struct parg_state * ps, int argc, char * const argv[], const char * optstring) {
+int parg_getopt(struct parg_state *ps, int argc, char *const argv[], const char *optstring) {
     return parg_getopt_long(ps, argc, argv, optstring, NULL, NULL);
 }
 
@@ -4512,8 +4542,8 @@ int parg_getopt(struct parg_state * ps, int argc, char * const argv[], const cha
  * @param longopts array of `parg_option` structures
  * @return index of first argument in `argv` on success, `-1` on error
  */
-int parg_reorder(int argc, char * argv[], const char * optstring,
-                 const struct parg_opt * longopts) {
+int parg_reorder(int argc, char *argv[], const char *optstring,
+                 const struct parg_opt *longopts) {
     struct parg_state ps;
     int lastind, optend, c;
 
@@ -4551,52 +4581,52 @@ int parg_reorder(int argc, char * argv[], const char * optstring,
     return optend;
 }
 
-int parg_zgetopt_long(struct parg_state * ps, int argc, char * const argv[], const char * optstring,
-                      const struct parg_opt * longopts, int * longindex) {
-    assert(ps != NULL);
-    assert(argv != NULL);
-    assert(optstring != NULL);
+int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[], const char *optstring,
+                          const struct parg_opt *longopts, int *longindex) {
+        assert(ps != NULL);
+        assert(argv != NULL);
+        assert(optstring != NULL);
 
-    ps->optarg = NULL;
+        ps->optarg = NULL;
 
-    if (argc < 2) {
-        return -1;
-    }
-
-    /* Advance to next element if needed */
-    if (ps->nextchar == NULL || *ps->nextchar == '\0') {
-        if (is_argv_end(ps, argc, argv)) {
+        if (argc < 2) {
             return -1;
         }
 
-        ps->nextchar = argv[ps->optind++];
-
-        /* Check for argument element (including '-') */
-        if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
-            ps->optarg = ps->nextchar;
-            ps->nextchar = NULL;
-            return 1;
-        }
-
-        /* Check for '--' */
-        if (ps->nextchar[1] == '-') {
-            if (ps->nextchar[2] == '\0') {
-                ps->nextchar = NULL;
+        /* Advance to next element if needed */
+        if (ps->nextchar == NULL || *ps->nextchar == '\0') {
+            if (is_argv_end(ps, argc, argv)) {
                 return -1;
             }
 
-            if (longopts != NULL) {
-                ps->nextchar += 2;
+            ps->nextchar = argv[ps->optind++];
 
-                return match_long(ps, argc, argv, optstring, longopts, longindex);
+            /* Check for argument element (including '-') */
+            if (ps->nextchar[0] != '-' || ps->nextchar[1] == '\0') {
+                ps->optarg = ps->nextchar;
+                ps->nextchar = NULL;
+                return 1;
             }
-        }
-        ps->nextchar++;
-    }
 
-    /* Match nextchar */
-    return match_short(ps, argc, argv, optstring);
-}
+            /* Check for '--' */
+            if (ps->nextchar[1] == '-') {
+                if (ps->nextchar[2] == '\0') {
+                    ps->nextchar = NULL;
+                    return -1;
+                }
+
+                if (longopts != NULL) {
+                    ps->nextchar += 2;
+
+                    return match_long(ps, argc, argv, optstring, longopts, longindex);
+                }
+            }
+            ps->nextchar++;
+        }
+
+        /* Match nextchar */
+        return match_short(ps, argc, argv, optstring);
+    }
 
 /******************************* PARG SOURCE END ******************************/
 
@@ -4604,7 +4634,7 @@ int parg_zgetopt_long(struct parg_state * ps, int argc, char * const argv[], con
 /* list of parg options to be parsed, with usage */
 static struct parg_opt longopts[] = {
     // {NULL,          PARG_NOARG,  0,  0,  NULL,   "Debug options:"},
-    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build all targets (ignored if target is 'clean')"},
+    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Skip checksums."},
     {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else."},
     {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
     {"help",        PARG_NOARG,  0, 'h', NULL,   "display help and exit"},
@@ -4618,8 +4648,8 @@ static struct parg_opt longopts[] = {
 };
 
 struct Mace_Arguments Mace_Arguments_default = {
-    .target   = 0,
-    .reserved_target = -1,
+    .user_target        = NULL,
+    .user_target_hash   = 0,
     .jobs     = 1,
     .macefile = NULL,
     .debug    = false,
@@ -4627,14 +4657,14 @@ struct Mace_Arguments Mace_Arguments_default = {
     .dry_run  = false,
 };
 
-void Mace_Arguments_Free(struct Mace_Arguments * args) {
+void Mace_Arguments_Free(struct Mace_Arguments *args) {
     if (args->macefile != NULL) {
         free(args->macefile);
         args->macefile = NULL;
     }
-    if (args->target != NULL) {
-        free(args->target);
-        args->target = NULL;
+    if (args->user_target != NULL) {
+        free(args->user_target);
+        args->user_target = NULL;
     }
 }
 
@@ -4646,20 +4676,13 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     while ((c = parg_getopt_long(&ps, argc, argv, "BC:df:hj:no:sv", longopts, longindex)) != -1) {
         switch (c) {
             case 1:
-                if (strcmp(ps.optarg, MACE_CLEAN) == 0) {
-                    out_args.reserved_target = MACE_CLEAN_I;
-                } else if (strcmp(ps.optarg, MACE_ALL) == 0) {
-                    out_args.reserved_target = MACE_ALL_I;
-                }
                 size_t len = strlen(ps.optarg);
-                out_args.target = calloc(len + 1, sizeof(*out_args.target));
-                strncpy(out_args.target, ps.optarg, len);
-                out_args.target_hash = mace_hash(ps.optarg);
+                out_args.user_target = calloc(len + 1, sizeof(*out_args.user_target));
+                strncpy(out_args.user_target, ps.optarg, len);
+                out_args.user_target_hash = mace_hash(ps.optarg);
                 break;
             case 'B':
-                if (out_args.reserved_target > 0) {
-                    out_args.reserved_target = MACE_ALL_I;
-                }
+                // TODO: set flag to don't check checksum
                 exit(0);
                 break;
             case 'C':
@@ -4733,7 +4756,7 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
 #ifndef MACE_OVERRIDE_MAIN
 int main(int argc, char *argv[]) {
     printf("START\n");
-    
+
     /* --- Parse user arguments --- */
     struct Mace_Arguments args = mace_parse_args(argc, argv);
 
