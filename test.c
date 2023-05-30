@@ -70,7 +70,17 @@ void test_object() {
     mace_object_path("mace.c");
     nourstest_true(strcmp(object, "/home/gabinours/Sync/mace/obj/mace.o") == 0);
     nourstest_true(mace_isObject(object));
+}
 
+void test_target() {
+    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .kind               = MACE_LIBRARY,
+    };
+    MACE_ADD_TARGET(tnecs);
+    
 }
 
 int mace(int argc, char *argv[]) {

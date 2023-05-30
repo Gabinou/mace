@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <glob.h>
 #include <sys/types.h>
@@ -360,25 +361,25 @@ void mace_grow_objs() {
 }
 
 void mace_object_path(char *source) {
-    size_t objdir_len   = strlen(objdir);
-    size_t source_len   = strlen(source);
-    size_t obj_len      = objdir_len + source_len + 1;
-    assert(objdir_len > 0);
+    /* --- Expanding path --- */
+    char *path = realpath(objdir, NULL);
+    assert(path != NULL);
 
-    if (obj_len > object_len)
-        mace_grow_obj();
-    char *rawpath = calloc(obj_len, sizeof(char));
-    strncpy(rawpath,              objdir, obj_len);
-    char *temp = realpath(rawpath, NULL);
-    assert(temp != NULL);
-    while ((strlen(temp) + source_len + 1) >= object_len)
+    /* --- Grow object --- */
+    size_t source_len = strlen(source);
+    size_t path_len;
+    while (((path_len = strlen(path)) + source_len + 2) >= object_len)
         mace_grow_obj();
     memset(object, 0, object_len * sizeof(*object));
-    strncpy(object, temp, strlen(temp));
-    strncpy(object + strlen(temp), source, source_len);
+
+    /* --- Writing path to object --- */
+    strncpy(object, path, path_len);
+    if (source[0] != '/')
+        object[path_len++] = '/';
+    strncpy(object + path_len, source, source_len);
     object[strlen(object) - 1] = 'o';
-    free(rawpath);
-    free(temp);
+
+    free(path);
 }
 
 
