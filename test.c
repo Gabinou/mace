@@ -173,20 +173,18 @@ void test_target() {
     MACE_ADD_TARGET(D);
     MACE_ADD_TARGET(F);
     nourstest_true(target_num == 7);
-    /* Print build order names */
-    for (int i = 0; i < target_num; ++i) {
-        printf("%d ", targets[i]._hash);
-    }
-
-
+    // /* Print build order names */
+    // for (int i = 0; i < target_num; ++i) {
+    //     printf("%d ", targets[i]._hash);
+    // }
     nourstest_true(!mace_circular_deps(targets, target_num));
 
     mace_target_build_order(targets, target_num);
 
-    /* Print build order names */
-    for (int i = 0; i < target_num; ++i) {
-        printf("%s ", targets[build_order[i]]._name);
-    }
+    // /* Print build order names */
+    // for (int i = 0; i < target_num; ++i) {
+    //     printf("%s ", targets[build_order[i]]._name);
+    // }
 
     /* A should be compiled last, has the most dependencies */
     nourstest_true(build_order[target_num - 1] == mace_hash_order(mace_hash("A")));
@@ -270,7 +268,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("globbing ",  test_globbing);
     nourstest_run("object ",    test_object);
     nourstest_run("target ",    test_target);
-    // nourstest_run("circular ",  test_circular);
+    nourstest_run("circular ",  test_circular);
     nourstest_results();
     printf("Tests done\n");
 }
