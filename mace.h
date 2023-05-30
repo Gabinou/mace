@@ -55,7 +55,7 @@ extern int mace(int argc, char *argv[]);
 *   MACE_SET_BUILD_DIR(build);        /
 *   MACE_ADD_TARGET(foo1);            /
 * };                                  /
-/*-----------------------------------*/
+*------------------------------------*/
 
 /* --- SETTERS --- */
 /* -- Compiler -- */
@@ -117,8 +117,8 @@ struct Target {
 
     /*-----------------------------------------------------------------*/
     /*                            EXAMPLE                               /
-    /*                       TARGET DEFINITION                          /
-    /* Designated Initializer -> unitialized values are set to 0/NULL   /
+    *                        TARGET DEFINITION                          /
+    *  Designated Initializer -> unitialized values are set to 0/NULL   /
     *                                                                   /
     * struct Target mytarget = {                                        /
     *     .includes           = "include include/foo",                  /
@@ -130,7 +130,7 @@ struct Target {
     * };                                                                /
     * NOTE: default separator is " ", set with 'mace_set_separator'     /
     *                                                                   /
-    /*-----------------------------------------------------------------*/
+    *------------------------------------------------------------------*/
 
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
     char *restrict _name;          /* target name set by user                 */
@@ -282,7 +282,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void mace_Target_Parse_Source(struct Target        *target, char *path, char *src);
     void mace_Target_Free_notargv(struct Target        *target);
     void mace_Target_Free_excludes(struct Target       *target);
-    bool mace_Target_Recompiles_Add(struct Target      *target, bool add);
+    void mace_Target_Recompiles_Add(struct Target      *target, bool add);
     void mace_Target_argv_allatonce(struct Target      *target);
     void mace_Target_compile_allatonce(struct Target   *target);
 
@@ -1415,7 +1415,7 @@ int Target_hasObjectHash(struct Target *target, uint64_t hash) {
     return (-1);
 }
 
-bool mace_Target_Recompiles_Add(struct Target *target, bool add) {
+void mace_Target_Recompiles_Add(struct Target *target, bool add) {
     // printf("recompiles: %d\n", add);
     target->_recompiles[target->_argc_sources - 1] = add;
 }
@@ -4696,7 +4696,7 @@ void mace_parg_usage(const char *name, const struct parg_opt *longopts) {
 
         if (longopts[i].arg) {
             printf("[=%s]", longopts[i].arg);
-            printf("%*c", MACE_USAGE_MIDCOLW - 3 - strlen(longopts[i].arg), ' ');
+            printf("%*c", (int)(MACE_USAGE_MIDCOLW - 3 - strlen(longopts[i].arg)), ' ');
         } else if (longopts[i].val || longopts[i].name)
             printf("%*c", MACE_USAGE_MIDCOLW, ' ');
 
@@ -5122,7 +5122,6 @@ void Mace_Arguments_Free(struct Mace_Arguments *args) {
 }
 
 struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
-    printf("mace_parse_args\n");
     struct Mace_Arguments out_args = Mace_Arguments_default;
     struct parg_state ps = parg_state_default;
     int longindex, c;
