@@ -367,10 +367,10 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[14], "-Ithird_party/stb") == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[15], "-Ithird_party/cJson") == 0);
     nourstest_true(CodenameFiresaga._argv_flags == NULL);
-    
+
     MACE_SET_COMPILER(gcc);
     Target_argv_init(&CodenameFiresaga);
-    assert(CodenameFiresaga._argv!= NULL);
+    assert(CodenameFiresaga._argv != NULL);
     nourstest_true(CodenameFiresaga._arg_len == 64);
     nourstest_true(strcmp(CodenameFiresaga._argv[MACE_ARGV_CC], "gcc") == 0);
     nourstest_true(CodenameFiresaga._argv[MACE_ARGV_SOURCE] == NULL);
