@@ -80,7 +80,7 @@ struct Target;
 #define MACE_ADD_TARGET(target) mace_add_target(&target, #target)
 #define MACE_DEFAULT_TARGET(target) mace_set_default_target(#target)
 
-void mace_add_target(struct Target *target, char *name);
+void mace_add_target(struct Target *restrict target, char *restrict name);
 void mace_set_default_target(char *name);
 
 // To ompile default target:
@@ -91,20 +91,20 @@ void mace_set_default_target(char *name);
 /******************************* TARGET STRUCT ********************************/
 struct Target {
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
-    const char *includes;          /* directories,           ' ' separated    */
-    const char *sources;           /* files, glob patterns,  ' ' separated    */
-    const char *sources_exclude;   /* files, glob patterns,  ' ' separated    */
-    const char *base_dir;          /* directory,                              */
+    const char *restrict includes;          /* directories,           ' ' separated    */
+    const char *restrict sources;           /* files, glob patterns,  ' ' separated    */
+    const char *restrict sources_exclude;   /* files, glob patterns,  ' ' separated    */
+    const char *restrict base_dir;          /* directory,                              */
     /* Links are targets or libraries. Linked targets will be built before. */
-    const char *links;             /* libraries or targets   ' ' separated    */
+    const char *restrict links;             /* libraries or targets   ' ' separated    */
     /* Dependencies are targets, will be built before.*/
-    const char *dependencies;      /* targets                ' ' separated    */
-    const char *flags;             /* passed as is to compiler                */
+    const char *restrict dependencies;      /* targets                ' ' separated    */
+    const char *restrict flags;             /* passed as is to compiler                */
 
-    const char *command_pre_build; /* command ran before building target      */
-    const char *command_post_build;/* command ran after building target       */
-    const char *message_pre_build; /* message printed before building target  */
-    const char *message_post_build;/* message printed after building target   */
+    const char *restrict command_pre_build; /* command ran before building target      */
+    const char *restrict command_post_build;/* command ran after building target       */
+    const char *restrict message_pre_build; /* message printed before building target  */
+    const char *restrict message_post_build;/* message printed after building target   */
 
     int         kind;              /* MACE_TARGET_KIND                        */
     /* allatonce: Compile all .o objects at once (calls gcc one time).        */
@@ -132,36 +132,36 @@ struct Target {
 
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
     /* --- all targets ---  */
-    char      *_name;              /* target name set by user                 */
+    char      *restrict _name;              /* target name set by user                 */
     uint64_t   _hash;              /* target name hash,                       */
     int        _order;             /* target order added by user              */
     /* --- all targets ---  */
 
     /* --- This is only for targets with compilation ---  */
-    char      **_argv;             /* buffer for argv to exec build commands  */
+    char      **restrict _argv;             /* buffer for argv to exec build commands  */
     int         _argc;             /* number of arguments in argv             */
     int         _arg_len;          /* alloced len of argv                     */
-    char      **_argv_includes;    /* includes, in argv form                  */
+    char      **restrict _argv_includes;    /* includes, in argv form                  */
     int         _argc_includes;    /* number of arguments in argv_includes    */
-    char      **_argv_links;       /* linked libraries, in argv form          */
+    char      **restrict _argv_links;       /* linked libraries, in argv form          */
     int         _argc_links;       /* number of arguments in argv_links       */
-    char      **_argv_flags;       /* user flags, in argv form                */
+    char      **restrict _argv_flags;       /* user flags, in argv form                */
     int         _argc_flags;       /* number of arguments in argv_flags       */
 
-    char      **_argv_sources;     /* sources, in argv form                   */
+    char      **restrict _argv_sources;     /* sources, in argv form                   */
     int         _argc_sources;     /* number of arguments in argv_sources     */
     int         _len_sources;      /* alloc len of arguments in argv_sources  */
 
-    uint64_t   *_argv_objects_hash;/* sources, in argv form                   */
-    int        *_argv_objects_cnt; /* sources, in argv form                   */
+    uint64_t   *restrict _argv_objects_hash;/* sources, in argv form                   */
+    int        *restrict _argv_objects_cnt; /* sources, in argv form                   */
     int         _argc_objects_hash;/* number of arguments in argv_sources     */
-    char      **_argv_objects;     /* sources, in argv form                   */
+    char      **restrict _argv_objects;     /* sources, in argv form                   */
     int         _argc_objects;     /* number of arguments in argv_sources     */
     int         _len_objects;      /* alloc len of arguments in argv_sources  */
     /* --- This is only for targets with compilation ---  */
 
     /* --- This is only for targets with dependencies ---  */
-    uint64_t  *_deps_links;        /* target or libs hashes                   */
+    uint64_t  *restrict _deps_links;        /* target or libs hashes                   */
     size_t     _deps_links_num;    /* target or libs hashes                   */
     size_t     _deps_links_len;    /* target or libs hashes                   */
     size_t     _d_cnt;             /* dependency count, for build order       */
