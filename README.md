@@ -80,6 +80,7 @@ int mace(int argc, char *argv[]) {
 Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
 - `-DDEFAULT_MACEFILE=<file>` to change default macefile name. Defaults to `macefile.c`.
+- `-DBUILDER=<file>` to change builder executable path.
 - `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
 
 ## Why?
