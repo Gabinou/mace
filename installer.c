@@ -45,6 +45,10 @@ int mace(int argc, char *argv[]) {
         .kind               = MACE_EXECUTABLE,
         // Overrides main in mace.h with custom main.
         .flags              = "-DMACE_OVERRIDE_MAIN -DCC=gcc -DBUILDER=build",
+    //     .command_post_build =
+    //             "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
+    //             "install -T mace.h"          " " PREFIX "/include/mace.h",
+
     };
     // Add target with different name, i.e. "mace"
     mace_add_target(&MACE, "mace");
@@ -52,10 +56,10 @@ int mace(int argc, char *argv[]) {
     /* - mace install - */
     // 1. Copies mace convenience executable to `/usr/local/bin` by default
     // 2. Copies mace header                 to `/usr/local/include` by default
-    struct Command install  = {
-        .commands =
-                "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
-                "install -T mace.h"          " " PREFIX "/include/mace.h",
-    };
-    MACE_ADD_COMMAND(install);
+    // struct Command install  = {
+    //     .commands =
+    //             "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
+    //             "install -T mace.h"          " " PREFIX "/include/mace.h",
+    // };
+    // MACE_ADD_COMMAND(install);
 }
