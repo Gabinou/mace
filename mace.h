@@ -557,8 +557,11 @@ bool mace_circular_deps(struct Target *targs, size_t len) {
         // 1- going through target i's dependencies
         for (int z = 0; z < targs[i]._deps_links_num; z++) {
             int j = mace_hash_order(targs[i]._deps_links[z]);
-            if (i == j)
+            if (i == j) {
+                printf("Warning: Target depends on itself. Remove '%s' from its 'links'.\n",
+                       targs[i]._name);
                 continue;
+            }
             if (Target_hasDep(&targs[j], hash_i))
                 // 2- target i's dependency j has i as dependency as well
                 return (true);
