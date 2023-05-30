@@ -18,14 +18,27 @@
 
 /************************************ mace ************************************/
 // User entry point. User responsibilities:
-//   1- Set compiler
-//   2- Add targets
+//   1- Set compiler    -> MACE_SET_COMPILER
+//   2- Add targets     -> MACE_ADD_TARGET
+// Optional:
+//   3- Set build_dir   -> mace_set_obj_dir
+//   4- Set obj_dir     -> mace_set_build_dir
 extern int mace(int argc, char *argv[]);
 
+enum MACE {
+    MACE_DEFAULT_TARGET_LEN     =   8,
+    MACE_DEFAULT_OBJECT_LEN     =  16,
+    MACE_DEFAULT_OBJECTS_LEN    = 128,
+    MACE_CWD_BUFFERSIZE         = 128,
+};
+
+char cwd[MACE_CWD_BUFFERSIZE];
 /******************************* MACE_TARGET_KIND ******************************/
+
 enum MACE_TARGET_KIND { // for target.kind
     MACE_EXECUTABLE      = 1,
-    MACE_LIBRARY         = 2,
+    MACE_STATIC_LIBRARY  = 2,
+    MACE_DYNAMIC_LIBRARY = 3,
 };
 
 /********************************** MACE_ARGV *********************************/
@@ -69,6 +82,9 @@ struct Target {
     char      **_argv_flags;       /* user flags, in argv form                */
     int         _argc_flags;       /* number of arguments in argv_flags       */
 
+    // TODO: how to deal with multiple same name sources?
+    // 1- premake solution: increment : unit1.o, unit2.o...
+    // 2- -> Keep same folder structure as source in object folder <+
     char      **_argv_sources;     /* sources, in argv form                   */
     int         _argc_sources;     /* number of arguments in argv_sources     */
     int         _len_sources;      /* alloc len of arguments in argv_sources  */
@@ -76,7 +92,6 @@ struct Target {
     char      **_argv_objects;     /* sources, in argv form                   */
     int         _argc_objects;     /* number of arguments in argv_sources     */
     int         _len_objects;      /* alloc len of arguments in argv_sources  */
-
 
     uint64_t  *_deps_links;        /* target or libs hashes                   */
     size_t     _deps_links_num;    /* target or libs hashes                   */
@@ -114,14 +129,19 @@ char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
 
 /* --- mace_Target --- */
-void Target_Free(struct Target        *target);
-void Target_Free_argv(struct Target   *target);
-bool Target_hasDep(struct Target      *target, uint64_t hash);
-void Target_Deps_Hash(struct Target   *target);
-void Target_Source_Add(struct Target  *target, char    *token);
-void Target_Object_Add(struct Target  *target, char    *token);
-void Target_Parse_User(struct Target   *target);
+void Target_Free(struct Target          *target);
+void Target_Free_argv(struct Target     *target);
+void Target_Free_notargv(struct Target  *target);
+bool Target_hasDep(struct Target        *target, uint64_t hash);
+void Target_Deps_Hash(struct Target     *target);
+void Target_Source_Add(struct Target    *target, char    *token);
+void Target_Object_Add(struct Target    *target, char    *token);
+void Target_Parse_User(struct Target    *target);
+void Target_argv_init(struct Target     *target);
 int Target_Order();
+void Target_argv_grow(struct Target *target);
+
+char** mace_argv_grow(char **argv, int *argc, int *arg_len);
 
 
 int globerr(const char *path, int eerrno);
@@ -132,9 +152,11 @@ pid_t mace_exec(const char *exec, char *const arguments[]);
 void  mace_wait_pid(int pid);
 
 /* --- mace_build --- */
-void mace_link(char *objects, char *target);
+void mace_link_static_library(char *target, char *objects);
+void mace_link_dynamic_library(char *target, char *objects);
+void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links, int argc_links, char **argv_flags, int argc_flags);
 void mace_compile(char *source, char *object, struct Target * target);
-void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags, int kind);
+void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags);
 
 /* --- mace_is --- */
 int mace_isWildcard(const   char *str);
@@ -174,11 +196,12 @@ void mace_add_target(struct Target *target, char *name) {
     targets[target_num]._hash  = mace_hash(name);
     targets[target_num]._order = target_num;
     Target_Deps_Hash(&targets[target_num]);
+    Target_Parse_User(&targets[target_num]);
+    Target_argv_init(&targets[target_num]);
     if (++target_num == target_len) {
         target_len *= 2;
         targets     = realloc(targets, target_len * sizeof(*targets));
     }
-
 }
 
 /******************************** Phony struct ********************************/
@@ -281,14 +304,22 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str, c
     char *token = strtok(buffer, " ");
     do {
         argv = argv_grows(len, argc, argv);
-
         size_t token_len = strlen(token);
-        char *arg = calloc((token_len + flag_len + 1), sizeof(*arg));
-        /* - Copy token into arg - */
+
+        size_t total_len = (token_len + flag_len + 1);
+        size_t i = 0;
+        char *arg = calloc(total_len, sizeof(*arg));
+        
+        /* - Copy flag into arg - */
         if (flag_len > 0) {
             strncpy(arg, flag, flag_len);
+            i += flag_len;
         }
-        strncpy(arg + flag_len, token, token_len);
+
+        /* - Copy token into arg - */
+        strncpy(arg + i, token, token_len);
+        i += token_len;
+
         argv[(*argc)++] = arg;
 
         token = strtok(NULL, " ");
@@ -331,17 +362,24 @@ void Target_Parse_User(struct Target *target) {
         target->_argv_flags = realloc(target->_argv_flags, target->_argc_flags * sizeof(*target->_argv_flags));
     }
 }
+
 void Target_argv_grow(struct Target *target) {
-    if (target->_argc >= target->_arg_len) {
-        target->_arg_len *= 2;
-        target->_argv = realloc(target->_argv, target->_arg_len *sizeof(*target->_argv));
+    target->_argv = mace_argv_grow(target->_argv, &target->_argc, &target->_arg_len);
+}
+
+
+char** mace_argv_grow(char **argv, int *argc, int *arg_len) {
+    if (*argc >= *arg_len) {
+        (*arg_len) *= 2;
+        argv = realloc(argv, *arg_len *sizeof(*argv));
     }
+    return(argv);
 }
 
 // should be called after Target_Parse_User
 void Target_argv_init(struct Target *target) {
     if (cc == NULL) {
-        printf("C compiler not set, exiting.");
+        perror("C compiler not set, exiting.");
         exit(EFAULT);
     }
     if (target->_argv == NULL) {
@@ -350,27 +388,45 @@ void Target_argv_init(struct Target *target) {
         target->_argv = calloc(target->_arg_len, sizeof(*target->_argv));
     }
     target->_argv[MACE_ARGV_CC] = cc;
-
+    /* --- Adding argvs common to all --- */
     target->_argc = MACE_ARGV_OTHER;
+    /* -- argv user flags -- */
     if ((target->_argc_flags > 0) && (target->_argv_flags != NULL)) {
         for (int i = 0; i < target->_argc_flags; i++) {
             Target_argv_grow(target);
             target->_argv[target->_argc++] = target->_argv_flags[i];
         }
     }
+    /* -- argv includes -- */
     if ((target->_argc_includes > 0) && (target->_argv_includes != NULL)) {
         for (int i = 0; i < target->_argc_includes; i++) {
             Target_argv_grow(target);
-            target->_argv[target->_argc++] = target->_argv_includes[i];
+            target->_argv[target->_argc++] = target->_argv_includes[i];            
         }
     }
+    /* -- argv links -- */
     if ((target->_argc_links > 0) && (target->_argv_links != NULL)) {
-        for (int i = 0; i < target->_argc_includes; i++) {
+        for (int i = 0; i < target->_argc_links; i++) {
             Target_argv_grow(target);
             target->_argv[target->_argc++] = target->_argv_links[i];
         }
     }
 
+    /* -- argv -L flag for build_dir -- */
+    Target_argv_grow(target);
+    size_t build_dir_len = strlen(build_dir);
+    char *ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
+    strncpy(ldirflag, "-L", 2);
+    strncpy(ldirflag + 2, build_dir, build_dir_len);
+    target->_argv[target->_argc++] = ldirflag;
+
+    /* -- argv -c flag for libraries -- */
+    Target_argv_grow(target);
+    char *compflag = calloc(3, sizeof(*compflag));
+    strncpy(compflag, "-c", 2);
+    target->_argv[target->_argc++] = compflag;
+
+    target->_argv[target->_argc] = NULL;
 }
 
 /******************************* mace_find_sources *****************************/
@@ -406,10 +462,11 @@ void mace_exec_print(char *const arguments[], size_t argnum) {
     }
     printf("\n");
 }
+
 pid_t mace_exec(const char *exec, char *const arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
-        printf("Error: forking issue. \n");
+        perror("Error: forking issue. \n");
         exit(ENOENT);
     } else if (pid == 0) {
         execvp(exec, arguments);
@@ -426,14 +483,14 @@ void mace_wait_pid(int pid) {
         } else if (WIFEXITED(status) &&  WEXITSTATUS(status)) {
             if (WEXITSTATUS(status) == 127) {
                 // execvp failed
-                printf("execvp failed\n");
+                perror("execvp failed\n");
                 exit(WEXITSTATUS(status));
             } else {
-                printf("program terminated normally, but returned a non-zero status\n");
+                perror("program terminated normally, but returned a non-zero status\n");
                 exit(WEXITSTATUS(status));
             }
         } else {
-            printf("program didn't terminate- normally\n");
+            perror("program didn't terminate- normally\n");
             exit(WEXITSTATUS(status));
         }
     }
@@ -441,7 +498,7 @@ void mace_wait_pid(int pid) {
 
 /********************************* mace_build **********************************/
 /* Build all sources from target to object */
-void mace_link(char *objects, char *target) {
+void mace_link_static_library(char *target, char *objects) {
     char *arguments[] = {ar, "-rcs", target, objects, NULL};
     printf("Linking \t%s \n", target);
     // TODO: split objects into individual arguments
@@ -451,56 +508,90 @@ void mace_link(char *objects, char *target) {
     mace_wait_pid(pid);
 }
 
-/* Compile a single source file to object */
-// void mace_compile(const char *restrict source, char *restrict object, const char *restrict user_flags, char *restrict include_flags, char *restrict link_flags, int kind) {
-//     char libflag[3] = "";
-//     if (kind == MACE_LIBRARY)
-//         strncpy(libflag, "-c", 2);
 
-//     char *absrc = realpath(source, NULL);
-//     char *pos = strrchr(absrc, '/');
-//     char *source_file = (pos == NULL) ? absrc : pos + 1;
-//     printf("Compiling   \t%s \n", source_file);
-//     char *aflags = NULL;
-//     if (user_flags != NULL) {
-//         size_t flags_len = strlen(user_flags);
-//         aflags = calloc(flags_len + 1, sizeof(*aflags));
-//         strncpy(aflags, user_flags, flags_len);
-//     }
-//     // TODO: split user_flags, include_flags, link_flags into individual arguments
-//     char *const arguments[] = {cc, absrc, include_flags, link_flags, libflag,"-v", "-o", object, aflags, NULL};
-//     printf("aflags %s\n", aflags);
-//     printf("object %sAAAA\n", object);
-//     // mace_exec_print(arguments, sizeof(arguments)/sizeof(*arguments));
-//     pid_t pid = mace_exec(cc, arguments);
-//     mace_wait_pid(pid);
-//     printf("Compiled   \t%s \n", source_file);
-//     free(absrc);
-//     free(aflags);
-// }
+void mace_link_executable(char *target, char **argv_objects, int argc_objects, char **argv_links, int argc_links, char **argv_flags, int argc_flags) {
+    printf("Linking \t%s \n", target);
 
-// Sources might be ONE file, might be ALL files, depends.
+    if (cc == NULL) {
+        perror("C compiler not set, exiting.");
+        exit(EFAULT);
+    }
+    int arg_len = 8;
+    int argc = 0;
+    char **argv = calloc(arg_len, sizeof(*argv));
+
+    argv[argc++] = cc;
+    /* --- Adding executable output --- */
+    size_t target_len = strlen(target);
+    char *oflag       = calloc(target_len + 3, sizeof(*oflag));
+    strncpy(oflag, "-o", 2);
+    strncpy(oflag + 2, target, target_len);
+    argv[argc++] = oflag;
+
+    /* --- Adding objects --- */
+    if ((argc_objects > 0) && (argv_objects != NULL)) {
+        for (int i = 0; i < argc_objects; i++) {
+            argv = mace_argv_grow(argv, &argc, &arg_len);
+            argv[argc++] = argv_objects[i] + strlen("-o");
+        }
+    }
+    
+    /* -- argv user flags -- */
+    if ((argc_flags > 0) && (argv_flags != NULL)) {
+        for (int i = 0; i < argc_flags; i++) {
+            argv = mace_argv_grow(argv, &argc, &arg_len);
+            argv[argc++] = argv_flags[i];
+        }
+    }
+
+    /* -- argv links -- */
+    if ((argc_links > 0) && (argv_links != NULL)) {
+        for (int i = 0; i < argc_links; i++) {
+            argv = mace_argv_grow(argv, &argc, &arg_len);
+            argv[argc++] = argv_links[i];
+        }
+    }
+
+    /* -- argv -L flag for build_dir -- */
+    argv = mace_argv_grow(argv, &argc, &arg_len);
+    size_t build_dir_len = strlen(build_dir);
+    char *ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
+    strncpy(ldirflag, "-L", 2);
+    strncpy(ldirflag + 2, build_dir, build_dir_len);
+    argv[argc++] = ldirflag;
+
+    mace_exec_print(argv, argc);
+    pid_t pid = mace_exec(cc, argv);
+    mace_wait_pid(pid);
+    free(argv);
+}
+
+void mace_link_dynamic_library(char *target, char *objects) {
+    // NOTE: -fPIC is needed on all object files in a shared library
+    // command: gcc -shared -fPIC ...
+    //
+}
+
 // mace_compile: SINGLE SOURCE
+// TODO: compile many files at once
 void mace_compile(char *source, char *object, struct Target * target) {
+    assert(source != NULL);
+    assert(object != NULL);
+    assert(target != NULL);
+    assert(target->_argv != NULL);
     /* - Single source argv - */
+    printf("Compile %s\n", source);
     // argv[0] is always cc
     // argv[1] is always source
-    argv[MACE_ARGV_SOURCE] = source;
+    target->_argv[MACE_ARGV_SOURCE] = source;
     // argv[2] is always object (includeing -o flag)
-    argv[MACE_ARGV_OBJECT] = object;
-
-    /* -- Building argv -- */
-    /* - Add Compiler to argv - */
-    /* - Add sources to argv - */
-    /* - Add objects to argv - */
-    /* - Add _argv_includes to argv - */
-    /* - Add _argv_sources to argv - */
-    /* - Add _argv_links to argv - */
-    /* - Add _argv_flags to argv - */
+    target->_argv[MACE_ARGV_OBJECT] = object;
+    // rest of argv should be set previously by Target_argv_init
+    // mace_exec_print(target->_argv, target->_argc);
 
     /* -- Actual compilation -- */
-    // pid_t pid = mace_exec(cc, argv);
-    // mace_wait_pid(pid);
+    pid_t pid = mace_exec(cc, target->_argv);
+    mace_wait_pid(pid);
 
 }
 
@@ -543,21 +634,31 @@ void Target_Source_Add(struct Target *target, char *token) {
 
 
 /* Compile globbed files to objects */
-void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags, int kind) {
+void mace_compile_glob(struct Target *target, char *globsrc, const char *restrict flags) {
+    // printf("mace_compile_glob \n");
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
+        // printf("globbed.gl_pathv[i] %s \n", globbed.gl_pathv[i]);
         assert(mace_isSource(globbed.gl_pathv[i]));
         char *pos = strrchr(globbed.gl_pathv[i], '/');
-        char *source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos;
-        Target_Source_Add(target, source_file);
+        char *source_file = (pos == NULL) ? globbed.gl_pathv[i] : pos + 1;
+        Target_Source_Add(target, globbed.gl_pathv[i]);
         mace_object_path(source_file);
         Target_Object_Add(target, object);
-        // mace_compile();
+        mace_compile(target->_argv_sources[target->_argc_sources - 1], target->_argv_objects[target->_argc_objects - 1], target);
     }
     globfree(&globbed);
 }
 
 /********************************** mace_is ***********************************/
+int mace_isTarget(uint64_t hash) {
+    for (int i = 0; i < target_num; i++) {
+        if (targets[i]._hash == hash)
+            return(true);
+    }
+    return(false);
+}
+
 int mace_isWildcard(const char *str) {
     return ((strchr(str, '*') != NULL));
 }
@@ -591,6 +692,24 @@ void mace_mkdir(const char *path) {
     }
 }
 
+char *mace_executable_path(char *target_name) {
+    assert(target_name != NULL);
+    size_t bld_len = strlen(build_dir);
+    size_t tar_len = strlen(target_name);
+
+    char *exec = calloc((bld_len + tar_len + 1), sizeof(*exec));
+    size_t full_len = 0;
+    strncpy(exec,            build_dir,   bld_len);
+    full_len += bld_len;
+    if (build_dir[0] != '/') {
+        strncpy(exec + full_len, "/",         1);
+        full_len++;
+    }
+    strncpy(exec + full_len, target_name, tar_len);
+    return (exec);
+}
+
+// TODO: static and dynamic path
 char *mace_library_path(char *target_name) {
     assert(target_name != NULL);
     size_t bld_len = strlen(build_dir);
@@ -634,7 +753,13 @@ void mace_grow_objs() {
 
 void mace_object_path(char *source) {
     /* --- Expanding path --- */
-    char *path = realpath(obj_dir, NULL);
+    size_t cwd_len      = strlen(cwd);
+    size_t obj_dir_len  = strlen(obj_dir);
+    char *path = calloc(cwd_len + obj_dir_len + 2, sizeof(path));
+    strncpy(path,                cwd,        cwd_len);
+    strncpy(path + cwd_len,      "/",        1);
+    strncpy(path + cwd_len + 1,  obj_dir,    obj_dir_len);
+
     if (path == NULL) {
         printf("Object directory '%s' does not exist.\n", obj_dir);
         exit(ENOENT);
@@ -666,13 +791,17 @@ char *mace_str_buffer(const char *strlit) {
 
 /******************************** mace_build **********************************/
 void mace_build_target(struct Target *target) {
-    /* --- Parse sources, put into array --- */
+    /* --- Move to target base_dir, compile there --- */
+    if (target->base_dir != NULL)
+        chdir(target->base_dir);
 
+    /* --- Parse sources, put into array --- */
     assert(target->kind != 0);
     /* --- Compile sources --- */
     /* --- Preliminaries --- */
-    Target_Free(target);
+    Target_Free_notargv(target);
 
+    /* TODO: rework objects to argv style*/
     memset(objects, 0, objects_len * sizeof(*objects));
     objects_num = 0;
     /* -- Copy sources into modifiable buffer -- */
@@ -685,28 +814,30 @@ void mace_build_target(struct Target *target) {
 
         if (mace_isDir(token)) {
             /* Glob all sources recursively */
-            // printf("isDir %s\n", token);
+            printf("isDir %s\n", token);
 
-            size_t srclen = strlen(token);
-            char *globstr = calloc(srclen + 6, sizeof(*globstr));
+            size_t srclen  = strlen(token);
+            char  *globstr = calloc(srclen + 6, sizeof(*globstr));
             strncpy(globstr,              token,  strlen(token));
             strncpy(globstr + srclen,     "/",    1);
             strncpy(globstr + srclen + 1, "**.c", 4);
 
-            // mace_compile_glob(target, globstr, target->flags, MACE_LIBRARY);
+            mace_compile_glob(target, globstr, target->flags);
             free(globstr);
 
         } else if (mace_isWildcard(token)) {
             /* token has a wildcard in it */
-            // printf("isWildcard %s\n", token);
-            // mace_compile_glob(target, token, target->flags, MACE_LIBRARY);
+            printf("isWildcard %s\n", token);
+            mace_compile_glob(target, token, target->flags);
 
         } else if (mace_isSource(token)) {
             /* token is a source file */
-            printf("isSource %s\n", token);
+            // printf("isSource %s\n", token);
 
             mace_object_path(token);
-            mace_compile(target->sources, object, target);
+            Target_Source_Add(target, token);
+            Target_Object_Add(target, object);
+            mace_compile(target->_argv_sources[target->_argc_sources - 1], target->_argv_objects[target->_argc_objects - 1], target);
 
         } else {
             printf("Error: source is neither a .c file, a folder nor has a wildcard in it\n");
@@ -726,15 +857,19 @@ void mace_build_target(struct Target *target) {
         objects_num += strlen(object) + 2;
         token = strtok(NULL, " ");
     } while (token != NULL);
-
+    
+    /* --- Move back to cwd to link --- */
+    chdir(cwd);
 
     /* --- Linking --- */
-    if (target->kind == MACE_LIBRARY) {
+    if (target->kind == MACE_STATIC_LIBRARY) {
         char *lib = mace_library_path(target->_name);
-        mace_link(objects, lib);
+        mace_link_static_library(lib, objects);
         free(lib);
     } else if (target->kind == MACE_EXECUTABLE) {
-        // mace_compile(source, object, flags);
+        char *exec = mace_executable_path(target->_name);
+        mace_link_executable(exec, target->_argv_objects, target->_argc_objects, target->_argv_links, target->_argc_links, target->_argv_flags, target->_argc_flags);
+
     }
     free(buffer);
 }
@@ -796,10 +931,11 @@ void mace_deps_build_order(struct Target target, size_t *o_cnt) {
     }
 
     /* Visit all target dependencies */
-    target._d_cnt = 0;
-    while (target._d_cnt < target._deps_links_num) {
-        uint64_t next_dep = target._d_cnt++;
-        size_t next_target_order = mace_hash_order(target._deps_links[next_dep]);
+    for (target._d_cnt = 0; target._d_cnt < target._deps_links_num; target._d_cnt++) {
+        if (!mace_isTarget(target._deps_links[target._d_cnt]))
+            continue;
+
+        size_t next_target_order = mace_hash_order(target._deps_links[target._d_cnt]);
         /* Recursively search target's next dependency -> depth first search */
         mace_deps_build_order(targets[next_target_order], o_cnt);
     }
@@ -849,7 +985,7 @@ void mace_target_build_order(struct Target *targs, size_t len) {
 
     /* Skip if no targets */
     if ((targs == NULL) || (len == 0)) {
-        printf("No targets. Skipping build order computation.\n");
+        perror("No targets. Skipping build order computation.\n");
         return;
     }
 
@@ -857,7 +993,7 @@ void mace_target_build_order(struct Target *targs, size_t len) {
 
     /* Check for circular dependency */
     if (mace_circular_deps(targs, len)) {
-        printf("Circular dependency in linked library detected. Exiting\n");
+        perror("Circular dependency in linked library detected. Exiting\n");
         exit(EDOM);
     }
 
@@ -892,19 +1028,18 @@ struct Target *targets = NULL;
 size_t target_num      = 0;
 size_t target_len      = 0;
 
-enum MACE {
-    MACE_DEFAULT_TARGET_LEN     =   8,
-    MACE_DEFAULT_OBJECT_LEN     =  16,
-    MACE_DEFAULT_OBJECTS_LEN    = 128,
-};
-
 void Target_Free(struct Target *target) {
+    Target_Free_notargv(target);
+    Target_Free_argv(target);
+}
+
+void Target_Free_notargv(struct Target *target) {
     if (target->_deps_links != NULL) {
         free(target->_deps_links);
         target->_deps_links = NULL;
     }
-    Target_Free_argv(target);
 }
+
 
 void Target_Free_argv(struct Target *target) { 
     if (target->_argv_includes != NULL) {
@@ -959,6 +1094,10 @@ void Target_Free_argv(struct Target *target) {
 
 void mace_init() {
     mace_free();
+    if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
+        perror("getcwd() error");
+        exit(errno);
+    }
 
     /* --- Memory allocation --- */
     target_len  = MACE_DEFAULT_TARGET_LEN;
@@ -1047,7 +1186,6 @@ int main(int argc, char *argv[]) {
     /* --- Preliminaries --- */
     printf("START\n");
     mace_init();
-
     mace(argc, argv);
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
