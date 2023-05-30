@@ -36,5 +36,6 @@ int mace(int argc, char *argv[]) {
     printf("%s \n", cc);
 
     MACE_ADD_TARGET(tnecs);
+    printf("%s \n", tnecs._name);
     MACE_ADD_TARGET(CodenameFiresaga);
 }
