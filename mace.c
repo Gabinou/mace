@@ -1,5 +1,5 @@
 
-#include "mwc.h"
+#include "mace.h"
 
 #define CC gcc
 
@@ -9,7 +9,7 @@ struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
     .sources_exclude    = "",
     .base_dir           = "",
     .dependencies       = "",
-    .kind               = MWC_LIBRARY,
+    .kind               = MACE_LIBRARY,
 };
 
 struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
@@ -18,22 +18,22 @@ struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NU
     .sources_exclude    = "",
     .base_dir           = "",
     .links              = "tnecs SDL2",
-    .kind               = MWC_EXECUTABLE,
+    .kind               = MACE_EXECUTABLE,
 };
 
 
 /* ========== WARNING ========== */
-// 1. main is defined in mwc.h
-// 2. arguments from main are passed to mwc directly
-// 3. mwc is declared in mwc.h, MUST be implemented by user
-int mwc(int argc, char *argv[]) {
+// 1. main is defined in mace.h
+// 2. arguments from main are passed to mace directly
+// 3. mace is declared in mace.h, MUST be implemented by user
+int mace(int argc, char *argv[]) {
 
     assert(tnecs.links == NULL);
     printf("%d \n", strlen(CodenameFiresaga.links));
     printf("%d \n", sizeof(CodenameFiresaga.links));
     printf("%d \n", sizeof(*CodenameFiresaga.links));
 
-    MWC_SET_COMPILER(CC)
-    MWC_ADD_TARGET(tnecs);
-    MWC_ADD_TARGET(CodenameFiresaga);
+    MACE_SET_COMPILER(CC)
+    MACE_ADD_TARGET(tnecs);
+    MACE_ADD_TARGET(CodenameFiresaga);
 }
