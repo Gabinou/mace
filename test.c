@@ -298,28 +298,40 @@ void test_self_dependency() {
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
-void test_includes() {
-    const char *includes = "A B C D";
-    char *include_flags = mace_flags(includes, "-I");
-    nourstest_true(strcmp(include_flags, "-IA -IB -IC -ID") == 0);
-    free(include_flags);
-}
-
-void test_links() {
-    const char *includes = "A B C D";
-    char *link_flags = mace_flags(includes, "-l");
-    nourstest_true(strcmp(link_flags, "-lA -lB -lC -lD") == 0);
-    free(link_flags);
-}
-
 void test_argv() {
     const char *includes = "A B C D";
     const char *links = "ta mere putain de merde";
-    const char *source = "a.c bd.c efg.c hijk.c";
-    int argc = 8;
+    const char *sources = "a.c bd.c efg.c hijk.c lmnop.c";
+    int len = 8;
+    int argc = 0;
+    char ** argv = calloc(8, sizeof(*argv));
     
-    // argv_flags(int * len, int * argc, char * argv, const char *includes, const char *flag) {
-
+    mace_argv_flags(&len, &argc, argv, includes, "-I");
+    nourstest_true(argc == 4);
+    nourstest_true(len == 8);
+    nourstest_true(strcmp(argv[0], "-IA") == 0);
+    nourstest_true(strcmp(argv[1], "-IB") == 0);
+    nourstest_true(strcmp(argv[2], "-IC") == 0);
+    nourstest_true(strcmp(argv[3], "-ID") == 0);
+    
+    mace_argv_flags(&len, &argc, argv, links, "-l");
+    nourstest_true(argc == 9);
+    nourstest_true(len == 16);
+    nourstest_true(strcmp(argv[4], "-lta") == 0);
+    nourstest_true(strcmp(argv[5], "-lmere") == 0);
+    nourstest_true(strcmp(argv[6], "-lputain") == 0);
+    nourstest_true(strcmp(argv[7], "-lde") == 0);
+    nourstest_true(strcmp(argv[8], "-lmerde") == 0);
+    
+    mace_argv_flags(&len, &argc, argv, sources, NULL);
+    nourstest_true(argc == 14);
+    nourstest_true(len == 16);
+    nourstest_true(strcmp(argv[9], "a.c") == 0);
+    nourstest_true(strcmp(argv[10], "bd.c") == 0);
+    nourstest_true(strcmp(argv[11], "efg.c") == 0);
+    nourstest_true(strcmp(argv[12], "hijk.c") == 0);
+    nourstest_true(strcmp(argv[13], "lmnop.c") == 0);
+    
 }
 
 int mace(int argc, char *argv[]) {
@@ -329,11 +341,12 @@ int mace(int argc, char *argv[]) {
     nourstest_run("object ",    test_object);
     nourstest_run("target ",    test_target);
     nourstest_run("circular ",  test_circular);
-    nourstest_run("includes ",  test_includes);
+    nourstest_run("argv ",      test_argv);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
     test_self_dependency();
     printf("\n");
     printf("Tests done\n");
+    return(0);
 }
