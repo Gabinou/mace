@@ -404,7 +404,7 @@ int mace_isWildcard(const char *str);
 void  mace_mkdir(const char     *path);
 void  mace_make_dirs();
 void  mace_object_path(char     *source);
-char *mace_library_path(char    *target_name);
+char *mace_library_path(char    *target_name, int kind);
 char *mace_checksum_filename(char *file, int mode);
 
 /* --- mace_pqueue --- */
@@ -4016,15 +4016,18 @@ void mace_wait_pid(int pid) {
 void mace_link_dynamic_library(char *restrict target, char **restrict argv_objects,
                               int argc_objects) {
     printf("Linking \t%s \n", target);
-    // NOTE: -fPIC is needed on all object files in a shared library
-    // command: gcc -shared -fPIC ...
-    //
-
-    int arg_len = 8;
-    int argc = 0;
-    char **argv       = calloc(arg_len, sizeof(*argv));
-
+    int argc = 0, arg_len = 8;
+    char **argv  = calloc(arg_len, sizeof(*argv));
     argv[argc++] = cc;
+
+    /* --- Adding target --- */
+    size_t oflag_len = 2;
+    size_t target_len = strlen(target);
+    char *targetv     = calloc(target_len + oflag_len + 1, sizeof(*targetv));
+    strncpy(targetv, "-o", oflag_len);
+    strncpy(targetv + oflag_len, target, target_len);
+    int targetc  = argc;
+    argv[argc++] = targetv;
 
     /* --- Adding -fPIC flag --- */
     char *fPICflag     = calloc(6, sizeof(*fPICflag));
@@ -4037,13 +4040,6 @@ void mace_link_dynamic_library(char *restrict target, char **restrict argv_objec
     strncpy(sharedflag, "-shared", 7);
     int csharedflag = argc;
     argv[argc++] = sharedflag;
-
-    /* --- Adding target --- */
-    size_t target_len = strlen(target);
-    char *targetv     = calloc(target_len + 1, sizeof(*rcsflag));
-    strncpy(targetv, target, target_len);
-    int targetc  = argc;
-    argv[argc++] = targetv;
 
     /* --- Adding objects --- */
     if ((argc_objects > 0) && (argv_objects != NULL)) {
@@ -4058,10 +4054,9 @@ void mace_link_dynamic_library(char *restrict target, char **restrict argv_objec
     mace_wait_pid(pid);
 
     free(argv[cfPICflag]);
-    free(argv[sharedflag]);
+    free(argv[csharedflag]);
     free(argv[targetc]);
     free(argv);
-
 }
 
 /* Build all sources from target to object */
@@ -4071,8 +4066,8 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
     int arg_len = 8;
     int argc = 0;
     char **argv       = calloc(arg_len, sizeof(*argv));
-
     argv[argc++] = ar;
+
     /* --- Adding -rcs flag --- */
     char *rcsflag     = calloc(5, sizeof(*rcsflag));
     strncpy(rcsflag, "-rcs", 4);
@@ -4102,7 +4097,6 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
     free(argv[targetc]);
     free(argv);
 }
-
 
 void mace_link_executable(char *restrict target, char **restrict argv_objects, int argc_objects,
                           char **restrict argv_links, int argc_links,
@@ -4623,12 +4617,12 @@ char *mace_executable_path(char *target_name) {
 }
 
 // TODO: static and dynamic path
-char *mace_library_path(char *target_name) {
+char *mace_library_path(char *target_name, int kind) {
     assert(target_name != NULL);
     size_t bld_len = strlen(build_dir);
     size_t tar_len = strlen(target_name);
 
-    char *lib = calloc((bld_len + tar_len + 7), sizeof(*lib));
+    char *lib = calloc((bld_len + tar_len + 8), sizeof(*lib));
     size_t full_len = 0;
     strncpy(lib,                build_dir,   bld_len);
     full_len += bld_len;
@@ -4640,7 +4634,11 @@ char *mace_library_path(char *target_name) {
     full_len += 3;
     strncpy(lib + full_len,     target_name, tar_len);
     full_len += tar_len;
-    strncpy(lib + full_len,     ".a",        2);
+    if (kind == MACE_STATIC_LIBRARY) {
+        strncpy(lib + full_len,     ".a",        2);
+    } else if (kind == MACE_DYNAMIC_LIBRARY) {
+        strncpy(lib + full_len,     ".so",        3);
+    }
     return (lib);
 }
 
@@ -4826,11 +4824,11 @@ void mace_build_target(struct Target *target) {
 
     /* --- Linking --- */
     if (target->kind == MACE_STATIC_LIBRARY) {
-        char *lib = mace_library_path(target->_name);
+        char *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
         mace_link_static_library(lib, target->_argv_objects, target->_argc_sources);
         free(lib);
     } else if (target->kind == MACE_DYNAMIC_LIBRARY) {
-        char *lib = mace_library_path(target->_name);
+        char *lib = mace_library_path(target->_name, MACE_DYNAMIC_LIBRARY);
         mace_link_dynamic_library(lib, target->_argv_objects, target->_argc_sources);
         free(lib);        
     } else if (target->kind == MACE_EXECUTABLE) {
