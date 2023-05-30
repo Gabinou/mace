@@ -17,7 +17,8 @@
 /*----------------------------------------------------------------------------*/
 
 /* --- MACE FUNCTION --- */
-// User entry point. Must be implemented by user. User responsibilities:
+// User entry point. Must be implemented by user.
+// Must:
 //   1- Set compiler    -> MACE_SET_COMPILER
 //   2- Add targets     -> MACE_ADD_TARGET
 // Optional:
@@ -85,8 +86,6 @@ struct Target {
     uint64_t   _hash;              /* target name hash,                       */
     int        _order;             /* target order added by user              */
    
-    // Note: argv should have same length allocated
-    //       Use temporary variable to store length,m then realloc to argc
     char      **_argv;             /* buffer for argv to exec build commands  */
     int         _argc;             /* number of arguments in argv             */
     int         _arg_len;          /* alloced len of argv                     */
@@ -144,7 +143,8 @@ enum MACE {
 enum MACE_TARGET_KIND { // for target.kind
     MACE_EXECUTABLE      = 1,
     MACE_STATIC_LIBRARY  = 2,
-    MACE_DYNAMIC_LIBRARY = 3,
+    MACE_SHARED_LIBRARY  = 3,
+    MACE_DYNAMIC_LIBRARY  = 3,
 };
 
 enum MACE_ARGV { // for various argv
@@ -157,8 +157,9 @@ enum MACE_ARGV { // for various argv
 /******************************** DECLARATIONS ********************************/
 
 /* --- mace --- */
-void  mace_init();
-void  mace_free();
+void mace_init();
+void mace_free();
+void mace_post_user();
 uint64_t mace_hash(char *str);
 
 char *mace_str_buffer(const char *const strlit);
@@ -227,10 +228,6 @@ void mace_grow_obj();
 void mace_grow_objs();
 
 /******************************* MACE_ADD_TARGET ******************************/
-// Adds user-defined target to internal array of targets.
-
-// Convenience macro
-#define MACE_ADD_TARGET(target) mace_add_target(&target, #target)
 
 void mace_add_target(struct Target *target, char *name) {
     targets[target_num]        = *target;
@@ -1117,10 +1114,6 @@ void mace_target_build_order(struct Target *targs, size_t len) {
 }
 
 void mace_build_targets(struct Target *targs, size_t len) {
-    if ((targs == NULL) || (len == 0) || (build_order == NULL) || (build_order_num == 0)) {
-        printf("No targets to compile. Exiting.\n");
-        return;
-    }
     for (int z = 0; z < build_order_num; z++) {
         int i = build_order[z];
         mace_build_target(&targs[i]);
@@ -1197,6 +1190,17 @@ void Target_Free_argv(struct Target *target) {
         target->_argc_objects = 0;
     }
 }
+void mace_post_user() {
+    // Checks that user:
+    //   1- Set compiler,
+    //   2- Added at least one target.
+    // If not exit with error.
+    if ((targs == NULL) || (len == 0) || (build_order == NULL) || (build_order_num == 0)) {
+        printf("No targets to compile. Exiting.\n");
+        return;
+    }
+}
+
 
 void mace_init() {
     mace_free();
@@ -1289,15 +1293,29 @@ void Target_Deps_Hash(struct Target *target) {
 // if `mace clean` is called (clean target), rm all targets
 
 int main(int argc, char *argv[]) {
-    /* --- Preliminaries --- */
     printf("START\n");
+    
+    /* --- Get cwd, alloc memory, set defaults. --- */
     mace_init();
+    
+    /* --- User function --- */
+    // Sets compiler, add targets and commands.
     mace(argc, argv);
+    
+    /* --- Post-user checks: compiler set, at least one target exists. --- */
+    mace_post_user();
+    
+    /* --- Make output directories. --- */
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
+    /* --- Compute build order using targets deps list. --- */
     mace_target_build_order(targets, target_num);
+    
+    /* --- Perform compilation with buil_order --- */
     mace_build_targets(targets, target_num);
+    
+    /* ---  --- */
     mace_free();
     printf("FINISH\n");
     return (0);
