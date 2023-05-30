@@ -2111,8 +2111,9 @@ void mace_post_build_order() {
         exit(EDOM);
     }
 }
-        uint64_t **restrict _deps_obj;    /* header filename hashes               */
-        int       *restrict _deps_obj_num;/* number of dependencies in argv_deps  */
+
+// uint64_t **restrict _deps_obj;    /* header filename hashes               */
+// int       *restrict _deps_obj_num;/* number of dependencies in argv_deps  */
 
 void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj, int       *restrict _deps_obj_num) {
     bool oflag = (objfile[0] == '-') && (objfile[1] == 'o');
@@ -2131,40 +2132,38 @@ void mace_parse_object_dependencies(char *objfile, uint64_t *restrict _deps_obj,
     strncpy(file, objfile + oflagl, objlen - oflagl);
     char buffer[MACE_OBJDEP_BUFFER];
     
+    size_t size;
     size_t ext = objlen - oflagl - 1;
     do {
-
         /* Check if .d exists */
         file[ext] = 'd';    
-        file[ext + 1] = '\n';    
         printf("file %s\n", file);
         FILE *fd = fopen(file, "rb");
-        bool d_exists = (fd == NULL);
-        if (!d_exists) {
+        if (fd == NULL) {
             fprintf(stderr, "Object dependency file '%s' does not exist.\n", file);
             break;
         }
         /* Parse all dependencies, " " separated */
         while (true) {
             size = fread(buffer, 1, MACE_OBJDEP_BUFFER, fd);
-            
+            printf("buffer %s\n", buffer);
             /* - Go back to last ' ' - */
             char *last_ptr = strrchr(buffer, ' ');
             /* [                  size                  ]  */
             /* [    last_ptr - buffer    ] [ last_space ]  */
             /* b--------------------------l-------------\0 */
             int last_space = (int)(last_ptr - buffer) - size; 
-            fseek(fp, SEEK_CUR);
+            fseek(fd, last_space, SEEK_CUR);
 
             if (size != MACE_OBJDEP_BUFFER)
                 break;
         }
         
-        /* Write dependencies to .djb2 file */
-        strncpy(file + ext, "djb2", 4);
-        printf("file %s\n", file);
-        FILE *fdjb2 = fopen(file, "wb");
-        fwrite(_deps_obj, sizeof(*_deps_obj), *_deps_obj_num, fdjb2);
+        // /* Write dependencies to .djb2 file */
+        // strncpy(file + ext, "djb2", 4);
+        // printf("file %s\n", file);
+        // FILE *fdjb2 = fopen(file, "wb");
+        // fwrite(_deps_obj, sizeof(*_deps_obj), *_deps_obj_num, fdjb2);
 
     } while(false);
 
