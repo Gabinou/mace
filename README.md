@@ -90,9 +90,8 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - I want it simple to use, with simple internals.
     - Complexity bad. Simplicity good.
 - No well known build system for C is truly good.
-    - Proof 1: Ostensibly general-purpose build systems (`make`) are never used to build anything other than C/C++ projects.
-    - Proof 2: Modern programming languages devs implement their own build systems: Rust, Zig, Go, etc.
-    - Proof 3: Ask random C/C++ developers about `make`, `CMake`, etc.
+    - Modern programming languages devs implement their own: Rust, Zig, Go, etc.
+    - `make` is general-purpose but mostly used for C/C++
 - Most build systems have obtuse syntax, scale terribly to larger projects.
     - Makefiles makers exist (`premake`, `autoconf`/`autotools`) and compound this issue.
     - Mix of imperative and declarative style.
@@ -100,15 +99,16 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 
 ## Limitations
 - Tested on Linux only.
-- Cannot deal with circular dependencies in linked libraries.
+- Cannot deal with circular dependencies.
 - C only, C99 and above, C++ not supported.
 
 ## Under the hood
-- Compiler spits out object file dependecies (headers)
-- User inputs target dependencies with `target.links` (libraries or other targets)
-    - Build order determined by depth first search through dependencies.
-- Mace saves file and flag checksums in `.mace_checksums`
-    - Recompile if checksum changed
+- Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
+    - Check is any dependent file changed to recompile.
+- User inputs target dependencies with `target.links` and `target.dependencies`
+    - Build order determined by depth first search through all target dependencies.
+- Mace saves file checksums to `.sha1` files in `obj_dir`
+    - Checksum recorded and compared to know if file changed
 
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
