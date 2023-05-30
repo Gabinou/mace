@@ -34,6 +34,13 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DBUILDER=<file>` to change builder executable path.
 - `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
 
+### Tab completion
+
+- `bash`
+- `zsh`
+    - Put tab completion file `_mace` in your `fpath` 
+    - You can add this to your .zshrc `fpath=($HOME/.zsh-completions $fpath)`
+
 ## Why?
 - I want a much simpler build system.
     - Complexity bad. Simplicity good.
