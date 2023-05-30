@@ -11,17 +11,19 @@ Specificity, reduced scope, everything in service of *simplicity*.
     - Macefiles are `.c` files.
     - Targets are `structs`. 
     - Function `mace` is user entry point.
-- Single header build system : `mace.h` is all you need.
-    - Compiling macefile as easy as compiling `hello_world.c`, or easier!
-    - Build project by running resulting executable.
 - Simple API
     - Add target with `MACE_ADD_TARGET`
     - Set compiler with `MACE_SET_COMPILER`
     - Set output directories with `MACE_SET_BUILD_DIR`, `MACE_SET_OBJ_DIR`
     - Set default target with `MACE_DEFAULT_TARGET`
-- Convenience executable for make-like behavior
+- Single header build system : `mace.h` is all you need.
+    - Compiling macefile as easy as compiling `hello_world.c`, or even easier!
+    - Build project by running resulting executable.
+- Convenience executable for `make`-like behavior
     - Build and run macefile `installer.c` to install `mace` and `mace.h`
-    - `mace macefile.c` to build!
+    - Run `mace` to build!
+- Similar performance to make
+    - Faster at high `-j` count, using fewer resources.
 
 ## Usage
 1. Get `mace.h`
@@ -31,7 +33,6 @@ Specificity, reduced scope, everything in service of *simplicity*.
     1. Same as `./build all` by default.
     2. Remove all objects and targets: `./build clean`
     3. Usage mostly the same as `make`
-
 
 ### Example macefile
 ```c
@@ -54,9 +55,9 @@ int mace(int argc, char *argv[]) {
 
     // Note: 'clean' and 'all' are reserved target names with expected behavior.
     struct Target foo = { /* Unitialized values guaranteed to be 0 / NULL */
-        /* Default separator is ' ', but can be set with MACE_SET_SEPARATOR */
-        .includes           = "include include/sub/a.h",
-        .sources            = "src src/sub/*",
+        /* Default separator is ',', but can be set with MACE_SET_SEPARATOR */
+        .includes           = "include,include/sub/a.h",
+        .sources            = "src,src/sub/*",
         .base_dir           = "foo",
         .kind               = MACE_STATIC_LIBRARY,
     };
@@ -84,18 +85,17 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
 
 ## Why?
-- To build my personal C projects with.
-    - Tried: make, premake, please, cmake...
-    - Couldn't find anything that uses C to build C.
-- I want it simple to use, with simple internals.
+- I want a much simpler build system.
     - Complexity bad. Simplicity good.
-- No well known build system for C is truly good.
-    - Modern programming languages devs implement their own: Rust, Zig, Go, etc.
-    - `make` is general-purpose but mostly used for C/C++
-- Most build systems have obtuse syntax, scale terribly to larger projects.
-    - Makefiles makers exist (`premake`, `autoconf`/`autotools`) and compound this issue.
-    - Mix of imperative and declarative style.
-    - Personal experience: build systems break in unexpected ways if the project structure changes slightly.
+    - Simpler to develop, simpler to use, as simple as possible.
+- I want to build C projects, and only C projects.
+    - Generality breeds complexity.
+- Using C to build C gets me free lunches.
+    - No weird syntax to create.
+    - No bespoke parser to implement: C compilers already exist!
+- Using C to build C gets you free lunches! 
+    - C syntax is widely known.
+    - If you know how to compile one C file, you can use `mace`.
 
 ## Limitations
 - Tested on Linux only.
@@ -106,7 +106,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - User inputs target dependencies with `target.links` and `target.dependencies`
     - Build order determined by depth first search through all target dependencies.
 - Mace saves file checksums to `.sha1` files in `obj_dir`
-    - Checksum recorded to `.sha1` files in `src` and `include` and compared to know if file changed
+    - Checksum recorded to `.sha1` files in `src` and `include`
 - Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
     - Parsed into binary `.ho` file for faster reading.
     - Check if any header file changed to recompile.

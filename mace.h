@@ -93,6 +93,11 @@ struct Target;
 void    mace_add_target(struct Target *restrict target, char *restrict name);
 #define MACE_ADD_TARGET(target)     mace_add_target(&target, #target)
 
+/* --- Configs --- */
+struct Config;
+void    mace_add_target(struct Config *restrict config, char *restrict name);
+#define MACE_ADD_TARGET(config)     mace_add_target(&config, #config)
+
 // By default, mace builds all targets.
 // When set by user, mace builds all only default target and its dependencies.
 void    mace_set_default_target(char *name);
@@ -106,7 +111,7 @@ enum MACE_TARGET_KIND { /* for target.kind */
     MACE_DYNAMIC_LIBRARY = 3,
 };
 
-/******************************* TARGET STRUCT ********************************/
+/*********************************** STRUCTS **********************************/
 struct Target {
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
     const char *includes;          /* dirs                                    */
@@ -210,12 +215,29 @@ struct Target {
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 
 struct Config {
-    char *name;
+    /*---------------------------- PUBLIC MEMBERS ----------------------------*/
     char *targets;
     char *flags;
+
+    /*-----------------------------------------------------------------*/
+    /*                            EXAMPLE                               /
+    *                        TARGET DEFINITION                          /
+    *  Designated Initializer -> unitialized values are set to 0/NULL   /
+    *                                                                   /
+    * struct Config myconfig = {                                        /
+    *     .targets            = "foo,bar",                              /
+    *     .flags              = "-g -O0, -O0",                          /
+    * };                                                                /
+    * NOTE: default separator is ",", set with 'mace_set_separator'     /
+    *                                                                   /
+    *------------------------------------------------------------------*/
+
+    /*---------------------------- PRIVATE MEMBERS ---------------------------*/
+    char *restrict _name;          /* target name                             */
+    uint64_t       _hash;          /* target name hash                        */
+    int            _order;         /* target order added by user              */
 };
 
-/********************************** STRUCTS *********************************/
 struct Mace_Arguments {
     char        *user_target;
     char        *macefile;
@@ -224,10 +246,10 @@ struct Mace_Arguments {
     uint64_t     user_target_hash;
     uint64_t     skip;
     int          jobs;
-    bool         debug         : 1;
-    bool         silent        : 1;
-    bool         skip_checksum : 1;
-    bool         dry_run       : 1;
+    bool         debug          : 1;
+    bool         silent         : 1;
+    bool         dry_run        : 1;
+    bool         build_all      : 1;
 };
 void Mace_Arguments_Free(struct Mace_Arguments *args);
 
@@ -298,8 +320,9 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     char *mace_set_obj_dir(char    *obj);
     char *mace_set_build_dir(char  *build);
 
-    /* --- mace_Target --- */
+    /* --- mace add --- */
     void mace_add_target(struct Target   *restrict target,  char *restrict name);
+    void mace_add_config(struct Target   *restrict config,  char *restrict name);
 
     /* -- Target struct OOP -- */
     /* - Free - */
@@ -389,6 +412,7 @@ int mace_unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struc
 void mace_compile_glob(struct Target *restrict target, char *restrict globsrc, 
                        const char *restrict flags);
 void mace_build_targets();
+void mace_build_target(struct Target *target);
 void mace_run_commands(const  char *commands);
 void mace_print_message(const char *message);
 
@@ -419,8 +443,10 @@ void  mace_pqueue_put(pid_t pid);
 pid_t mace_pqueue_pop();
 
 /********************************** GLOBALS ***********************************/
-bool silent  = false;
-bool verbose = false;
+bool silent     = false;
+bool verbose    = false;
+bool dry_run    = false; /* Still pre-compiles */ 
+bool build_all  = false; /* Don't check object dependencies */
 
 /* --- Processes --- */
 // Compile objects in parallel.
@@ -3464,6 +3490,17 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
             printf(format, ##__VA_ARGS__);\
     } while(0)
 
+/******************************* MACE_ADD_CONFIG ******************************/
+
+void mace_add_config(struct Target *config, char *name) {
+    configs[target_num]        = *target;
+    uint64_t hash = mace_hash(name);
+    configs[target_num]._name  = name;
+    configs[target_num]._hash  = hash;
+    configs[target_num]._order = target_num;
+
+}
+
 /******************************* MACE_ADD_TARGET ******************************/
 void mace_grow_targets() {
     target_len *= 2;
@@ -3473,7 +3510,6 @@ void mace_grow_targets() {
 
 void mace_add_target(struct Target *target, char *name) {
     targets[target_num]        = *target;
-    size_t len = strlen(name);
     targets[target_num]._name  = name;
     uint64_t hash = mace_hash(name);
     for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++) {
@@ -4069,9 +4105,12 @@ void mace_link_dynamic_library(char *restrict target, char **restrict argv_objec
         }
     }
 
+    /* -- Actual linking -- */
     mace_exec_print(argv, argc);
-    pid_t pid = mace_exec(argv[0], argv);
-    mace_wait_pid(pid);
+    if (!dry_run) {
+        pid_t pid = mace_exec(argv[0], argv);
+        mace_wait_pid(pid);
+    }
 
     free(argv[cfPICflag]);
     free(argv[csharedflag]);
@@ -4109,9 +4148,12 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
         }
     }
 
+    /* -- Actual linking -- */
     mace_exec_print(argv, argc);
-    pid_t pid = mace_exec(argv[0], argv);
-    mace_wait_pid(pid);
+    if (!dry_run) {
+        pid_t pid = mace_exec(argv[0], argv);
+        mace_wait_pid(pid);
+    }
 
     free(argv[crcsflag]);
     free(argv[targetc]);
@@ -4169,9 +4211,12 @@ void mace_link_executable(char *restrict target, char **restrict argv_objects, i
     int ldirflag_i = argc++;
     argv[ldirflag_i] = ldirflag;
 
+    /* -- Actual linking -- */
     mace_exec_print(argv, argc);
-    pid_t pid = mace_exec(argv[0], argv);
-    mace_wait_pid(pid);
+    if (!dry_run) {
+        pid_t pid = mace_exec(argv[0], argv);
+        mace_wait_pid(pid);
+    }
 
     free(argv[oflag_i]);
     free(argv[ldirflag_i]);
@@ -4190,8 +4235,10 @@ void mace_Target_compile_allatonce(struct Target *target) {
 
     /* -- Actual compilation -- */
     mace_exec_print(target->_argv, target->_argc);
-    pid_t pid = mace_exec(target->_argv[0], target->_argv);
-    mace_wait_pid(pid);
+    if (!dry_run) {
+        pid_t pid = mace_exec(target->_argv[0], target->_argv);
+        mace_wait_pid(pid);
+    }
 
     /* -- Go back to cwd -- */
     assert(chdir(cwd) == 0);
@@ -4280,8 +4327,10 @@ void mace_Target_compile(struct Target *target) {
 
             /* -- Actual compilation -- */
             mace_exec_print(target->_argv, target->_argc);
-            pid_t pid = mace_exec(target->_argv[0], target->_argv);
-            mace_pqueue_put(pid);
+            if (!dry_run) {
+                pid_t pid = mace_exec(target->_argv[0], target->_argv);
+                mace_pqueue_put(pid);
+            }
         }
 
         /* Prioritize adding process to queue */
@@ -4403,7 +4452,13 @@ bool mace_Target_Object_Add(struct Target *restrict target, char *restrict token
 
 void mace_Headers_Checksums_Checks(struct Target *target) {
     assert(target->_hdrs_changed != NULL);
-    // For every source file,
+    if (build_all) {
+        size_t bytesize = target->_argc_sources* sizeof(*target->_recompiles);
+        memset(target->_recompiles, 1, bytesize);
+        return;
+    }
+
+    // For every source file
     for (int i = 0; i < target->_argc_sources; i++) {
         // Check if any header file it depends on has changed
         if (target->_recompiles[i] == true)
@@ -4756,8 +4811,10 @@ void mace_run_commands(const char *commands) {
         argv = mace_argv_flags(&len, &argc, argv, token, NULL, false);
 
         mace_exec_print(argv, argc);
-        pid_t pid = mace_exec(argv[0], argv);
-        mace_wait_pid(pid);
+        if (!dry_run) {
+            pid_t pid = mace_exec(argv[0], argv);
+            mace_wait_pid(pid);
+        }
 
         token = strtok(NULL, mace_command_separator);
     } while (token != NULL);
@@ -5545,8 +5602,10 @@ void mace_pre_user(struct Mace_Arguments args) {
     mace_finish(NULL);
 
     /* --- Set switches --- */
-    silent  = args.silent;
-    verbose = args.debug;
+    silent         = args.silent;
+    dry_run        = args.dry_run;
+    verbose        = dry_run ? true : args.debug;
+    build_all      = args.build_all;
 
     /* --- Record cwd --- */
     if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
@@ -5557,7 +5616,7 @@ void mace_pre_user(struct Mace_Arguments args) {
     /* --- Reserved target names --- */
     int i = MACE_CLEAN_ORDER + MACE_RESERVED_TARGETS_NUM;
     mace_reserved_targets[i]    = mace_hash(MACE_CLEAN);
-    i = MACE_ALL_ORDER + MACE_RESERVED_TARGETS_NUM;
+    i     = MACE_ALL_ORDER + MACE_RESERVED_TARGETS_NUM;
     mace_reserved_targets[i]    = mace_hash(MACE_ALL);
 
     /* --- Memory allocation --- */
@@ -5831,7 +5890,7 @@ void mace_sha1cd(char *file, uint8_t hash[SHA1_LEN]) {
 /* list of parg options to be parsed, with usage */
 static struct parg_opt longopts[] = {
     // {NULL,          PARG_NOARG,  0,  0,  NULL,   "Debug options:"},
-    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build targers without checking checksums."},
+    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build all targets without condition."},
     {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else."},
     {"cc",          PARG_REQARG, 0, 'c', "CC",   "Override C compiler."},
     {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
@@ -5855,7 +5914,7 @@ struct Mace_Arguments Mace_Arguments_default = {
     .debug              = false,
     .silent             = false,
     .dry_run            = false,
-    .skip_checksum      = false,
+    .build_all          = false,
 };
 
 
@@ -5877,7 +5936,7 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 out_args.user_target_hash = mace_hash(ps.optarg);
                 break;
             case 'B':
-                out_args.skip_checksum = true;
+                out_args.build_all = true;
                 break;
             case 'C':
                 len = strlen(ps.optarg);
