@@ -7,26 +7,28 @@ Uses C to exclusively build C.
 Specificity, reduced scope, everything in service of *simplicity*. 
 
 ## Features
-- C syntax.
+- C syntax: `macefile.c`.
 - Simple API.
 - Single header build system: `mace.h`.
-- Convenience executable for `make`-like usage.
+-`make`-like usage, similar flags.
+-`mace` convenience executable to build in one command.
 
 ## How to
 1. Get `mace.h`
 2. Write your own macefile e.g. `macefile.c` ([example](https://github.com/Gabinou/mace/blob/master/example_macefile.c))
 3. Compile builder executable `gcc macefile.c -o builder`
 4. Build `./builder` 
+    1. Reserved targets: `./builder clean`, `./builder all`
+    2. Configs: `./builder -g release`
 
 ### Convenience executable
-The convenience executable compiles a macefile and runs with a single `mace` command.
+Compile and build with a single `mace` command.
 
 1. Install `mace` convenience executable
-    1. Compile `installer.c` macefile: `gcc installer.c -o installer`
+    1. Compile `installer.c`: `gcc installer.c -o installer`
     2. Run installer: `sudo ./installer`. 
 2. Write your own macefile e.g. `macefile.c`
-3. Run `mace` to build
-    1. Default macefile: `macefile.c`
+3. Build `mace`
 
 Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
@@ -34,22 +36,16 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DBUILDER=<file>` to change builder executable path.
 - `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
 
-### Tab completion
-
-- `bash`
-- `zsh`
-    - Put tab completion file `_mace` in your `fpath` 
-    - Example `.zshrc`: `fpath=($HOME/.zsh-completions $fpath)`
-
 ## Why?
 - I want a much simpler build system.
     - Complexity bad. Simplicity good.
-- I want to build C projects, and only C projects.
+- I want to build C projects only.
 - Using C to build C gets me free lunches.
     - No weird syntax to create.
-    - No bespoke parser to implement: C compilers already exist!
+    - No bespoke parser to implement.
 - Using C to build C gets you free lunches.
-    - If you can write and run `hello_world.c`, you know how to use `mace`.
+    - Learning C is learning `mace`.
+    - Full C functionality in your macefile.
 
 ## Limitations
 - Tested on Linux only.
@@ -59,11 +55,11 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 ## Under the hood
 - User inputs target dependencies with `target.links` and `target.dependencies`
     - Build order determined by depth first search through all target dependencies.
-- Mace saves file checksums to `.sha1` files in `obj_dir`
+- Mace saves file checksums to `.sha1` files in `<obj_dir>/src`, `<obj_dir>/include`
     - Uses checksum to check if sources, headers change for recompilation.
-    - Checksum recorded to `.sha1` files in `src` and `include`
-- Compiler computes object file dependencies, saved to `.d` files in `obj_dir`
+- Compiler computes object file dependencies, saved to `.d` files in `<obj_dir>`
     - Parsed into binary `.ho` file for faster reading.
+### Tab completion
 
 ### Lines
 - mace.h: ~6300 Lines
