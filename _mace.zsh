@@ -1,23 +1,40 @@
-#compdef mace
+#compdef mace builder=mace
 typeset -A opt_args
 
 local context state line
 
+trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"
+    printf '%s' "$var"
+}
 
 _parse-macefile-targets () {
-  local input var val target dep TAB=$'\t' tmp IFS=
+  local input trimmed var val target dep TAB=$'\t' tmp IFS=
   VARIABLES=()
-
-  # TODO: IGNORE COMMENTED LINES
   while read input
   do
+    trimmed="${input#"${input%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}" 
     if [[ $input == *"MACE_ADD_TARGET"* ]]; then
+      # Skip if commented out
+      if [[ $trimmed == "//"* ]] || [[ $trimmed == "/*"* ]]; then
+      continue
+      fi
+
       # check for MACE_ADD_TARGET($name)
       [[ "$input" =~ '\(([^)]+)\)' ]] # regex, get str between ()
       val=${match##[ $TAB]#} # match gets put in $match variable
       VARIABLES[$match]=$val
-
     elif [[ $input == *"mace_add_target"* ]]; then
+      # Skip if commented out
+      if [[ $trimmed == "//"* ]] || [[ $trimmed == "/*"* ]]; then
+      continue
+      fi
+      
       # check for mace_add_target(struct, $name)
       [[ "$input" =~ '\(&([^)]+), "([^)]+)"\)' ]] # regex, get str between ()
       val=${match[2]##[ $TAB]#} # match gets put in $match variable
@@ -118,19 +135,10 @@ _mace() {
       fi
     fi
 
-    # if [[ $PREFIX == *'='* ]]
-    # then
-    #   # why ?
-    #   # Complete make variable as if shell variable
-    #   compstate[parameter]="${PREFIX%%\=*}"
-    #   compset -P 1 '*='
-    #   _value "$@" && ret=0
-    # else
-      _alternative \
-        'targets:make target:compadd -Q -a TARGETS' \
-        'variables:make variable:compadd -F keys -k VARIABLES' \
-        && ret=0
-    # fi
+    _alternative \
+      'targets:make target:compadd -Q -a TARGETS' \
+      'variables:make variable:compadd -F keys -k VARIABLES' \
+      && ret=0
   esac
 
   return ret
