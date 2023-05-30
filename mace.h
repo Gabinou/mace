@@ -312,9 +312,10 @@ int mace_isObject(const   char *path);
 int mace_isDir(const      char *path);
 
 /* --- mace_filesystem --- */
-void  mace_mkdir(const char    *path);
-void  mace_object_path(char    *source);
-char *mace_library_path(char   *target_name);
+void  mace_mkdir(const char     *path);
+void  mace_object_path(char     *source);
+char *mace_library_path(char    *target_name);
+char *mace_dependency_path(char *object);
 
 /********************************** GLOBALS ***********************************/
 bool verbose = false;
@@ -1145,16 +1146,18 @@ void mace_Target_compile(struct Target *target) {
     /* - Single source argv - */
     printf("Compile %s\n", target->_argv_sources[target->_argc_sources - 1]);
 
-    // argv[0] is always cc
-    // argv[1] is always source
+
     target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[target->_argc_sources - 1];
 
-    // argv[2] is always object (includeing -o flag)
     target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[target->_argc_objects - 1];
-    // rest of argv should be set previously by mace_Target_argv_init
+    target->_argv[MACE_ARGV_MM] = "-MM";
+    target->_argv[MACE_ARGV_MF] = "-MF";
+    
+    // Copy object
+    target->_argv[MACE_ARGV_MF_FILE] = mace_dependency_path(target->_argv[MACE_ARGV_OBJECT]);
 
     /* -- Actual compilation -- */
-    // mace_exec_print(target->_argv, target->_argc);
+    mace_exec_print(target->_argv, target->_argc);
     pid_t pid = mace_exec(cc, target->_argv);
     mace_wait_pid(pid);
 }
@@ -1417,11 +1420,20 @@ void mace_object_grow() {
     object      = realloc(object,   object_len  * sizeof(*object));
 }
 
+char *mace_dependency_path(char *object) {
+    size_t len_oflag = 2;
+    size_t len = strlen(object) - len_oflag;
+    char *dep = calloc(len + 1, sizeof(*dep));
+    strncpy(dep, object + len_oflag, len);
+    dep[len-1] = 'd';
+    return(dep);
+}
+
 void mace_object_path(char *source) {
     /* --- Expanding path --- */
     size_t cwd_len      = strlen(cwd);
     size_t obj_dir_len  = strlen(obj_dir);
-    char *path = calloc(cwd_len + obj_dir_len + 2, sizeof(path));
+    char *path = calloc(cwd_len + obj_dir_len + 2, sizeof(*path));
     strncpy(path,                cwd,        cwd_len);
     strncpy(path + cwd_len,      "/",        1);
     strncpy(path + cwd_len + 1,  obj_dir,    obj_dir_len);
