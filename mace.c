@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     int len             = 8;
     int argc_compile    = 0;
     char **argv_compile = calloc(len, sizeof(*argv_compile));
-    argv_compile = mace_argv_flags(&len, &argc_compile, argv_compile, compile_cmd, NULL, false);
+    argv_compile = mace_argv_flags(&len, &argc_compile, argv_compile, compile_cmd, NULL, false, mace_flag_separator);
 
     /* - Compile it - */
     mace_exec_print(argv_compile, argc_compile);
