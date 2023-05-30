@@ -122,8 +122,8 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "SDL2 SDL2_image SDL2_ttf m GLEW cJSON nmath "
-                              "physfs tinymt tnecs nstr parg",
+        .links              = "SDL2,SDL2_image,SDL2_ttf,m,GLEW,cJSON,nmath "
+                              "physfs,tinymt,tnecs,nstr,parg",
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(firesaga);
@@ -153,7 +153,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "B C D",
+        .links              = "B,C,D",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -161,7 +161,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "D E",
+        .links              = "D,E",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -176,7 +176,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "F G",
+        .links              = "F,G",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -259,8 +259,8 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "AA CC DD",
-        .dependencies       = "AA CC DD",
+        .links              = "AA,CC,DD",
+        .dependencies       = "AA,CC,DD",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -275,7 +275,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .dependencies       = "FF GG",
+        .dependencies       = "FF,GG",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -357,7 +357,7 @@ void test_circular() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "B C D",
+        .links              = "B,C,D",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -365,7 +365,7 @@ void test_circular() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "D E",
+        .links              = "D,E",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -373,7 +373,7 @@ void test_circular() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "F G",
+        .links              = "F,G",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -438,9 +438,9 @@ void test_self_dependency() {
 }
 
 void test_argv() {
-    const char *includes    = "A B C D";
-    const char *links       = "ta mere putain de merde";
-    const char *sources     = "a.c bd.c efg.c hijk.c lmnop.c";
+    const char *includes    = "A,B,C,D";
+    const char *links       = "ta,mere,putain,de,merde";
+    const char *sources     = "a.c,bd.c,efg.c,hijk.c,lmnop.c";
     int len                 = 8;
     int argc                = 0;
     char **argv             = calloc(8, sizeof(*argv));
@@ -478,12 +478,12 @@ void test_argv() {
     mace_argv_free(argv, argc);
 
     struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = ". include  include/bars  include/menu include/popup "
-                              "include/systems names names/popup names/menu "
-                              "second_party/nstr second_party/noursmath second_party/tnecs "
-                              "third_party/physfs third_party/tinymt third_party/stb "
+        .includes           = ".,include,include/bars,include/menu,include/popup,"
+                              "include/systems,names,names/popup,names/menu,"
+                              "second_party/nstr,second_party/noursmath,second_party/tnecs,"
+                              "third_party/physfs,third_party/tinymt,third_party/stb,"
                               "third_party/cJson",
-        .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
+        .sources            = "src/,src/bars/,src/menu/,src/popup/,src/systems/,src/game/",
         .links              = "tnecs",
         .kind               = MACE_EXECUTABLE,
     };
@@ -946,7 +946,7 @@ void test_build_order() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "B C D",
+        .links              = "B,C,D",
         .kind               = MACE_EXECUTABLE,
     };
 
