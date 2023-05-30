@@ -11,7 +11,7 @@
 
 #include "mace.h"
 
-/* Compiler used to compile 'mace' */
+/* Compiler used to compile by 'mace' */
 #ifndef CC
     #define CC gcc
 #endif /* CC */
@@ -24,9 +24,16 @@
 #ifndef PREFIX
     #define PREFIX "/usr/local"
 #endif /* PREFIX */
+/* -- Default macefile used by convenience executable -- */
 #ifndef DEFAULT_MACEFILE
     #define DEFAULT_MACEFILE "macefile.c"
 #endif /* DEFAULT_MACEFILE */
+/* -- Name of the builder executable to compile macefile into. -- */
+#ifndef BUILDER
+    #define BUILDER build
+#endif
+
+
 
 /******************************* WARNING ********************************/
 // 1. main is defined in mace.h                                         //
@@ -44,7 +51,7 @@ int mace(int argc, char *argv[]) {
         .sources            = "mace.c",
         .kind               = MACE_EXECUTABLE,
         // Overrides main in mace.h with custom main.
-        .flags              = "-DMACE_OVERRIDE_MAIN -DCC=gcc -DBUILDER=build",
+        .flags              = "-DMACE_OVERRIDE_MAIN -DCC="CC" -DBUILDER="BUILDER" -DDEFAULT_MACEFILE="DEFAULT_MACEFILE,
         .command_post_build =
                 "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
                 "install -T mace.h"          " " PREFIX "/include/mace.h",

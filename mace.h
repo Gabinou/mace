@@ -4570,13 +4570,14 @@ static struct parg_opt longopts[] = {
     {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build all targets (ignored if target is 'clean')"},
     {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else."},
     {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
-    {"file",        PARG_REQARG, 0, 'f', "FILE", "Specify input macefile (defaults to macefile.c)"},
     {"help",        PARG_NOARG,  0, 'h', NULL,   "display help and exit"},
     {"jobs",        PARG_REQARG, 0, 'j', "INT",  "Allow N jobs at once"},
     {"dry-run",     PARG_NOARG,  0, 'n', NULL,   "Don't build, just echo commands"},
     {"old-file",    PARG_REQARG, 0, 'o', "FILE", "Skip target/file"},
     {"silent",      PARG_NOARG,  0, 's', NULL,   "Don't echo commands"},
     {"version",     PARG_NOARG,  0, 'v', NULL,   "display version and exit"},
+    {NULL,     PARG_NOARG,  0, NULL, NULL,   "Convenience executable options:"},
+    {"file",        PARG_REQARG, 0, 'f', "FILE", "Specify input macefile. Defaults to macefile.c)"},
 };
 
 struct Mace_Arguments {
