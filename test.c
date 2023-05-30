@@ -341,13 +341,12 @@ void test_argv() {
         "second_party/nstr second_party/noursmath second_party/tnecs "
         "third_party/physfs third_party/tinymt third_party/stb third_party/cJson ",
         .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
-        .sources_exclude    = "",
-        .base_dir           = "",
+        .flags              = "",
         .links              = "tnecs",
         .kind               = MACE_EXECUTABLE,
     };
 
-    Target_argv_user(&CodenameFiresaga);
+    Target_Parse_User(&CodenameFiresaga);
     nourstest_true(CodenameFiresaga._argc_includes == 16);
     nourstest_true(CodenameFiresaga._argc_flags == 0);
     nourstest_true(CodenameFiresaga._argc_links == 1);
@@ -368,7 +367,32 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[14], "-Ithird_party/stb") == 0);
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[15], "-Ithird_party/cJson") == 0);
     nourstest_true(CodenameFiresaga._argv_flags == NULL);
-
+    
+    MACE_SET_COMPILER(gcc);
+    Target_argv_init(&CodenameFiresaga);
+    assert(CodenameFiresaga._argv!= NULL);
+    nourstest_true(CodenameFiresaga._arg_len == 64);
+    nourstest_true(strcmp(CodenameFiresaga._argv[MACE_ARGV_CC], "gcc") == 0);
+    nourstest_true(CodenameFiresaga._argv[MACE_ARGV_SOURCE] == NULL);
+    nourstest_true(CodenameFiresaga._argv[MACE_ARGV_OBJECT] == NULL);
+    nourstest_true(strcmp(CodenameFiresaga._argv[3], "-I.") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[4], "-Iinclude") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[5], "-Iinclude/bars") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[6], "-Iinclude/menu") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[7], "-Iinclude/popup") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[8], "-Iinclude/systems") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[9], "-Inames") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[10], "-Inames/popup") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[11], "-Inames/menu") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[12], "-Isecond_party/nstr") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[13], "-Isecond_party/noursmath") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[14], "-Isecond_party/tnecs") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[15], "-Ithird_party/physfs") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[16], "-Ithird_party/tinymt") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[17], "-Ithird_party/stb") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[18], "-Ithird_party/cJson") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv[19], "-ltnecs") == 0);
+    nourstest_true(CodenameFiresaga._argv[20] == NULL);
 }
 
 int mace(int argc, char *argv[]) {
