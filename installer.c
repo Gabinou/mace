@@ -36,10 +36,6 @@
 #ifndef ZSH_COMPLETION
     #define ZSH_COMPLETION /usr/share/zsh/site-functions
 #endif
-/* -- Path to bash completion. -- */
-#ifndef BASH_COMPLETION
-    #define BASH_COMPLETION /usr/share/bash-completion/completions
-#endif
 
 #define STRINGIFY(x) _STRINGIFY(x)
 #define _STRINGIFY(x) #x
@@ -69,13 +65,6 @@ int mace(int argc, char *argv[]) {
                 "sed -i s/builder/" STRINGIFY(BUILDER) "/ _mace.temp &&"
                 "install -T _mace.temp"   " " STRINGIFY(ZSH_COMPLETION) "/_mace &&"
                 "rm _mace.temp &&"
-                /* Install bash completion */
-                // TODO: replace macefile.c/Macefile.c with default macefile
-                "cp mace.bash mace.temp &&"
-                "sed -i s/macefile.c/" STRINGIFY(DEFAULT_MACEFILE) "/ mace.temp &&"
-                "sed -i s/builder/" STRINGIFY(BUILDER) "/ mace.temp &&"
-                "install -T mace.temp"   " " STRINGIFY(BASH_COMPLETION) "/mace &&",
-                "rm mace.temp"
     };
 
     // Add target with different name, i.e. "mace"

@@ -10,8 +10,8 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - C syntax: `macefile.c`.
 - Simple API.
 - Single header build system: `mace.h`.
--`make`-like usage, similar flags.
--`mace` convenience executable to build in one command.
+- `make`-like usage, similar flags, `mace` convenience executable.
+- Tab completion (`zsh` only), see `_mace.zsh`
 
 ## How to
 1. Get `mace.h`
@@ -36,7 +36,13 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DBUILDER=<file>` to change builder executable path.
 - `-DCC=<compiler>` to compiler used by `mace`. Defaults to `gcc`.
 - `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
-- `-DBASH_COMPLETION=<path>` to set path for `mace` bash tab completion. Defaults to `/usr/share/bash-completion/completions`.
+
+## Documentation
+
+See the first ~250 lines of `mace.h`
+- `Target` and `Config` structs
+- Public functions and macros  
+- `mace` function
 
 ## Why?
 - I want a much simpler build system.
@@ -52,7 +58,7 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 ## Limitations
 - Tested on Linux only.
 - Cannot deal with circular dependencies.
-- C only, C99 and above, C++ not supported.
+- C99 and above, C++ not supported.
 
 ## Under the hood
 - User inputs target dependencies with `target.links` and `target.dependencies`
@@ -61,7 +67,6 @@ Use these macro definitions when compiling `installer` to customize `mace`:
     - Uses checksum to check if sources, headers change for recompilation.
 - Compiler computes object file dependencies, saved to `.d` files in `<obj_dir>`
     - Parsed into binary `.ho` file for faster reading.
-### Tab completion
 
 ### Lines
 - mace.h: ~6300 Lines
