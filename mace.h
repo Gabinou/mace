@@ -82,14 +82,19 @@ char *mace_copy_str(char *restrict buffer, const char *str);
 /* --- mace_setters --- */
 char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
-char *mace_include_flags(const char *includes);
+char *mace_flags(const char *restrict includes, const char *restrict flag);
+
+char *mace_link_flags(const char *links);
 
 /* --- mace_Target --- */
-void Target_Free(struct Target          *target);
-bool Target_hasDep(struct Target        *target, uint64_t hash);
-void Target_Deps_Hash(struct Target     *target);
-void Target_Source_Add(struct Target    *target, char    *token);
+void Target_Free(struct Target              *target);
+bool Target_hasDep(struct Target            *target, uint64_t hash);
+void Target_Deps_Hash(struct Target         *target);
+void Target_Source_Add(struct Target        *target, char    *token);
+char *Target_Flags_Link(struct Target       *target);
+char *Target_Flags_Include(struct Target    *target);
 int Target_Order();
+
 
 int globerr(const char *path, int eerrno);
 glob_t mace_glob_sources(const char *path);
@@ -176,7 +181,10 @@ uint64_t mace_hash(char *str) {
     return (hash);
 }
 
-/****************************** MACE_SET_COMPILER *****************************/
+/******************************* MACE_CHECKSUM ********************************/
+char * checksum = "sha256sum";
+
+/******************************* MACE_COMPILER ********************************/
 char *cc;
 char *ar = "ar";
 // 1- Save compiler name string
@@ -212,31 +220,42 @@ char *Target_Flags_Include(struct Target *target) {
     if (target->includes == NULL)
         return (NULL);
 
-    return (mace_include_flags(target->includes));
+    return (mace_flags(target->includes, "-I"));
 }
 
-char *mace_include_flags(const char *includes) {
+// build link flags from target.links
+char *Target_Flags_Link(struct Target *target) {
+    /* -- Skip if no link -- */
+    if (target->links == NULL)
+        return (NULL);
+
+    return (mace_flags(target->links, "-l"));
+}
+
+char *mace_flags(const char *restrict includes, const char *restrict flag) {
     assert(includes != NULL);
     /* -- Copy sources into modifiable buffer -- */
     char *buffer = mace_str_buffer(includes);
 
     /* -- Pathological case where includes have length 1: "A B C D" -- */
-    // With n the number of folders:
+    // With n the number of folders: 
     //  1- len of target->includes                           = 2n - 1
-    //  2- len to add because of -I                          = 2n
+    //  2- len to add because of flag                        = 2n
     //  3- Total len of include_flags is the sum: of 1 and 2 = 4n - 1
     //  4- 2 * (len of target->includes + 1) > total len     = 4n (includes null terminator)
+    //      -> ONLY FOR length 2 FLAGS!
     char *include_flags = calloc((strlen(includes) + 1) * 2, sizeof(*include_flags));
     assert(include_flags != NULL);    
 
     /* --- Split sources into tokens --- */
     char *token = strtok(buffer, " ");
+    size_t flag_len = strlen(flag);
 
     size_t total_len = 0;
     do {
         /* - for every token, add -I - */
-        strncpy(include_flags + total_len, "-I", 2);
-        total_len += 2;
+        strncpy(include_flags + total_len, flag, flag_len);
+        total_len += flag_len;
 
         /* - add token - */
         strncpy(include_flags + total_len, token, strlen(token));

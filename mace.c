@@ -24,14 +24,12 @@ struct Target tnecs_glob = { /* Unitialized values guaranteed to be 0 / NULL */
     .kind               = MACE_LIBRARY,
 };
 
-
 struct Target physfs = { /* Unitialized values guaranteed to be 0 / NULL */
     .includes           = "physfs",
     .sources            = "physfs",
     .base_dir           = "physfs",
     .kind               = MACE_LIBRARY,
 };
-
 
 struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
     .includes           = "",
@@ -41,7 +39,6 @@ struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NU
     .links              = "tnecs SDL2",
     .kind               = MACE_EXECUTABLE,
 };
-
 
 /******************************* WARNING ********************************/
 // 1. main is defined in mace.h                                         //
