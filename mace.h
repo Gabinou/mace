@@ -5690,7 +5690,6 @@ void mace_Target_Deps_Hash(struct Target *target) {
 
         /* --- Split links into tokens, --- */
         char *token = strtok(buffer, mace_separator);
-
         /* --- Hash tokens into _deps_links --- */
         do {
             mace_Target_Deps_Add(target, mace_hash(token));
