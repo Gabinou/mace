@@ -79,6 +79,7 @@ Some default behaviour of the convenience executable can be customized, see `ins
     - Modern compilers (`gcc`, `clang`) are slow, maybe except `tcc`.
 
 ## Limitations
+- Linux only.
 - Cannot deal with circular dependencies in linked libraries.
 - C only, C99 and above, C++ not supported.
 
