@@ -37,11 +37,9 @@ Targets are added in the `mace` user entry point function.
 #define CC gcc
 
 struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-    .includes           = "",
-    .sources            = "",
-    .sources_exclude    = "",
-    .base_dir           = "",
-    .dependencies       = "",
+    .includes           = "tnecs.h",
+    .sources            = "tnecs.c",
+    .base_dir           = "tnecs",
     .kind               = MACE_LIBRARY,
 };
 
@@ -49,7 +47,7 @@ struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
 // 1. main is defined in mace.h                                         //
 // 2. arguments from main are passed to mace directly                   //
 // 3. mace function is declared in mace.h, MUST be implemented by user  //
-/************************************************************************/
+/*======================================================================*/
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC)
     MACE_ADD_TARGET(tnecs);
@@ -68,11 +66,8 @@ int mace(int argc, char *argv[]) {
     - Simple tutorials are hard to find.
 - Build systems are general-purpose and complex.
     - Complexity bad. Simplicity good.
-
-## About performance
-Build system perfomance bottleneck is compilation.
-Smaller projects don't benefit much from dependency computation.
-
+- Build system perfomance bottleneck is compilation.
+    - Modern compilers (`gcc`, `clang`) are slow, except `tcc`
 
 ## Credits
 - mace uses the same naming convention as [mage](https://github.com/magefile/mage)
