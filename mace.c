@@ -27,13 +27,14 @@ struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NU
 // 2. arguments from main are passed to mace directly
 // 3. mace is declared in mace.h, MUST be implemented by user
 int mace(int argc, char *argv[]) {
+    MACE_SET_COMPILER(CC);
 
     assert(tnecs.links == NULL);
     printf("%d \n", strlen(CodenameFiresaga.links));
     printf("%d \n", sizeof(CodenameFiresaga.links));
     printf("%d \n", sizeof(*CodenameFiresaga.links));
+    printf("%s \n", cc);
 
-    MACE_SET_COMPILER(CC)
     MACE_ADD_TARGET(tnecs);
     MACE_ADD_TARGET(CodenameFiresaga);
 }

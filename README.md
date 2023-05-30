@@ -2,8 +2,8 @@
 
 ## About
 
-Mace is an attempt at making a C99-only build system. 
-Specifity, reduced scope, all in service of *simplicity*. 
+Mace is a C99-only build system. 
+Specificity, reduced scope, all in service of *simplicity*. 
 
 A macefile is a .c file.
 Targets are structs. 
@@ -20,8 +20,15 @@ Targets are added in the `mace` user entry point function.
 ## Usage
 1. Get `mace.h`
 2. Write your own macefile e.g. `mace.c`
-3. Compile  `gcc mace.c -o mace`
-4. Build    `./mace`
+3. Compile `gcc mace.c -o build`
+4. Build `./build`
+
+### Convenience executable
+1. Install mace
+    1. `gcc mace.h -o mace`
+    2. `install ....`
+2. Write your own macefile e.g. `mace.c`
+3. Build `mace mace.c`
 
 ## Example macefile
 ```
