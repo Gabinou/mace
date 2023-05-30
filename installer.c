@@ -16,13 +16,13 @@
     #define CC gcc
 #endif /* CC */
 #ifndef BUILD_DIR
-    #define BUILD_DIR "bin"
+    #define BUILD_DIR bin
 #endif /* BUILD_DIR */
 #ifndef OBJ_DIR
-    #define OBJ_DIR "obj"
+    #define OBJ_DIR obj
 #endif /* OBJ_DIR */
 #ifndef PREFIX
-    #define PREFIX "/usr/local"
+    #define PREFIX /usr/local
 #endif /* PREFIX */
 /* -- Default macefile used by convenience executable -- */
 #ifndef DEFAULT_MACEFILE
@@ -42,8 +42,8 @@
 /*======================================================================*/
 int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC);
-    mace_set_build_dir(BUILD_DIR);
-    mace_set_obj_dir(OBJ_DIR);
+    MACE_SET_BUILD_DIR(BUILD_DIR);
+    MACE_SET_OBJ_DIR(OBJ_DIR);
 
     /* -- mace convenience executable -- */
     // Note: "mace" token is reserved for user entry point.
@@ -53,8 +53,8 @@ int mace(int argc, char *argv[]) {
         // Overrides main in mace.h with custom main.
         .flags              = "-DMACE_OVERRIDE_MAIN -DCC="CC" -DBUILDER="BUILDER" -DDEFAULT_MACEFILE="DEFAULT_MACEFILE,
         .command_post_build =
-                "install -T " BUILD_DIR "/mace " PREFIX "/bin/mace &&"
-                "install -T mace.h"          " " PREFIX "/include/mace.h",
+                "install -T " MACE_STRINGIFY(BUILD_DIR) "/mace " MACE_STRINGIFY(PREFIX) "/bin/mace &&"
+                "install -T mace.h"          " " MACE_STRINGIFY(PREFIX) "/include/mace.h",
 
     };
     // Add target with different name, i.e. "mace"
