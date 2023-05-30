@@ -50,9 +50,9 @@ int mace(int argc, char *argv[]) {
         .flags              = "-DMACE_OVERRIDE_MAIN -DCC="STRINGIFY(CC)" "
                               "-DBUILDER="STRINGIFY(BUILDER)" "
                               "-DDEFAULT_MACEFILE="STRINGIFY(DEFAULT_MACEFILE),
-        .command_post_build =
-                "install -T " STRINGIFY(BUILD_DIR) "/mace " STRINGIFY(PREFIX) "/bin/mace &&"
-                "install -T mace.h"          " " STRINGIFY(PREFIX) "/include/mace.h",
+        // .command_post_build =
+        //         "install -T " STRINGIFY(BUILD_DIR) "/mace " STRINGIFY(PREFIX) "/bin/mace &&"
+        //         "install -T mace.h"          " " STRINGIFY(PREFIX) "/include/mace.h",
     };
 
     // Add target with different name, i.e. "mace"
