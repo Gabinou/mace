@@ -90,19 +90,22 @@ void mace_set_default_target(char *name);
 
 /******************************* TARGET STRUCT ********************************/
 struct Target {
-
     /*---------------------------- PUBLIC MEMBERS ----------------------------*/
     const char *includes;          /* directories,           ' ' separated    */
     const char *sources;           /* files, glob patterns,  ' ' separated    */
     const char *sources_exclude;   /* files, glob patterns,  ' ' separated    */
     const char *base_dir;          /* directory,                              */
+    /* Links are targets or libraries. Linked targets will be built before. */
     const char *links;             /* libraries or targets   ' ' separated    */
+    /* Dependencies are targets, will be built before.*/
+    const char *dependencies;      /* targets                ' ' separated    */
     const char *flags;             /* passed as is to compiler                */
-    // These commands should be necessary to build target
+
     const char *command_pre_build; /* command ran before building target      */
     const char *command_post_build;/* command ran after building target       */
     const char *message_pre_build; /* message printed before building target  */
     const char *message_post_build;/* message printed after building target   */
+
     int         kind;              /* MACE_TARGET_KIND                        */
     /* allatonce: Compile all .o objects at once (calls gcc one time).        */
     /* Compiles slightly faster: gcc is called once per .c file when false.   */
@@ -128,10 +131,13 @@ struct Target {
     /*---------------------------- PRIVATE MEMBERS ---------------------------*/
 
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
+    /* --- all targets ---  */
     char      *_name;              /* target name set by user                 */
     uint64_t   _hash;              /* target name hash,                       */
     int        _order;             /* target order added by user              */
+    /* --- all targets ---  */
 
+    /* --- This is only for targets with compilation ---  */
     char      **_argv;             /* buffer for argv to exec build commands  */
     int         _argc;             /* number of arguments in argv             */
     int         _arg_len;          /* alloced len of argv                     */
@@ -152,11 +158,15 @@ struct Target {
     char      **_argv_objects;     /* sources, in argv form                   */
     int         _argc_objects;     /* number of arguments in argv_sources     */
     int         _len_objects;      /* alloc len of arguments in argv_sources  */
+    /* --- This is only for targets with compilation ---  */
 
+    /* --- This is only for targets with dependencies ---  */
     uint64_t  *_deps_links;        /* target or libs hashes                   */
     size_t     _deps_links_num;    /* target or libs hashes                   */
     size_t     _deps_links_len;    /* target or libs hashes                   */
     size_t     _d_cnt;             /* dependency count, for build order       */
+    /* --- This is only for targets with dependencies ---  */
+
     /* -- DO NOT TOUCH! Set automatically by mace. DO NOT TOUCH! --  */
 };
 
