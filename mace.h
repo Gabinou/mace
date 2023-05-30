@@ -4005,13 +4005,26 @@ void mace_Target_argv_init(struct Target *target) {
     
     mace_Target_argv_grow(target);
     /* -- config argv -- */
-    if (config_num > 0) {
-        mace_Config_hasTarget(configs[user_config], target->_order);
-        for (int i = 0; i < target->_argc_links; i++) {
+    do {
+        if (config_num =< 0)
+            break;
+
+        int config_order = mace_Config_hasTarget(configs[user_config], target->_order);
+        
+        if (config_order <= 0)
+            break;
+
+        char *flags = config->_flags[config_order]; 
+
+        char *token = strtok(flags, mace_flag_separator);
+        do {
+            size_t len = strlen(token);
+            char *flag = calloc(len + 1, sizeof(flag));
             mace_Target_argv_grow(target);
-            target->_argv[target->_argc++] = target->_argv_links[i];
-        }
-    }
+            target->_argv[target->_argc++] = flag;
+            token = strtok(NULL, mace_flag_separator);
+        } while (token != NULL);
+    } while (false)
 
     target->_argv[target->_argc] = NULL;
 }
