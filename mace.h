@@ -625,8 +625,7 @@ void mace_add_command(struct Command *command, char *name, int build_order) {
 void mace_add_target(struct Target *target, char *name) {
     targets[target_num]        = *target;
     size_t len = strlen(name);
-    targets[target_num]._name  = calloc(len + 1, sizeof(char));
-    strncpy(targets[target_num]._name, name, len);
+    targets[target_num]._name  = name;
     uint64_t hash = mace_hash(name);
     for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++){
         if (hash == mace_reserved_targets[i]) {
@@ -1647,10 +1646,6 @@ void mace_Command_Free_argv(struct Command *command) {
 void mace_Target_Free(struct Target *target) {
     Target_Free_notargv(target);
     mace_Target_Free_argv(target);
-    if (target->_name != NULL) {
-        free(target->_name);
-        target->_name = NULL;
-    }
 }
 
 void Target_Free_notargv(struct Target *target) {
