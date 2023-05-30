@@ -34,14 +34,14 @@ int mace(int argc, char *argv[]) {
     // Add target with different name, i.e. "mace"
     mace_add_target(&MACE, EXECUTABLE_NAME);
 
-    /* - mace install - */
-    // 1. Copies mace convenience executable to `/usr/local/bin`
-    // 2. Copies mace header                 to `/usr/local/include`
-    struct Command install_mace = {
-    .commands =
-            "install " BUILD_DIR "/" EXECUTABLE_NAME " " PREFIX "/bin/" EXECUTABLE_NAME
-            "&&install " HEADER_NAME " " PREFIX "/include/" HEADER_NAME"",
-    };
-    MACE_ADD_COMMAND(install_mace);
+    // /* - mace install - */
+    // // 1. Copies mace convenience executable to `/usr/local/bin`
+    // // 2. Copies mace header                 to `/usr/local/include`
+    // struct Command install_mace = {
+    // .commands =
+    //         "install " BUILD_DIR "/" EXECUTABLE_NAME " " PREFIX "/bin/" EXECUTABLE_NAME
+    //         "&&install " HEADER_NAME " " PREFIX "/include/" HEADER_NAME"",
+    // };
+    // MACE_ADD_COMMAND(install_mace);
 }
 
