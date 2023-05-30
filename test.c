@@ -86,6 +86,16 @@ void test_target() {
     nourstest_true(targets[0]._order                    == 0);
     nourstest_true(strcmp(targets[0]._name, "tnecs")    == 0);
 
+    struct Target firesaga = { /* Unitialized values guaranteed to be 0 / NULL */
+        .includes           = "tnecs.h",
+        .sources            = "tnecs.c",
+        .base_dir           = "tnecs",
+        .links              = "SDL2 SDL2_image SDL2_ttf m GLEW cJSON nmath physfs tinymt tnecs nstr parg",
+        .kind               = MACE_EXECUTABLE,
+    };
+    MACE_ADD_TARGET(firesaga);
+
+
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
