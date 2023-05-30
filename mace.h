@@ -4054,7 +4054,7 @@ void mace_link_dynamic_library(char *restrict target, char **restrict argv_objec
     }
 
     mace_exec_print(argv, argc);
-    pid_t pid = mace_exec(cc, argv);
+    pid_t pid = mace_exec(argv[0], argv);
     mace_wait_pid(pid);
 
     free(argv[cfPICflag]);
@@ -4095,7 +4095,7 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
     }
 
     // mace_exec_print(argv, argc);
-    pid_t pid = mace_exec(ar, argv);
+    pid_t pid = mace_exec(argv[0], argv);
     mace_wait_pid(pid);
 
     free(argv[crcsflag]);
@@ -4156,7 +4156,7 @@ void mace_link_executable(char *restrict target, char **restrict argv_objects, i
     argv[ldirflag_i] = ldirflag;
 
     // mace_exec_print(argv, argc);
-    pid_t pid = mace_exec(cc, argv);
+    pid_t pid = mace_exec(argv[0], argv);
     mace_wait_pid(pid);
 
     free(argv[oflag_i]);
@@ -4176,7 +4176,7 @@ void mace_Target_compile_allatonce(struct Target *target) {
 
     /* -- Actual compilation -- */
     // mace_exec_print(target->_argv, target->_argc);
-    pid_t pid = mace_exec(cc, target->_argv);
+    pid_t pid = mace_exec(target->_argv[0], target->_argv);
     mace_wait_pid(pid);
 
     /* -- Go back to cwd -- */
@@ -4210,7 +4210,7 @@ void mace_Target_precompile(struct Target *target) {
 
             /* -- Actual pre-compilation -- */
             // mace_exec_print(target->_argv, target->_argc);
-            pid_t pid = mace_exec(cc, target->_argv);
+            pid_t pid = mace_exec(target->_argv[0], target->_argv);
             mace_pqueue_put(pid);
 
             target->_argv[MACE_ARGV_OBJECT][len - 1] = 'o';
@@ -4268,7 +4268,7 @@ void mace_Target_compile(struct Target *target) {
 
             /* -- Actual compilation -- */
             // mace_exec_print(target->_argv, target->_argc);
-            pid_t pid = mace_exec(cc, target->_argv);
+            pid_t pid = mace_exec(target->_argv[0], target->_argv);
             mace_pqueue_put(pid);
         }
 
