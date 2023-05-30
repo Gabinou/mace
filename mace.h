@@ -172,9 +172,11 @@ struct Mace_Arguments {
     uint64_t user_target_hash;
     uint64_t skip;
     char *macefile;
+    char *dir;
     int jobs;
     bool debug;
     bool silent;
+    bool skip_checksum;
     bool dry_run;
 };
 
@@ -1632,7 +1634,7 @@ void mace_targets_build_order() {
     /* If user_target is clean, no build order */
     if (mace_user_target == MACE_CLEAN_ORDER)
         return;
-    
+
     /* If user_target not set and default taregt is clean, no build order */
     if ((mace_user_target == MACE_NULL_ORDER) && (mace_default_target == MACE_CLEAN_ORDER))
         return;
@@ -1737,12 +1739,16 @@ void mace_post_build_order() {
 }
 
 void mace_post_user(struct Mace_Arguments args) {
-    //   1- Checks set compiler,
-    //   1- Checks that at least one target exists,
-    //   3- Checks that there are no circular dependency.
-    //   4- Compute user_target order.
-    //   5- Computes default target order from default target_hash.
+    //   1- Moves to user set dir if not NULL,
+    //   2- Checks set compiler,
+    //   3- Checks that at least one target exists,
+    //   4- Checks that there are no circular dependency.
+    //   5- Compute user_target order.
+    //   6- Computes default target order from default target_hash.
     // If not exit with error.
+    if (args.dir != NULL) {
+        assert(chdir(args.dir) == 0);
+    }
 
     /* Check that compiler is set */
     if (cc == NULL) {
@@ -1799,18 +1805,10 @@ void mace_free() {
     for (int i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
     }
-    // for (int i = 0; i < target_num + 1; i++) {
-    //     mace_Command_Free(&commands[i]);
-    // }
-
     if (targets != NULL) {
         free(targets);
         targets = NULL;
     }
-    // if (commands != NULL) {
-    //     free(commands);
-    //     commands = NULL;
-    // }
     if (object != NULL) {
         free(object);
         object = NULL;
@@ -4634,7 +4632,7 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[], const
 /* list of parg options to be parsed, with usage */
 static struct parg_opt longopts[] = {
     // {NULL,          PARG_NOARG,  0,  0,  NULL,   "Debug options:"},
-    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Skip checksums."},
+    {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build targers without checking checksums."},
     {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else."},
     {"debug",       PARG_NOARG,  0, 'd', NULL,   "Print debug info"},
     {"help",        PARG_NOARG,  0, 'h', NULL,   "display help and exit"},
@@ -4650,11 +4648,13 @@ static struct parg_opt longopts[] = {
 struct Mace_Arguments Mace_Arguments_default = {
     .user_target        = NULL,
     .user_target_hash   = 0,
-    .jobs     = 1,
-    .macefile = NULL,
-    .debug    = false,
-    .silent   = false,
-    .dry_run  = false,
+    .jobs               = 1,
+    .macefile           = NULL,
+    .dir                = NULL,
+    .debug              = false,
+    .silent             = false,
+    .dry_run            = false,
+    .skip_checksum      = false,
 };
 
 void Mace_Arguments_Free(struct Mace_Arguments *args) {
@@ -4666,6 +4666,10 @@ void Mace_Arguments_Free(struct Mace_Arguments *args) {
         free(args->user_target);
         args->user_target = NULL;
     }
+    if (args->dir != NULL) {
+        free(args->dir);
+        args->dir = NULL;
+    }
 }
 
 struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
@@ -4673,26 +4677,32 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     struct parg_state ps = parg_state_default;
     int *longindex;
     int c;
+    size_t len;
+
+    if (argc <= 1)
+        return (out_args);
+
     while ((c = parg_getopt_long(&ps, argc, argv, "BC:df:hj:no:sv", longopts, longindex)) != -1) {
         switch (c) {
             case 1:
-                size_t len = strlen(ps.optarg);
+                len = strlen(ps.optarg);
                 out_args.user_target = calloc(len + 1, sizeof(*out_args.user_target));
                 strncpy(out_args.user_target, ps.optarg, len);
                 out_args.user_target_hash = mace_hash(ps.optarg);
                 break;
             case 'B':
-                // TODO: set flag to don't check checksum
-                exit(0);
+                out_args.skip_checksum = true;
                 break;
             case 'C':
-                assert(chdir(ps.optarg) == 0);
+                len = strlen(ps.optarg);
+                out_args.dir = calloc(len + 1, sizeof(*out_args.dir));
+                strncpy(out_args.dir, ps.optarg, len);
                 break;
             case 'd':
                 out_args.debug      = true;
                 break;
             case 'f': {
-                size_t len = strlen(ps.optarg);
+                len = strlen(ps.optarg);
                 out_args.macefile = calloc(len + 1, sizeof(*out_args.macefile));
                 strncpy(out_args.macefile, ps.optarg, len);
                 break;
