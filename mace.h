@@ -383,6 +383,8 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
     void mace_Headers_Checksums_Checks(struct Target *target);
 
     /* - argv - */
+    void mace_argv_add_config(struct Target *target, char **restrict* argv, int *restrict argc, int *restrict arg_len);
+
     void mace_Target_argv_init(struct Target      *target);
     void mace_Target_argv_grow(struct Target      *target);
     void mace_Target_Parse_User(struct Target     *target);
@@ -4004,7 +4006,13 @@ void mace_Target_argv_init(struct Target *target) {
     }
     
     /* -- config argv -- */
-    mace_Target_argv_grow(target);
+    mace_argv_add_config(target, &target->_argv, &target->_argc, &target->_arg_len);
+
+    target->_argv[target->_argc] = NULL;
+}
+
+void mace_argv_add_config(struct Target *target, char **restrict* argv, int *restrict argc, int *restrict arg_len) {
+    *argv = mace_argv_grow(*argv, argc, arg_len);
     do {
         if (config_num <= 0)
             break;
@@ -4021,38 +4029,13 @@ void mace_Target_argv_init(struct Target *target) {
             size_t len = strlen(token);
             char *flag = calloc(len + 1, sizeof(flag));
             strncpy(flag, token, len);
-            mace_Target_argv_grow(target);
-            target->_argv[target->_argc++] = flag;
+            *argv = mace_argv_grow(*argv, argc, arg_len);
+            int i =(*argc)++;
+            (*argv)[i] = flag;
             token = strtok(NULL, mace_flag_separator);
         } while (token != NULL);
     } while (false);
-
-    target->_argv[target->_argc] = NULL;
 }
-
-// void mace_argv_add_config() {
-//     do {
-//         if (config_num <= 0)
-//             break;
-
-//         int config_order = mace_Config_hasTarget(&configs[mace_user_config], target->_order);
-        
-//         if (config_order <= 0)
-//             break;
-
-//         char *flags = configs[mace_user_config]._flags[config_order]; 
-
-//         char *token = strtok(flags, mace_flag_separator);
-//         do {
-//             size_t len = strlen(token);
-//             char *flag = calloc(len + 1, sizeof(flag));
-//             strncpy(flag, token, len);
-//             mace_Target_argv_grow(target);
-//             target->_argv[target->_argc++] = flag;
-//             token = strtok(NULL, mace_flag_separator);
-//         } while (token != NULL);
-//     } while (false);
-// }
 
 void mace_set_separator(char *sep) {
     if (sep == NULL) {
@@ -4246,6 +4229,7 @@ void mace_link_static_library(char *restrict target, char **restrict argv_object
     free(argv);
 }
 
+// todo incput actual target struct
 void mace_link_executable(char *restrict target, char **restrict argv_objects, int argc_objects,
                           char **restrict argv_links, int argc_links,
                           char **restrict argv_flags, int argc_flags) {
@@ -4296,6 +4280,11 @@ void mace_link_executable(char *restrict target, char **restrict argv_objects, i
     strncpy(ldirflag + 2, build_dir, build_dir_len);
     int ldirflag_i = argc++;
     argv[ldirflag_i] = ldirflag;
+
+
+    /* -- argv config -- */
+    // TODO: input target->_order instead of target.
+    mace_argv_add_config(target, &argv, &argc, &arg_len);
 
     /* -- Actual linking -- */
     mace_exec_print(argv, argc);
