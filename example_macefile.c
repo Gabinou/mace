@@ -1,6 +1,6 @@
 #include "mace.h"
 
-/* CC might be set when calling the compiler e.g. with "-DCC=tcc" */
+/* CC might be set when compiling e.g. with "-DCC=tcc" */
 #ifndef CC
     #define CC gcc
 #endif
@@ -27,7 +27,7 @@ int mace(int argc, char *argv[]) {
         .kind               = MACE_STATIC_LIBRARY,
     };
     struct Target bar = {
-        .includes           = "include,include/sub/a.h",
+        .includes           = "include,include/sub/b.h",
         .sources            = "src,src/sub/*",
         .base_dir           = "bar",
         .links              = "foo",
@@ -35,7 +35,7 @@ int mace(int argc, char *argv[]) {
     };
     
     struct Target bar_test = {
-        .includes           = "include,include/sub/a.h",
+        .includes           = "include,include/sub/c.h",
         .sources            = "src,src/sub/*,test/test.c",
         .excludes           = "src/main.c",
         .base_dir           = "bar",
@@ -43,12 +43,13 @@ int mace(int argc, char *argv[]) {
         .kind               = MACE_EXECUTABLE,
     };
     
-    
+    /* -- Targets -- */
     MACE_ADD_TARGET(foo);
     MACE_ADD_TARGET(bar);
     MACE_ADD_TARGET(bar_test);
 
-    // Change default target from 'all' to `bar` to skip `bar_test`.
+    // Change default target from 'all' to `foo`, skipping `bar_test`.
+    // `bar` depends on `foo`, so `foo` gets built first.
     MACE_DEFAULT_TARGET(bar);
 
     /* -- Configs -- */
