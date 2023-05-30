@@ -111,16 +111,25 @@ void mace_target_dependency(struct Target *targets, size_t len) {
 // 1- if glob pattern, find all matches, add to list
 // 2- if file add to list
 int globerr(const char *path, int eerrno) {
-    fprintf(stderr, "%s: %s: %s\n", myname, path, strerror(eerrno));
+    fprintf(stderr, "%s: %s\n", path, strerror(eerrno));
     exit(ENOENT);
 }
 
-void mace_glob_sources(struct Target *target) {
+glob_t mace_glob_sources(const char *path) {
     /* If source is a folder, get all .c files in it */
-    glob_t globbed;
-    int flags
-    ret = glob(argv[i], flags, globerr, &globbed);
-    /* If source has a * in it, expland it */
+    glob_t  globbed;
+    int     flags;
+    int     ret = glob(path, flags, globerr, &globbed);
+    if (ret != 0) {
+        fprintf(stderr, "problem with %s (%s), quitting\n", path,
+            (ret == GLOB_ABORTED ? "filesystem problem" :
+             ret == GLOB_NOMATCH ? "no match of pattern" :
+             ret == GLOB_NOSPACE ? "no dynamic memory" :
+             "unknown problem"));
+        exit(ENOENT);
+    }
+
+    return(globbed);
 }
 
 /* Replaces spaces with -I */
