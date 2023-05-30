@@ -46,7 +46,7 @@ extern int mace(int argc, char *argv[]);
 //   3- Set build_dir       -> mace_set_obj_dir
 //   4- Set obj_dir         -> mace_set_build_dir
 //   5- Set separator       -> mace_set_separator
-//   6- Set default target  -> mace_set_default_target
+//   6- Set default target  -> mace_default_target
 
 /*-----------------------------------*/
 /*              EXAMPLE               /
@@ -78,27 +78,25 @@ char    *mace_set_obj_dir(char *obj);
 
 /* - build_dir - */
 // Folder for targets: binaries, libraries.
-char *mace_set_build_dir(char *build);
-#define MACE_SET_BUILD_DIR(dir) _MACE_SET_BUILD_DIR(dir)
-#define _MACE_SET_BUILD_DIR(dir) mace_set_build_dir(#dir)
+char    *mace_set_build_dir(char *build);
+#define  MACE_SET_BUILD_DIR(dir) _MACE_SET_BUILD_DIR(dir)
+#define _MACE_SET_BUILD_DIR(dir)  mace_set_build_dir(#dir)
 
 /* -- Separator -- */
-void mace_set_separator(char *sep);
 // Separator for files/folders in target member variables. Default is " ".
-#define MACE_SET_SEPARATOR(sep) _MACE_SET_SEPARATOR(sep)
-#define _MACE_SET_SEPARATOR(sep) mace_set_separator(#sep)
+void     mace_set_separator(char *sep);
+#define  MACE_SET_SEPARATOR(sep) _MACE_SET_SEPARATOR(sep)
+#define _MACE_SET_SEPARATOR(sep)  mace_set_separator(#sep)
 
 /* --- Targets --- */
 struct Target;
+void    mace_add_target(struct Target *restrict target, char *restrict name);
 #define MACE_ADD_TARGET(target)     mace_add_target(&target, #target)
-#define MACE_DEFAULT_TARGET(target) mace_set_default_target(#target)
-
-// Use this to add targets with an arbitrary name.
-void mace_add_target(struct Target *restrict target, char *restrict name);
 
 // By default, mace builds all targets.
 // When set by user, mace builds all only default target and its dependencies.
-void mace_set_default_target(char *name);
+void    mace_default_target(char *name);
+#define MACE_DEFAULT_TARGET(target) mace_default_target(#target)
 
 
 /******************************* TARGET STRUCT ********************************/
@@ -3461,7 +3459,7 @@ void mace_add_target(struct Target *target, char *name) {
     }
 }
 
-void mace_set_default_target(char *name) {
+void mace_default_target(char *name) {
     mace_default_target_hash = (name == NULL) ? 0 : mace_hash(name);
 }
 
