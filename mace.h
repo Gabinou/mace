@@ -313,11 +313,12 @@ char cwd[MACE_CWD_BUFFERSIZE];
 
 /* -- Reserved targets hashes -- */
 uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
-int mace_default_target = -1; /* [order] */
-int mace_user_target = -1; /* [order] */
+uint64_t mace_default_target_hash = 0; 
+int mace_default_target = -1;   /* [order] */
+int mace_user_target = -1;      /* [order] */
 
 /* -- build order for current target -- */
-size_t *restrict build_order         = NULL;
+size_t *restrict build_order     = NULL;
 size_t  build_order_num = 0;
 
 /* -- build order of all -- */
@@ -620,13 +621,22 @@ void mace_add_target(struct Target *target, char *name) {
 //  1- Compute build order starting from this target.
 //  2- Build all targets in `build_order` until default target is reached
 void mace_set_default_target(char *name) {
-    uint64_t hash = mace_hash(name);
+    /* User function */
+    mace_default_target_hash = mace_hash(name);
+}
+
+void mace_default_target_order() {
+    /* Called post-user to compute default target order from hash */
+    if (mace_default_target_hash == 0)
+        return;
+
     for (int i = 0; i < target_num; i++){
         if (hash == targets[i]._hash) {
             mace_default_target = i;
             break;
         }
     }
+
     fprintf(stderr, "Default target not found. Exiting");
     exit(EPERM);
 }
@@ -1686,10 +1696,10 @@ void mace_post_build_order() {
 }
 
 void mace_post_user(struct Mace_Arguments args) {
-    // Checks that user:
-    //   1- Set compiler,
-    //   2- Added at least one target,
-    //   3- Did not add a circular dependency.
+    //   1- Checks set compiler,
+    //   1- Checks that at least one target exists,
+    //   3- Checks that there are no circular dependency.
+    //   4- Computes default target order from default target_hash.
     // If not exit with error.
 
     /* Check that compiler is set */
@@ -1718,6 +1728,8 @@ void mace_post_user(struct Mace_Arguments args) {
             exit(EPERM);
         }
     }
+
+    mace_default_target_order();
 }
 
 
