@@ -351,7 +351,23 @@ void test_argv() {
     nourstest_true(CodenameFiresaga._argc_includes == 16);
     nourstest_true(CodenameFiresaga._argc_flags == 0);
     nourstest_true(CodenameFiresaga._argc_links == 1);
-    // nourstest_true(strcmp(argv[9], "a.c") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[0], "-I.") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[1], "-Iinclude") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[2], "-Iinclude/bars") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[3], "-Iinclude/menu") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[4], "-Iinclude/popup") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[5], "-Iinclude/systems") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[6], "-Inames") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[7], "-Inames/popup") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[8], "-Inames/menu") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[9], "-Isecond_party/nstr") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[10], "-Isecond_party/noursmath") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[11], "-Isecond_party/tnecs") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[12], "-Ithird_party/physfs") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[13], "-Ithird_party/tinymt") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[14], "-Ithird_party/stb") == 0);
+    nourstest_true(strcmp(CodenameFiresaga._argv_includes[15], "-Ithird_party/cJson") == 0);
+    nourstest_true(CodenameFiresaga._argv_flags == NULL);
 
 }
 
