@@ -61,9 +61,10 @@ void test_isFunc() {
 void test_globbing() {
     glob_t globbed;
     globbed = mace_glob_sources(MACE_ROOT"*.c");
-    nourstest_true(globbed.gl_pathc == 2);
-    nourstest_true(strcmp(globbed.gl_pathv[0], MACE_ROOT"installer.c") == 0);
-    nourstest_true(strcmp(globbed.gl_pathv[1], MACE_ROOT"mace.c") == 0);
+    nourstest_true(globbed.gl_pathc == 3);
+    nourstest_true(strcmp(globbed.gl_pathv[0], MACE_ROOT"example_macefile.c") == 0);
+    nourstest_true(strcmp(globbed.gl_pathv[1], MACE_ROOT"installer.c") == 0);
+    nourstest_true(strcmp(globbed.gl_pathv[2], MACE_ROOT"mace.c") == 0);
     globfree(&globbed);
 
     globbed = mace_glob_sources(MACE_ROOT"*.h");
@@ -898,13 +899,12 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_11     = "mace -n -otnecs";
+    const char *command_11     = "mace -n";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_11, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.skip             == mace_hash("tnecs"));
     nourstest_true(args.jobs             == 1);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
@@ -915,14 +915,13 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_12     = "mace allo -s -d -n -otnecs";
+    const char *command_12     = "mace allo -s -d -n";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_12, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash("allo"));
     nourstest_true(strcmp(args.user_target, "allo") == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.skip             == mace_hash("tnecs"));
     nourstest_true(args.jobs             == 1);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);

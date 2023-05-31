@@ -5701,7 +5701,7 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
     }
 
     /* Check if .d exists */
-    obj_file[ext + 1]     = 'd';
+    obj_file[ext + 1] = 'd';
     obj_file[ext + 2] = '\0';
     FILE *fd = fopen(obj_file, "rb");
     if (fd == NULL) {
