@@ -1382,7 +1382,8 @@ void test_parse_d() {
     nourstest_true(strcmp(targets[1]._headers_checksum[68], "obj/include/position.sha1") == 0);
     nourstest_true(strcmp(targets[1]._headers_checksum[69], "obj/include/equations.sha1") == 0);
     nourstest_true(strcmp(targets[1]._headers_checksum[70], "obj/include/combat.sha1") == 0);
-    nourstest_true(strcmp(targets[1]._headers_checksum[71], "obj/include/units_struct_stats.sha1") == 0);
+    nourstest_true(strcmp(targets[1]._headers_checksum[71],
+                          "obj/include/units_struct_stats.sha1") == 0);
 
     mace_finish(NULL);
 }

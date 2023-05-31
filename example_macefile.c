@@ -33,7 +33,7 @@ int mace(int argc, char *argv[]) {
         .links              = "foo",
         .kind               = MACE_EXECUTABLE,
     };
-    
+
     struct Target bar_test = {
         .includes           = "include,include/sub/c.h",
         .sources            = "src,src/sub/*,test/test.c",
@@ -42,7 +42,7 @@ int mace(int argc, char *argv[]) {
         .links              = "foo",
         .kind               = MACE_EXECUTABLE,
     };
-    
+
     /* -- Targets -- */
     MACE_ADD_TARGET(foo);
     MACE_ADD_TARGET(bar);
