@@ -3569,7 +3569,9 @@ void mace_add_target(struct Target *target, char *name) {
     mace_Target_argv_compile(&targets[target_num]);
     if (++target_num >= target_len) {
         target_len *= 2;
-        targets     = realloc(targets,     target_len * sizeof(*targets));
+        size_t bytesize = target_len * sizeof(*targets);
+        targets     = realloc(targets,     bytesize);
+        memset(targets + target_len / 2, 0, bytesize / 2);
         build_order = realloc(build_order, target_len * sizeof(*build_order));
     }
 }
@@ -4017,6 +4019,7 @@ void mace_Target_argv_compile(struct Target *target) {
     }
 
     /* -- argv -c flag for objects -- */
+    target->_argc_tail =    target->_argc;
     mace_Target_argv_grow(target);
     char *compflag = calloc(3, sizeof(*compflag));
     strncpy(compflag, "-c", 2);
@@ -5450,11 +5453,8 @@ void mace_Target_Free_argv(struct Target *target) {
     target->_argv_objects_hash  = NULL;
     if ((target->_argv != NULL) && (target->_argc > 0))  {
         if (target->_argc_tail > 0) {
-
             for (int i = target->_argc_tail; i < target->_argc; i++) {
-                if (target->_argv[i] != NULL)
-                    ;
-                {
+                if (target->_argv[i] != NULL) {
                     free(target->_argv[i]);
                     target->_argv[i] = NULL;
                 }
