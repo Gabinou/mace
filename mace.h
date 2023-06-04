@@ -314,7 +314,13 @@ void mace_finish(struct Mace_Arguments    *args);
 void mace_pre_user(struct Mace_Arguments  *args);
 void mace_post_user(struct Mace_Arguments *args);
 
-/* --- mace utils --- */
+/* --- mace_args --- */
+struct Mace_Arguments mace_parse_args(int argc, char *argv[]);
+struct Mace_Arguments mace_parse_env();
+struct Mace_Arguments mace_combine_args_env(struct Mace_Arguments args, struct Mace_Arguments env);
+
+
+/* --- mace_utils --- */
 char  *mace_str_buffer(const char *const strlit);
 
 /* --- mace_checksum --- */
@@ -6185,6 +6191,59 @@ struct Mace_Arguments Mace_Arguments_default = {
     .build_all          = false,
 };
 
+struct Mace_Arguments mace_combine_args_env(struct Mace_Arguments args, struct Mace_Arguments env) {
+    struct Mace_Arguments out;
+    /* Prioritize user arguments over environment */
+    bool _user_target =       (args.user_target      != Mace_Arguments_default.user_target);
+    bool _macefile =          (args.macefile         != Mace_Arguments_default.macefile);
+    bool _user_config =       (args.user_config      != Mace_Arguments_default.user_config);
+    bool _dir =               (args.dir              != Mace_Arguments_default.dir);
+    bool _cc =                (args.cc               != Mace_Arguments_default.cc);
+    bool _user_target_hash =  (args.user_target_hash != Mace_Arguments_default.user_target_hash);
+    bool _user_config_hash =  (args.user_config_hash != Mace_Arguments_default.user_config_hash);
+    bool _jobs =              (args.jobs             != Mace_Arguments_default.jobs);
+    bool _debug =             (args.debug            != Mace_Arguments_default.debug);
+    bool _silent =            (args.silent           != Mace_Arguments_default.silent);
+    bool _dry_run =           (args.dry_run          != Mace_Arguments_default.dry_run);
+    bool _build_all =         (args.build_all        != Mace_Arguments_default.build_all);
+
+    out.user_target      = _user_target      ? args.user_target      : env.user_target;
+    out.macefile         = _macefile         ? args.macefile         : env.macefile;
+    out.user_config      = _user_config      ? args.user_config      : env.user_config;
+    out.dir              = _dir              ? args.dir              : env.dir;
+    out.cc               = _cc               ? args.cc               : env.cc;
+    out.user_target_hash = _user_target_hash ? args.user_target_hash : env.user_target_hash;
+    out.user_config_hash = _user_config_hash ? args.user_config_hash : env.user_config_hash;
+    out.jobs             = _jobs             ? args.jobs             : env.jobs;
+    out.debug            = _debug            ? args.debug            : env.debug;
+    out.silent           = _silent           ? args.silent           : env.silent;
+    out.dry_run          = _dry_run          ? args.dry_run          : env.dry_run;
+    out.build_all        = _build_all        ? args.build_all        : env.build_all;
+
+    return(out);
+}
+
+struct Mace_Arguments mace_parse_env() {
+    /* Parse MACEFLAGS environment variable */
+    char *env_args = getenv("MACEFLAGS");
+    if (env_args != NULL) {
+        int argc = 1, len = 8;
+        char *tmp = env_args;
+        /* Count number of spaces, split into argv */
+        while(tmp = strstr(tmp, " ")) { 
+            argc++;
+            tmp++;
+        }
+        char **argv = calloc(len, sizeof(*argv));
+        argv = mace_argv_flags(&len, &argc, argv, env_args, NULL, false, mace_d_separator);
+        argc++;
+        struct Mace_Arguments out = mace_parse_args(argc, argv);
+        mace_argv_free(argv, argc);
+        return(out);
+    };
+    return(Mace_Arguments_default);
+}
+
 struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     struct Mace_Arguments out_args = Mace_Arguments_default;
     struct parg_state ps = parg_state_default;
@@ -6307,6 +6366,8 @@ void Mace_Arguments_Free(struct Mace_Arguments *args) {
 int main(int argc, char *argv[]) {
     /* --- Parse user arguments --- */
     struct Mace_Arguments args = mace_parse_args(argc, argv);
+    struct Mace_Arguments args_env = mace_parse_env();
+    args = mace_combine_args_env(args, args_env);
 
     /* --- Pre-user ops: Get cwd, alloc memory, set defaults. --- */
     mace_pre_user(&args);

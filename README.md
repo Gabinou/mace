@@ -10,7 +10,7 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - C syntax: `macefile.c`.
 - Simple API.
 - Single header build system: `mace.h`.
-- `make`-like usage, similar flags, `mace` convenience executable.
+- `make`-like usage and flags with `mace` convenience executable.
 - Tab completion (`zsh` only), see `_mace.zsh`
 
 ## How to
@@ -21,6 +21,8 @@ Specificity, reduced scope, everything in service of *simplicity*.
     1. Reserved targets: `./builder clean`, `./builder all`
     2. Configs: `./builder -g release`
 
+Use the MACEFLAGS environment variable to set default flags.
+
 ### Convenience executable
 Compile and build with a single `mace` command.
 
@@ -29,6 +31,8 @@ Compile and build with a single `mace` command.
     2. Run installer: `sudo ./installer`. 
 2. Write your own macefile e.g. `macefile.c`
 3. Build `mace`
+
+The `mace` convenience executable also use the environment variable MACEFLAGS.
 
 Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
@@ -69,10 +73,10 @@ See the first ~250 lines of `mace.h`
     - Parsed into binary `.ho` file for faster reading.
 
 ### Lines
-- mace.h: ~6300 Lines
+- mace.h: ~6400 Lines
     - parg:     ~600 lines
     - sha1dc:   ~3000 lines
-    - mace:     ~3700 lines
+    - mace:     ~3800 lines
 
 ### Running tests
 1. `cd` into test folder
