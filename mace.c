@@ -42,6 +42,11 @@ int main(int argc, char *argv[]) {
         cc = STRINGIFY(CC);
     }
 
+    /* Move to args.dir */
+    if (args.dir != NULL) {
+        assert(chdir(args.dir) == 0);
+    }
+
     /* --- Compile the macefile --- */
     /* - Read macefile name from args - */
     char *builder = STRINGIFY(BUILDER);
@@ -84,8 +89,13 @@ int main(int argc, char *argv[]) {
 
     /* --- Run the resulting executable --- */
     /* - Build argv_run:  pass target to builder - */
-    char *argv_run[] = {"./"STRINGIFY(BUILDER), argv[1], NULL};
+    char *argv_run[] = {"./"STRINGIFY(BUILDER), args.user_target, NULL};
     /* - Run it - */
     pid = mace_exec("./"STRINGIFY(BUILDER), argv_run);
+    
+    /* - Free everything - */
     mace_wait_pid(pid);
+    mace_argv_free(argv_compile, argc_compile);
+    Mace_Arguments_Free(&args);
+    free(compile_cmd);
 }
