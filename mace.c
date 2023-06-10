@@ -94,21 +94,21 @@ int main(int argc, char *argv[]) {
 
     /* --- Run the resulting executable --- */
     /* - Build argv_run:  pass target and flags to builder - */
-    char* Bflag = "-B";
-    char* dflag = "-d";
-    char* nflag = "-n";
-    char* sflag = "-s";
+    char *Bflag = "-B";
+    char *dflag = "-d";
+    char *nflag = "-n";
+    char *sflag = "-s";
 
     char *argv_run[] = {"./"STRINGIFY(BUILDER), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
     int argc_run = 1;
     if (args.build_all)
-        argv_run[argc_run++] = Bflag; 
+        argv_run[argc_run++] = Bflag;
     if (args.debug)
-        argv_run[argc_run++] = dflag; 
+        argv_run[argc_run++] = dflag;
     if (args.dry_run)
-        argv_run[argc_run++] = nflag; 
+        argv_run[argc_run++] = nflag;
     if (args.silent)
-        argv_run[argc_run++] = sflag; 
+        argv_run[argc_run++] = sflag;
     if (args.user_config != NULL) {
         argv_run[argc_run++] = "-g";
         argv_run[argc_run++] = args.user_config;
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     /* - Run it - */
     mace_exec_print(argv_run, argc_run);
     pid = mace_exec("./"STRINGIFY(BUILDER), argv_run);
-    
+
     /* - Free everything - */
     mace_wait_pid(pid);
     mace_argv_free(argv_compile, argc_compile);
