@@ -66,10 +66,14 @@ extern int mace(int argc, char *argv[]);
 /*                                 PUBLIC API                                 */
 /*----------------------------------------------------------------------------*/
 /* --- SETTERS --- */
+
 /* -- Compiler -- */
-// Tested with gcc, clang and tcc.
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
+
+/* -- Archiver -- */
+#define MACE_SET_ARCHIVER(compiler) _MACE_SET_ARCHIVER(compiler)
+#define _MACE_SET_ARCHIVER(compiler) mace_set_archiver(#compiler)
 
 /* -- Directories -- */
 /* - obj_dir - */
@@ -338,8 +342,9 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 /* --- mace_setters --- */
 char *mace_set_obj_dir(char    *obj);
-char *mace_set_build_dir(char  *build);
 char *mace_set_compiler(char   *cc);
+char *mace_set_archiver(char   *ar);
+char *mace_set_build_dir(char  *build);
 
 /* --- mace add --- */
 void mace_add_target(struct Target   *restrict target,  char *restrict name);
@@ -500,8 +505,8 @@ char *mace_flag_separator = " ";
 char *mace_d_separator = " ";
 char *mace_separator = ",";
 char *mace_command_separator = "&&";
-#ifndef MACE_CONVENIENCE_EXECUTABLE
 
+#ifndef MACE_CONVENIENCE_EXECUTABLE
     /* -- Compiler -- */
     char *cc         = "gcc";
     char *ar         = "ar";
@@ -3667,6 +3672,9 @@ char *mace_set_build_dir(char *build) {
     return (build_dir = mace_str_buffer(build));
 }
 
+char *mace_set_archiver(char *archiver) {
+    ar = archiver;
+}
 
 char *mace_set_compiler(char *compiler) {
     cc = compiler;
