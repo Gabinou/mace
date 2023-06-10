@@ -71,6 +71,10 @@ extern int mace(int argc, char *argv[]);
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
 
+/* -- Achiver -- */
+#define MACE_SET_ARCHIVER(archiver) _MACE_SET_ARCHIVER(archiver)
+#define _MACE_SET_archiver(archiver) mace_set_archiver(#archiver)
+
 /* -- Directories -- */
 /* - obj_dir - */
 // Folder for intermediary files: .o, .d .sha1, etc.
@@ -340,6 +344,7 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
 char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
 void mace_set_compiler(char   *cc);
+void mace_set_archiver(char   *ar);
 
 /* --- mace add --- */
 void mace_add_target(struct Target   *restrict target,  char *restrict name);
@@ -3665,6 +3670,10 @@ char *mace_set_build_dir(char *build) {
     if (build_dir != NULL)
         free(build_dir);
     return (build_dir = mace_str_buffer(build));
+}
+
+void mace_set_archiver(char *archiver) {
+    ar = archiver;
 }
 
 void mace_set_compiler(char *compiler) {

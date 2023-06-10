@@ -34,6 +34,12 @@ int main(int argc, char *argv[]) {
     /* -- Parse inputs -- */
     struct Mace_Arguments args = mace_parse_args(argc, argv);
 
+    /* --- Set switches --- */
+    silent         = args.silent;
+    dry_run        = args.dry_run;
+    verbose        = dry_run ? true : args.debug;
+    build_all      = args.build_all;
+
     /* -- Override c compiler-- */
     char *cc;
     if (args.cc != NULL) {
@@ -43,9 +49,8 @@ int main(int argc, char *argv[]) {
     }
 
     /* Move to args.dir */
-    if (args.dir != NULL) {
+    if (args.dir != NULL)
         assert(chdir(args.dir) == 0);
-    }
 
     /* --- Compile the macefile --- */
     /* - Read macefile name from args - */
@@ -88,9 +93,26 @@ int main(int argc, char *argv[]) {
     mace_wait_pid(pid);
 
     /* --- Run the resulting executable --- */
-    /* - Build argv_run:  pass target to builder - */
-    char *argv_run[] = {"./"STRINGIFY(BUILDER), args.user_target, NULL};
+    /* - Build argv_run:  pass target and flags to builder - */
+    char* Bflag = "-B";
+    char* dflag = "-d";
+    char* nflag = "-n";
+    char* sflag = "-s";
+
+    char *argv_run[] = {"./"STRINGIFY(BUILDER), NULL, NULL, NULL, NULL, NULL, NULL};
+    int argc_run = 1;
+    if (args.build_all)
+        argv_run[argc_run++] = Bflag; 
+    if (args.debug)
+        argv_run[argc_run++] = dflag; 
+    if (args.dry_run)
+        argv_run[argc_run++] = nflag; 
+    if (args.silent)
+        argv_run[argc_run++] = sflag; 
+    argv_run[argc_run++] = args.user_target;
+
     /* - Run it - */
+    mace_exec_print(argv_run, argc_run);
     pid = mace_exec("./"STRINGIFY(BUILDER), argv_run);
     
     /* - Free everything - */
