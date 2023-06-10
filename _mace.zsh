@@ -1,6 +1,5 @@
 #compdef mace builder=mace
 typeset -A opt_args
-
 local context state line
 
 trim() {
@@ -12,13 +11,44 @@ trim() {
     printf '%s' "$var"
 }
 
+_parse-macefile-configs () {
+  local input trimmed var val target dep TAB=$'\t' tmp IFS=
+  VARIABLES=()
+  while read input
+  do
+    trimmed="${input#"${input%%[![:space:]]*}"}"
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+    if [[ $input == *"MACE_ADD_CONFIG"* ]]; then
+      # Skip if commented out
+      if [[ $trimmed == "//"* ]] || [[ $trimmed == "/*"* ]]; then
+      continue
+      fi
+
+      # check for MACE_ADD_CONFIG($name)
+      [[ "$input" =~ '\(([^)]+)\)' ]] # regex, get str between ()
+      val=${match##[ $TAB]#} # match gets put in $match variable
+      VARIABLES[$match]=$val
+    elif [[ $input == *"mace_add_config"* ]]; then
+      # Skip if commented out
+      if [[ $trimmed == "//"* ]] || [[ $trimmed == "/*"* ]]; then
+      continue
+      fi
+
+      # check for mace_add_config(struct, $name)
+      [[ "$input" =~ '\(&([^)]+), "([^)]+)"\)' ]] # regex, get str between ()
+      val=${match[2]##[ $TAB]#} # match gets put in $match variable
+      VARIABLES[${match[2]}]=$val
+    fi
+  done
+}
+
 _parse-macefile-targets () {
   local input trimmed var val target dep TAB=$'\t' tmp IFS=
   VARIABLES=()
   while read input
   do
     trimmed="${input#"${input%%[![:space:]]*}"}"
-    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}" 
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
     if [[ $input == *"MACE_ADD_TARGET"* ]]; then
       # Skip if commented out
       if [[ $trimmed == "//"* ]] || [[ $trimmed == "/*"* ]]; then
@@ -34,7 +64,7 @@ _parse-macefile-targets () {
       if [[ $trimmed == "//"* ]] || [[ $trimmed == "/*"* ]]; then
       continue
       fi
-      
+
       # check for mace_add_target(struct, $name)
       [[ "$input" =~ '\(&([^)]+), "([^)]+)"\)' ]] # regex, get str between ()
       val=${match[2]##[ $TAB]#} # match gets put in $match variable
@@ -100,6 +130,40 @@ _mace() {
     
     (config)
     # Suggest configs
+    # Getting macefile from opt_args
+    file=${(v)opt_args[(I)(-f|--file)]}
+
+    # Check if there is a macefile in current dir
+    if [[ -n $file ]]
+    then
+      [[ $file == [^/]* ]] && file=$basedir/$file
+      [[ -r $file ]] || file=
+    else
+      if [[ -r $basedir/macefile.c ]]
+      then
+        file=$basedir/macefile.c
+      elif [[ -r $basedir/Macefile.c ]]
+      then
+        file=$basedir/Macefile.c
+      else
+        file=''
+      fi
+    fi
+
+    if [[ -n "$file" ]] # if $file is not empty
+    then
+      if zstyle -t ":completion:${curcontext}:configs" call-command; then
+        # why ?
+        _parse-macefile-configs < <(_call_program configs "$words[1]" -nsp --no-print-directory -f "$file" --always-make 2> /dev/null)
+      else
+        # why ?
+        _parse-macefile-configs < $file
+      fi
+    fi
+    _alternative \
+      'configs:make config:compadd -Q -a CONFIGS' \
+      'variables:make variable:compadd -F keys -k VARIABLES' \
+      && ret=0
     ;;
 
     (target)
@@ -107,7 +171,7 @@ _mace() {
     # Getting macefile from opt_args
     file=${(v)opt_args[(I)(-f|--file)]}
 
-    # Check if there is a macefile in current dir 
+    # Check if there is a macefile in current dir
     if [[ -n $file ]]
     then
       [[ $file == [^/]* ]] && file=$basedir/$file
