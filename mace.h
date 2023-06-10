@@ -342,9 +342,9 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 /* --- mace_setters --- */
 char *mace_set_obj_dir(char    *obj);
-char *mace_set_compiler(char   *cc);
-char *mace_set_archiver(char   *ar);
 char *mace_set_build_dir(char  *build);
+void mace_set_compiler(char   *cc);
+void mace_set_archiver(char   *ar);
 
 /* --- mace add --- */
 void mace_add_target(struct Target   *restrict target,  char *restrict name);
@@ -3672,18 +3672,18 @@ char *mace_set_build_dir(char *build) {
     return (build_dir = mace_str_buffer(build));
 }
 
-char *mace_set_archiver(char *archiver) {
+void mace_set_archiver(char *archiver) {
     ar = archiver;
 }
 
-char *mace_set_compiler(char *compiler) {
+void mace_set_compiler(char *compiler) {
     cc = compiler;
 
-    if (strcmp(cc, "gcc") == 0) {
+    if (strstr(cc, "gcc") != NULL) {
         cc_depflag = "-MM";
-    } else if (strcmp(cc, "tcc") == 0) {
+    } else if (strstr(cc, "tcc") != NULL) {
         cc_depflag = "-MD";
-    } else if (strcmp(cc, "clang") == 0) {
+    } else if (strstr(cc, "clang") != NULL) {
         cc_depflag = "-MM";
     } else {
         fprintf(stderr, "mace error: unknown compiler '%s'. \n", compiler);
