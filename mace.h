@@ -71,10 +71,6 @@ extern int mace(int argc, char *argv[]);
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
 
-/* -- Archiver -- */
-#define MACE_SET_ARCHIVER(archiver) _MACE_SET_ARCHIVER(archiver)
-#define _MACE_SET_ARCHIVER(archiver) mace_set_archiver(#archiver)
-
 /* -- Directories -- */
 /* - obj_dir - */
 // Folder for intermediary files: .o, .d .sha1, etc.
@@ -344,7 +340,6 @@ char **mace_argv_flags(int *restrict len, int *restrict argc, char **restrict ar
 char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
 void mace_set_compiler(char   *cc);
-void mace_set_archiver(char   *ar);
 
 /* --- mace add --- */
 void mace_add_target(struct Target   *restrict target,  char *restrict name);
@@ -3672,19 +3667,18 @@ char *mace_set_build_dir(char *build) {
     return (build_dir = mace_str_buffer(build));
 }
 
-void mace_set_archiver(char *archiver) {
-    ar = archiver;
-}
-
 void mace_set_compiler(char *compiler) {
     cc = compiler;
 
     if (strstr(cc, "gcc") != NULL) {
         cc_depflag = "-MM";
+        ar = "ar";
     } else if (strstr(cc, "tcc") != NULL) {
         cc_depflag = "-MD";
+        ar = "tcc -ar";
     } else if (strstr(cc, "clang") != NULL) {
         cc_depflag = "-MM";
+        ar = "llvm-ar";
     } else {
         fprintf(stderr, "mace error: unknown compiler '%s'. \n", compiler);
         exit(EPERM);
@@ -4215,12 +4209,12 @@ void mace_link_dynamic_library(struct Target *restrict target) {
         }
     }
 
-    /* -- argv config -- */
+    /* --- argv config --- */
     int config_startc = argc;
     mace_argv_add_config(target, &argv, &argc, &arg_len);
     int config_endc = argc;
 
-    /* -- Actual linking -- */
+    /* --- Actual linking --- */
     mace_exec_print(argv, argc);
     if (!dry_run) {
         pid_t pid = mace_exec(argv[0], argv);
@@ -4243,9 +4237,22 @@ void mace_link_static_library(struct Target *restrict target) {
     int    argc_objects = target->_argc_sources;
     char **argv_objects = target->_argv_objects;
 
-    int arg_len = 8, argc = 0;
+    /* --- Add ar --- */
+    int arg_len = 8, argc = 0, argc_ar = 0;
     char **argv  = calloc(arg_len, sizeof(*argv));
-    argv[argc++] = ar;
+
+    /* -- Split ar into tokens -- */
+    // Note: because tcc -ar is not a standalone executable but a flag 'tcc -ar'
+    char *buffer = calloc(strlen(ar) + 1, sizeof(*ar));
+    strncpy(buffer, ar, strlen(ar));
+    char *token = strtok(buffer, mace_flag_separator);
+    do {
+        char *flag = calloc(strlen(token) + 1, sizeof(*ar));
+        strncpy(flag, token, strlen(token));
+        argv[argc++] = flag;
+        argc_ar = argc;
+        token = strtok(NULL, mace_separator);
+    } while (token != NULL);
 
     /* --- Adding -rcs flag --- */
     char *rcsflag     = calloc(5, sizeof(*rcsflag));
@@ -4268,13 +4275,15 @@ void mace_link_static_library(struct Target *restrict target) {
         }
     }
 
-    /* -- Actual linking -- */
+    /* --- Actual linking --- */
     mace_exec_print(argv, argc);
     if (!dry_run) {
         pid_t pid = mace_exec(argv[0], argv);
         mace_wait_pid(pid);
     }
-
+    free(buffer);
+    for (int i = 0; i < argc_ar; ++i)
+        free(argv[i]);
     free(argv[crcsflag]);
     free(argv[libc]);
     free(argv);
@@ -4338,13 +4347,12 @@ void mace_link_executable(struct Target *restrict target) {
     int ldirflag_i   = argc++;
     argv[ldirflag_i] = ldirflag;
 
-
     /* -- argv config -- */
     int config_startc = argc;
     mace_argv_add_config(target, &argv, &argc, &arg_len);
     int config_endc = argc;
 
-    /* -- Actual linking -- */
+    /* --- Actual linking --- */
     mace_exec_print(argv, argc);
     if (!dry_run) {
         pid_t pid = mace_exec(argv[0], argv);
