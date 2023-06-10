@@ -72,8 +72,8 @@ extern int mace(int argc, char *argv[]);
 #define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
 
 /* -- Archiver -- */
-#define MACE_SET_ARCHIVER(compiler) _MACE_SET_ARCHIVER(compiler)
-#define _MACE_SET_ARCHIVER(compiler) mace_set_archiver(#compiler)
+#define MACE_SET_ARCHIVER(archiver) _MACE_SET_ARCHIVER(archiver)
+#define _MACE_SET_ARCHIVER(archiver) mace_set_archiver(#archiver)
 
 /* -- Directories -- */
 /* - obj_dir - */

@@ -15,6 +15,10 @@
 #ifndef CC
     #define CC gcc
 #endif /* CC */
+#ifndef AR
+    #define AR ar
+#endif /* AR */
+
 #ifndef BUILD_DIR
     #define BUILD_DIR bin
 #endif /* BUILD_DIR */

@@ -12,6 +12,7 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - Single header build system: `mace.h`.
 - `make`-like usage and flags with `mace` convenience executable.
 - Tab completion (`zsh` only), see `_mace.zsh`
+- Compatible with gcc, clang, tcc toolchains.
 
 ## How to
 1. Get `mace.h`

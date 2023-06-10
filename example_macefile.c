@@ -1,8 +1,12 @@
 #include "mace.h"
 
-/* CC might be set when compiling e.g. with "-DCC=tcc" */
+/* CC might be set when compiling e.g. with "-DCC=gcc" */
 #ifndef CC
-    #define CC gcc
+    #define CC tcc
+#endif
+/* AR might be set when compiling e.g. with "-DAR=ar" */
+#ifndef AR
+    #define AR tcc -ar
 #endif
 
 struct Config debug = {.flags = "-g -O0"};
