@@ -228,8 +228,10 @@ struct Target {
 
 struct Config {
     /*-------------------------- PUBLIC MEMBERS --------------------------*/
-    char *targets; /* If NULL, flags are applied to all targets           */
+    char *target; /* Config compiles only target and dependencies */
     char *flags;
+    char *cc;
+    char *ar;
 
     /*--------------------------------------------------------------------*/
     /*                             EXAMPLE                                 /
@@ -237,7 +239,7 @@ struct Config {
     *   Designated Initializer -> unitialized values are set to 0/NULL     /
     *                                                                      /
     * struct Config myconfig = {                                           /
-    *     .targets            = "foo,bar",                                 /
+    *     .target             = "foo",                                     /
     *     .flags              = "-g -O0,-O0",                              /
     * };                                                                   /
     *    NOTE: default separator is ",", set with 'mace_set_separator'     /
@@ -249,10 +251,9 @@ struct Config {
     uint64_t       _hash;          /* config name hash                    */
     int            _order;         /* config order added by user          */
 
-    uint64_t  *restrict _target_orders;
+    uint64_t            _target_order;
     char     **restrict _flags;
     int                 _flag_num;      /* Number of flags                */
-    size_t              _targets_len;   /* Number of flags and targets    */
 };
 
 struct Mace_Arguments {
@@ -352,8 +353,6 @@ void mace_add_config(struct Config   *restrict config,  char *restrict name);
 
 /* -- Config struct OOP -- */
 void mace_Config_Free(struct Config        *config);
-void mace_Config_Flag_Add(struct Config    *config, const char *flag, int i);
-void mace_Config_Target_Add(struct Config  *config, int order, int i);
 int mace_Config_hasTarget(struct Config    *config, int target_order);
 
 /* -- Target struct OOP -- */
@@ -401,8 +400,7 @@ void mace_Headers_Checksums(struct Target        *target);
 void mace_Headers_Checksums_Checks(struct Target *target);
 
 /* - argv - */
-void mace_argv_add_config(struct Target *target, char **restrict *argv, int *restrict argc,
-                          int *restrict arg_len);
+void mace_argv_add_config(struct Target *target, char **restrict *argv, int *restrict argc, int *restrict arg_len);
 
 void mace_Target_argv_grow(struct Target      *target);
 void mace_Target_Parse_User(struct Target     *target);
@@ -4049,33 +4047,16 @@ void mace_Target_argv_compile(struct Target *target) {
 
 void mace_argv_add_config(struct Target *target, char **restrict *argv, int *restrict argc,
                               int *restrict arg_len) {
-    *argv = mace_argv_grow(*argv, argc, arg_len);
-    do {
-        if (config_num <= 0)
-            break;
+    if (config_num <= 0)
+        return;
 
-        int config_order = mace_Config_hasTarget(&configs[mace_user_config], target->_order);
-
-        if (config_order < 0)
-            break;
-
-        assert(config_order <= configs[mace_user_config]._targets_len);
-        size_t len = strlen(configs[mace_user_config]._flags[config_order]);
-        char *flags = calloc(len + 1, sizeof(*flags));
-        strncpy(flags, configs[mace_user_config]._flags[config_order], len);
-
-        char *token = strtok(flags, mace_flag_separator);
-        do {
-            size_t len = strlen(token);
-            char *flag = calloc(len + 1, sizeof(flag));
-            strncpy(flag, token, len);
-            *argv = mace_argv_grow(*argv, argc, arg_len);
-            int i = (*argc)++;
-            (*argv)[i] = flag;
-            token = strtok(NULL, mace_flag_separator);
-        } while (token != NULL);
-        free(flags);
-    } while (false);
+    for (int i = 0; i < configs[mace_user_config]._flag_num; ++i) {
+        *argv = mace_argv_grow(*argv, argc, arg_len);
+        size_t len = strlen(configs[mace_user_config]._flags[i]); 
+        char *flag = calloc(len, sizeof(*flag));
+        strncpy(flag, configs[mace_user_config]._flags[i],  len);
+        (*argv)[i] = flag;
+    }
 }
 
 void mace_set_separator(char *sep) {
@@ -5187,85 +5168,34 @@ void mace_make_dirs() {
     mace_mkdir(build_dir);
 }
 
-int mace_Config_hasTarget(struct Config *config, int target_order) {
-    if (config == NULL)
-        return (-1);
-
-    if (config->_target_orders == NULL)
-        return (-1);
-
-    if (config->targets == NULL)
-        return (0);
-
-    for (int i = 0; i < config->_targets_len; i++) {
-        assert(config->_flags[i] != NULL);
-        if (target_order == config->_target_orders[i]) {
-            return (i);
-        }
-    }
-    return (-1);
-}
-
-
-void mace_Config_Target_Add(struct Config *config, int order, int i) {
-    config->_target_orders[i] = order;
-}
-
-void mace_Config_Flag_Add(struct Config *config, const char *flag, int i) {
-    size_t bytesize = (strlen(flag) + 1) * sizeof(**config->_flags);
-    config->_flags[i] = malloc(bytesize);
-    strncpy(config->_flags[i], flag, bytesize);
-}
-
 void mace_parse_config(struct Config *config) {
+    mace_Config_Free(config);
     if (config->flags == NULL) {
         fprintf(stderr, "Config has no flags.");
         exit(EPERM);
     }
 
-    int targets_alloc = 8;
-    config->_targets_len = 0;
-    config->_target_orders = malloc(targets_alloc * sizeof(*config->_target_orders));
-    char *buffer, *token;
+    if (config->target != NULL)
+        config->_target_order = mace_hash_order(mace_hash(config->target));
 
-    /* -- Split targets string into target orders -- */
-    if (config->targets != NULL) {
-        buffer = mace_str_buffer(config->targets);
-        token = strtok(buffer, mace_separator);
-        do {
-            if ((config->_targets_len + 1) > targets_alloc) {
-                targets_alloc *= 2;
-                config->_target_orders = realloc(config->_target_orders, targets_alloc * sizeof(*config->targets));
-            }
-            mace_Config_Target_Add(config, mace_hash_order(mace_hash(token)), config->_targets_len++);
-            token = strtok(NULL, mace_separator);
-        } while (token != NULL);
-        free(buffer);
-        config->_target_orders = realloc(config->_target_orders,
-                                         config->_targets_len * sizeof(*config->_target_orders));
-    } else {
-        config->_targets_len = 1;
-    }
-
-    config->_flags = malloc(config->_targets_len * sizeof(*config->_flags));
     /* -- Split flags string into target orders -- */
-    int i = 0;
-    buffer = mace_str_buffer(config->flags);
-    token = strtok(buffer, mace_separator);
+    int len = 8, i = 0;
+    config->_flag_num = 0;
+    config->_flags = malloc(len * sizeof(*config->_flags));
+    char *buffer = mace_str_buffer(config->flags);
+    char *token = strtok(buffer, mace_separator);
     do {
-        if ((i + 1) > config->_targets_len)
-            break;
-        mace_Config_Flag_Add(config, token, i++);
-
+        char * flag = calloc(strlen(token), sizeof(*flag));
+        config->_flags[config->_flag_num++] = flag;
+        if (config->_flag_num >= config->_flag_num) {
+            len *= 2;
+            size_t bytesize = len * sizeof(*config->_flags);
+            config->_flags = realloc(config->_flags, bytesize);
+        }
         token = strtok(NULL, mace_separator);
     } while (token != NULL);
 
     free(buffer);
-
-    if (config->_targets_len != i) {
-        fprintf(stderr, "Different number of targets to flags in '%s' config\n", config->_name);
-        exit(EPERM);
-    }
 }
 
 void mace_parse_configs() {
@@ -5352,12 +5282,8 @@ void mace_Config_Free(struct Config *config) {
     if (config == NULL)
         return;
 
-    if (config->_target_orders != NULL) {
-        free(config->_target_orders);
-        config->_target_orders = NULL;
-    }
     if (config->_flags != NULL) {
-        for (int i = 0; i < config->_targets_len; i++) {
+        for (int i = 0; i < config->_flag_num; i++) {
             free(config->_flags[i]);
             config->_flags[i] = NULL;
         }
@@ -5909,7 +5835,6 @@ void mace_pre_user(struct Mace_Arguments *args) {
     mace_user_target = MACE_NULL_ORDER;
     mace_user_config = 0;
 
-
     object      = calloc(object_len, sizeof(*object));
     targets     = calloc(target_len, sizeof(*targets));
     configs     = calloc(config_len, sizeof(*configs));
@@ -5921,52 +5846,75 @@ void mace_pre_user(struct Mace_Arguments *args) {
 }
 
 void mace_post_user(struct Mace_Arguments *args) {
-    //   1- Moves to user set dir if not NULL,
-    //   2- Checks set compiler,
-    //   3- Checks that at least one target exists,
-    //   4- Checks that there are no circular dependency.
-    //   5- Compute user_target order.
-    //   6- Computes default target order from default target_hash.
-    //   7- Alloc queue for processes.
-    //   8- Override compiler.
-    // If not exit with error.
+    //   1- Moves to user set dir if not NULL.
+    //   2- Checks that at least one target exists,
+    //   3- Checks that there are no circular dependency.
+    //   4- Computes user_target order with priority:
+    //      a- Input argument
+    //      b- config
+    //      c- macefile
+    //   5- Computes default target order from default target_hash.
+    //   6- Allocs queue for processes.
+    //   7- Overrides compiler with priority:
+    //      a- Input argument
+    //      b- config
+    //      c- macefile
+    //   8- Checks that compiler is set.
+
+    /* 1. Move to args->dir */
     if (args != NULL) {
         if (args->dir != NULL) {
             assert(chdir(args->dir) == 0);
         }
     }
 
-    /* Check that compiler is set */
-    if (cc == NULL) {
-        fprintf(stderr, "Compiler not set. Exiting.\n");
-        exit(ENXIO);
-    }
 
-    /* Check that a target exists */
+    /* 2. Check that a target exists */
     if ((targets == NULL) || (target_num <= 0)) {
         fprintf(stderr, "No targets to compile. Exiting.\n");
         exit(ENXIO);
     }
 
-    /* Check for circular dependency */
+    /* 3. Check for circular dependency */
     if (mace_circular_deps(targets, target_num)) {
         fprintf(stderr, "Circular dependency in linked library detected. Exiting\n");
         exit(ENXIO);
     }
 
-    /* Check which target user wants to compile */
+    /* 4. Check which target user wants to compile */
     mace_user_target_set(args->user_target_hash, args->user_target);
+
     mace_user_config_set(args->user_config_hash, args->user_config);
+    struct Config *config = &configs[mace_user_config];
+    if (config->target != NULL) 
+        mace_user_target_set(mace_hash(config->target), config->target);
+
+    /* 5. Computes default target order from default target_hash */
     mace_default_target_order();
 
-    /* Process queue alloc */
+    /* 6. Process queue alloc */
     assert(args->jobs >= 1);
     assert(pqueue == NULL);
     plen = args->jobs;
     pqueue = calloc(plen, sizeof(*pqueue));
 
+    /* 7.b Override compiler with config */
+    if (config->cc != NULL) {
+        mace_set_compiler(config->cc);
+    }
+    if (config->ar != NULL) {
+        mace_set_archiver(config->ar);
+    }
+
+    /* 7.c Override compiler with input arguments */
     if (args->cc != NULL) {
-        cc = args->cc;
+        mace_set_compiler(args->cc);
+    }
+
+    /* 8. Check that compiler is set */
+    if (cc == NULL) {
+        fprintf(stderr, "Compiler not set. Exiting.\n");
+        exit(ENXIO);
     }
 }
 
