@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     char *nflag = "-n";
     char *sflag = "-s";
 
-    char *argv_run[] = {"./"STRINGIFY(BUILDER), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+    char *argv_run[] = {"./"STRINGIFY(BUILDER), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
     int argc_run = 1;
     if (args.build_all)
         argv_run[argc_run++] = Bflag;
@@ -112,6 +112,14 @@ int main(int argc, char *argv[]) {
     if (args.user_config != NULL) {
         argv_run[argc_run++] = "-g";
         argv_run[argc_run++] = args.user_config;
+    }
+    if (args.cc != NULL) {
+        argv_run[argc_run++] = "-c";
+        argv_run[argc_run++] = args.cc;
+    }
+    if (args.ar != NULL) {
+        argv_run[argc_run++] = "-a";
+        argv_run[argc_run++] = args.ar;
     }
 
     argv_run[argc_run++] = args.user_target;

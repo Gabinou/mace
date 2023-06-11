@@ -68,10 +68,18 @@ extern int mace(int argc, char *argv[]);
 /* --- SETTERS --- */
 
 /* -- Compiler -- */
+// Compiler setting priority:
+//      a- input argument (with -c,--cc)
+//      b- config
+//      c- macefile       (with MACE_SET_COMPILER,mace_set_compiler)
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
 
 /* -- Achiver -- */
+// Achiver setting priority:
+//      a- input argument (with -a,--ar)
+//      b- config
+//      c- macefile       (with MACE_SET_ARCHIVER,mace_set_archiver)
 #define MACE_SET_ARCHIVER(archiver) _MACE_SET_ARCHIVER(archiver)
 #define _MACE_SET_archiver(archiver) mace_set_archiver(#archiver)
 
@@ -262,6 +270,7 @@ struct Mace_Arguments {
     char        *user_config;
     char        *dir;
     char        *cc;
+    char        *ar;
     uint64_t     user_target_hash;
     uint64_t     user_config_hash;
     int          jobs;
@@ -4283,7 +4292,6 @@ void mace_link_static_library(struct Target *restrict target) {
 
 void mace_link_executable(struct Target *restrict target) {
     char *exec = mace_executable_path(target->_name);
-    sprintf("Linking  %s \n", cc);
     sprintf("Linking  %s \n", exec);
 
     char **argv_links    = target->_argv_links;
@@ -5855,16 +5863,20 @@ void mace_post_user(struct Mace_Arguments *args) {
     //   3- Checks that there are no circular dependency.
     //   4- Parse configs to set flags.
     //   5- Computes user_target order with priority:
-    //      a- Input argument
+    //      a- input argument
     //      b- config
     //      c- macefile
     //   6- Computes default target order from default target_hash.
     //   7- Allocs queue for processes.
     //   8- Overrides compiler with priority:
-    //      a- Input argument
+    //      a- input argument
     //      b- config
     //      c- macefile
-    //   9- Checks that compiler is set.
+    //   9- Overrides archiver with priority:
+    //      a- input argument
+    //      b- config
+    //      c- macefile
+    //   10- Checks that compiler and archiver are set.
 
     /* 1. Move to args->dir */
     if (args != NULL) {
@@ -5909,18 +5921,29 @@ void mace_post_user(struct Mace_Arguments *args) {
     if (config->cc != NULL) {
         mace_set_compiler(config->cc);
     }
-    if (config->ar != NULL) {
-        mace_set_archiver(config->ar);
-    }
 
     /* 8.c Override compiler with input arguments */
     if (args->cc != NULL) {
         mace_set_compiler(args->cc);
     }
 
-    /* 9. Check that compiler is set */
+    /* 9.b Override archiver with config */
+    if (config->ar != NULL) {
+        mace_set_archiver(config->ar);
+    }
+
+    /* 9.c Override archiver with input arguments */
+    if (args->ar != NULL) {
+        mace_set_archiver(args->ar);
+    }
+
+    /* 9. Check that compiler and archiver are set */
     if (cc == NULL) {
         fprintf(stderr, "Compiler not set. Exiting.\n");
+        exit(ENXIO);
+    }
+    if (ar == NULL) {
+        fprintf(stderr, "Archiver not set. Exiting.\n");
         exit(ENXIO);
     }
 }
@@ -6142,6 +6165,7 @@ void mace_sha1dc(char *file, uint8_t hash[SHA1_LEN]) {
 /* list of parg options to be parsed, with usage */
 static struct parg_opt longopts[] = {
     // {NULL,          PARG_NOARG,  0,  0,  NULL,   "Debug options:"},
+    {"ar",          PARG_REQARG, 0, 'a', NULL,   "Override archiver"},
     {"always-make", PARG_NOARG,  0, 'B', NULL,   "Build all targets without condition"},
     {"directory",   PARG_REQARG, 0, 'C', "DIR",  "Move to directory before anything else"},
     {"cc",          PARG_REQARG, 0, 'c', "CC",   "Override C compiler"},
@@ -6163,6 +6187,7 @@ struct Mace_Arguments Mace_Arguments_default = {
     .user_config_hash   = 0,
     .jobs               = 1,
     .cc                 = NULL,
+    .ar                 = NULL,
     .macefile           = NULL,
     .dir                = NULL,
     .debug              = false,
@@ -6174,24 +6199,26 @@ struct Mace_Arguments Mace_Arguments_default = {
 struct Mace_Arguments mace_combine_args_env(struct Mace_Arguments args, struct Mace_Arguments env) {
         struct Mace_Arguments out;
         /* Prioritize user arguments over environment */
-        bool _user_target = (args.user_target      != Mace_Arguments_default.user_target);
-        bool _macefile = (args.macefile         != Mace_Arguments_default.macefile);
-        bool _user_config = (args.user_config      != Mace_Arguments_default.user_config);
-        bool _dir = (args.dir              != Mace_Arguments_default.dir);
-        bool _cc = (args.cc               != Mace_Arguments_default.cc);
+        bool _user_target = (args.user_target           != Mace_Arguments_default.user_target);
+        bool _macefile = (args.macefile                 != Mace_Arguments_default.macefile);
+        bool _user_config = (args.user_config           != Mace_Arguments_default.user_config);
+        bool _dir = (args.dir                           != Mace_Arguments_default.dir);
+        bool _cc = (args.cc                             != Mace_Arguments_default.cc);
+        bool _ar = (args.ar                             != Mace_Arguments_default.cc);
         bool _user_target_hash = (args.user_target_hash != Mace_Arguments_default.user_target_hash);
         bool _user_config_hash = (args.user_config_hash != Mace_Arguments_default.user_config_hash);
-        bool _jobs = (args.jobs             != Mace_Arguments_default.jobs);
-        bool _debug = (args.debug            != Mace_Arguments_default.debug);
-        bool _silent = (args.silent           != Mace_Arguments_default.silent);
-        bool _dry_run = (args.dry_run          != Mace_Arguments_default.dry_run);
-        bool _build_all = (args.build_all        != Mace_Arguments_default.build_all);
+        bool _jobs = (args.jobs                         != Mace_Arguments_default.jobs);
+        bool _debug = (args.debug                       != Mace_Arguments_default.debug);
+        bool _silent = (args.silent                     != Mace_Arguments_default.silent);
+        bool _dry_run = (args.dry_run                   != Mace_Arguments_default.dry_run);
+        bool _build_all = (args.build_all               != Mace_Arguments_default.build_all);
 
         out.user_target      = _user_target      ? args.user_target      : env.user_target;
         out.macefile         = _macefile         ? args.macefile         : env.macefile;
         out.user_config      = _user_config      ? args.user_config      : env.user_config;
         out.dir              = _dir              ? args.dir              : env.dir;
         out.cc               = _cc               ? args.cc               : env.cc;
+        out.ar               = _ar               ? args.ar               : env.ar;
         out.user_target_hash = _user_target_hash ? args.user_target_hash : env.user_target_hash;
         out.user_config_hash = _user_config_hash ? args.user_config_hash : env.user_config_hash;
         out.jobs             = _jobs             ? args.jobs             : env.jobs;
@@ -6233,13 +6260,20 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
     if (argc <= 1)
         return (out_args);
 
-    while ((c = parg_getopt_long(&ps, argc, argv, "Bc:C:df:g:hj:no:sv", longopts, &longindex)) != -1) {
+    while ((c = parg_getopt_long(&ps, argc, argv, "a:Bc:C:df:g:hj:no:sv", longopts,
+                                 &longindex)) != -1) {
         switch (c) {
             case 1:
                 len = strlen(ps.optarg);
                 out_args.user_target = calloc(len + 1, sizeof(*out_args.user_target));
                 strncpy(out_args.user_target, ps.optarg, len);
                 out_args.user_target_hash = mace_hash(ps.optarg);
+                break;
+            case 'a':
+                printf("ps.optarg %s \n", ps.optarg);
+                len = strlen(ps.optarg);
+                out_args.ar = calloc(len + 1, sizeof(*out_args.dir));
+                strncpy(out_args.ar, ps.optarg, len);
                 break;
             case 'B':
                 out_args.build_all = true;
@@ -6255,7 +6289,7 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 strncpy(out_args.cc, ps.optarg, len);
                 break;
             case 'd':
-                out_args.debug      = true;
+                out_args.debug = true;
                 break;
             case 'f': {
                 len = strlen(ps.optarg);
@@ -6274,16 +6308,16 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 exit(0);
                 break;
             case 'j':
-                out_args.jobs       = atoi(ps.optarg);
+                out_args.jobs = atoi(ps.optarg);
                 if (out_args.jobs < 1) {
                     fprintf(stderr, "Error: Set number of jobs above 1.");
                 }
                 break;
             case 'n':
-                out_args.dry_run    = true;
+                out_args.dry_run = true;
                 break;
             case 's':
-                out_args.silent     = true;
+                out_args.silent = true;
                 break;
             case 'v':
                 printf("mace version %s\n", MACE_VER_STRING);
@@ -6293,6 +6327,8 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                     printf("option -C/--directory requires an argument\n");
                 } else if (ps.optopt == 'o') {
                     printf("option -o/--old-file requires an argument\n");
+                } else if (ps.optopt == 'a') {
+                    printf("option -a/--ar requires an argument\n");
                 } else if (ps.optopt == 'j') {
                     printf("option -j/--jobs requires an argument\n");
                 } else if (ps.optopt == 'f') {
@@ -6316,7 +6352,6 @@ void Mace_Arguments_Free(struct Mace_Arguments *args) {
     /* Skip if NULL */
     if (args == NULL)
         return;
-
     if (args->macefile != NULL) {
         free(args->macefile);
         args->macefile = NULL;
@@ -6332,6 +6367,10 @@ void Mace_Arguments_Free(struct Mace_Arguments *args) {
     if (args->cc != NULL) {
         free(args->cc);
         args->cc = NULL;
+    }
+    if (args->ar != NULL) {
+        free(args->ar);
+        args->ar = NULL;
     }
 }
 
