@@ -13,7 +13,7 @@ struct Config debug     = {.flags = "-g -O0"};
 struct Config release   = {.flags = "-O2"};
 // Cross-compilation config
 // win_debug target overrides default target set with MACE_DEFAULT_TARGET
-struct Config win_debug = {.flags = "-g -O0",              .target = "win_bar",
+struct Config win_debug = {.flags = "-g -O0", .target = "win_bar",
     .cc    = "x86_64-w64-mingw32-gcc",  .ar = "x86_64-w64-mingw32-ar"
 };
 

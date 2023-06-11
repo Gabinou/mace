@@ -112,8 +112,8 @@ struct Config;
 void    mace_add_config(struct Config *restrict config, char *restrict name);
 #define MACE_ADD_CONFIG(config)     mace_add_config(&config, #config)
 
-// By default, mace builds all targets.
 // When set by user, mace builds all only default target and its dependencies.
+// If no default target is set, mace builds all targets.
 void    mace_set_default_target(char *name);
 #define MACE_SET_DEFAULT_TARGET(target) mace_set_default_target(#target)
 
@@ -282,10 +282,10 @@ struct Mace_Arguments {
 void Mace_Arguments_Free(struct Mace_Arguments *args);
 
 /********************************** CONSTANTS *********************************/
-#define MACE_VER_PATCH 0
-#define MACE_VER_MINOR 0
+#define MACE_VER_PATCH 1
+#define MACE_VER_MINOR 4
 #define MACE_VER_MAJOR 0
-#define MACE_VER_STRING "0.0.0"
+#define MACE_VER_STRING "1.4.0"
 #define MACE_USAGE_MIDCOLW 12
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
