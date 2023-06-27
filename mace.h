@@ -4912,6 +4912,10 @@ void mace_print_message(const char *message) {
 }
 /********************************* mace_clean *********************************/
 int mace_unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+        /* Do not remove current directory */
+        if (ftwbuf->level == 0)
+            return 0;
+
         int rv = remove(fpath);
 
         if (rv)
@@ -4925,10 +4929,9 @@ int mace_rmrf(char *path) {
 }
 
 void mace_clean() {
-    sprintf("Cleaning\n");
-    sprintf("Removing '%s'\n", obj_dir);
+    sprintf("Cleaning '%s'\n", obj_dir);
     mace_rmrf(obj_dir);
-    sprintf("Removing '%s'\n", build_dir);
+    sprintf("Cleaning '%s'\n", build_dir);
     mace_rmrf(build_dir);
 }
 
