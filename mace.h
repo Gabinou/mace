@@ -248,7 +248,7 @@ struct Config {
     *                                                                      /
     * struct Config myconfig = {                                           /
     *     .target             = "foo",                                     /
-    *     .flags              = "-g -O0,-O0",                              /
+    *     .flags              = "-g -O0 -rdynamic",                        /
     * };                                                                   /
     *    NOTE: default separator is ",", set with 'mace_set_separator'     /
     *                                                                      /
@@ -361,8 +361,8 @@ void mace_add_target(struct Target   *restrict target,  char *restrict name);
 void mace_add_config(struct Config   *restrict config,  char *restrict name);
 
 /* -- Config struct OOP -- */
-void mace_Config_Free(struct Config        *config);
-int mace_Config_hasTarget(struct Config    *config, int target_order);
+void mace_Config_Free(struct Config     *config);
+int mace_Config_hasTarget(struct Config *config, int target_order);
 
 /* -- Target struct OOP -- */
 /* - Free - */
@@ -5195,20 +5195,22 @@ void mace_parse_config(struct Config *config) {
 
     /* -- Split flags string into target orders -- */
     int len = 8, i = 0;
+    config->_flags    = malloc(len * sizeof(*config->_flags));
     config->_flag_num = 0;
-    config->_flags = malloc(len * sizeof(*config->_flags));
+
     char *buffer = mace_str_buffer(config->flags);
-    char *token = strtok(buffer, mace_flag_separator);
+    char *token  = strtok(buffer, mace_flag_separator);
     do {
         char *flag = calloc(strlen(token), sizeof(*flag));
         strncpy(flag, token, strlen(token));
         config->_flags[config->_flag_num++] = flag;
+        /* Increase config->_flags size */
         if (config->_flag_num >= config->_flag_num) {
             len *= 2;
             size_t bytesize = len * sizeof(*config->_flags);
-            config->_flags = realloc(config->_flags, bytesize);
+            config->_flags  = realloc(config->_flags, bytesize);
         }
-        token = strtok(NULL, mace_separator);
+        token = strtok(NULL, mace_flag_separator);
     } while (token != NULL);
     free(buffer);
 }
