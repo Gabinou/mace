@@ -28,7 +28,7 @@ static int test_num = 0, fail_num = 0;
 static void nourstest_results() {
     char message[4] = "FAIL";
     if (fail_num == 0)
-        strncpy(message, "PASS", 4);
+        strncpy(message, "PASS", 5);
     printf("%s (%d/%d)\n", message, test_num - fail_num, test_num);
 }
 #define nourstest_true(test) do {\
@@ -519,7 +519,7 @@ void test_argv() {
     mace_Target_argv_compile(&CodenameFiresaga);
     assert(CodenameFiresaga._argv != NULL);
     nourstest_true(CodenameFiresaga._arg_len == 32);
-    nourstest_true(strcmp(CodenameFiresaga._argv[MACE_ARGV_CC], "gcc") == 0);
+    nourstest_true(CodenameFiresaga._argv[MACE_ARGV_CC] == NULL);
     nourstest_true(CodenameFiresaga._argv[MACE_ARGV_SOURCE] == NULL);
     nourstest_true(CodenameFiresaga._argv[MACE_ARGV_OBJECT] == NULL);
     nourstest_true(strcmp(CodenameFiresaga._argv[3],  buffer)                     == 0);
@@ -1552,7 +1552,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("object ",          test_object);
     nourstest_run("target ",          test_target);
     nourstest_run("circular ",        test_circular);
-    // nourstest_run("argv ",            test_argv);
+    nourstest_run("argv ",            test_argv);
     nourstest_run("argline ",         test_argline);
     nourstest_run("post_user ",       test_post_user);
     nourstest_run("separator ",       test_separator);
