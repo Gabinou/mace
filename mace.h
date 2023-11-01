@@ -19,7 +19,7 @@
 // TODO: think about strings
 //  - Idea: replace null-terminated strings with n8 pascal string
 //  - strncpy  -> memcpy
-//  - strncmp -> s8_Equal
+//  - strncmp -> s8equal
 //  - strtok -> ?
 
 #define _XOPEN_SOURCE 500
@@ -447,12 +447,30 @@ void  mace_wait_pid(int pid);
 void  mace_exec_print(char *const arguments[], size_t argnum);
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
-typedef uint8_t u8;
 /* --- Pascal String s8 strings --- */
+typedef uint8_t u8;
+typedef int32_t b32;
+#define countof(a)   (sizeof(a) / sizeof(*(a)))
+#define lengthof(s)  (countof(s) - 1)
+
 typedef struct {
     u8      *data;
     size_t   len;
 } s8;
+#define s8_literal(s) (s8){(u8 *)s, lengthof(s)}
+#define s8_var(s) s8_var_(s)
+#define s8_var_(s) (s8){(u8 *)s, strlen(s)}
+
+b32 s8equal(s8 *s1, s8 *s2) {
+    if(s1->len != s2->len)
+        return(false);
+
+    for (int i = 0; i < s1->len; i++)
+        if (s1->data[i] != s1->data[i])
+            return(false);
+
+    return(true);
+}
 
 /* --- mace_build --- */
 /* -- linking -- */
@@ -4156,11 +4174,11 @@ char* mace_args2line(char *const arguments[]) {
 
     char* argline = calloc(len, sizeof(*argline));
     while((arguments[i] != NULL) && (i < MACE_MAX_ITERATIONS)) {
-    size_t ilen = strlen(arguments[i]);
+        size_t ilen = strlen(arguments[i]);
         if ((num + ilen) > len) {
+            argline = realloc(argline, len * 2 * sizeof(*argline));
+            memset(argline + len, 0, len);
             len *= 2;
-            argline = realloc(argline, len * sizeof(*argline));
-            memset(arguments[i] + len / 2, 0, len / 2);
         }
         memcpy(argline + num, arguments[i], ilen);
         num += ilen;

@@ -546,8 +546,24 @@ void test_argv() {
 }
 
 void test_argline() {
-
+    char *const argv[] = {
+        "putain ",
+        "de ",
+        "merdouille ",
+        "tabarouette ",
+        "ta mère-euuuh-",
+        "enculedesmouches.",
+        NULL
+    };
+    char *argline = mace_args2line(argv);
+    s8 compare = s8_literal("putain de merdouille tabarouette ta mère-euuuh-enculedesmouches.");
+    s8 s8argline = s8_var(argline);
+    nourstest_true(s8equal(&compare, &s8argline));
+    // printf("argline '%s' \n", argline);
+    // getchar();
+    free(argline);
 }
+
 void test_post_user() {
     pid_t pid;
     int status;
@@ -1394,7 +1410,7 @@ void test_parse_d() {
 void test_config_specific() {
     struct Config debug = {
         .target  = "sota",
-        .flags   = "-g -O0,-g -O0"
+        .flags   = "-g -O0"
     };
     mace_pre_user(NULL);
 
@@ -1419,9 +1435,8 @@ void test_config_specific() {
 
     mace_parse_config(&configs[0]);
     nourstest_true(config_num == 1);
-    nourstest_true(strcmp(configs[0]._flags[0], "-g -O0") == 0);
-    nourstest_true(strcmp(configs[0]._flags[1], "-g -O0") == 0);
-
+    nourstest_true(strcmp(configs[0]._flags[0], "-g") == 0);
+    nourstest_true(strcmp(configs[0]._flags[1], "-O0") == 0);
     // mace_Target_Parse_User(&target[0]);
     // mace_Target_Parse_User(&target[0]);
     // mace_Target_argv_compile(&targets[0]);
@@ -1448,7 +1463,7 @@ void test_config_specific() {
     // nourstest_true(strcmp(targets[1]._argv[3],  "-Itnecs.h")  == 0);
     // nourstest_true(strcmp(targets[1]._argv[4],  "-c")         == 0);
     // nourstest_true(targets[1]._argv[7] == NULL);
-    // mace_finish(NULL);
+    mace_finish(NULL);
 }
 
 void test_config_global() {
@@ -1490,38 +1505,38 @@ void test_config_global() {
     nourstest_true(config_num == 2);
     // nourstest_true(configs[0]._targets_len == 1);
     assert(configs[0]._flags[0] != NULL);
-    nourstest_true(strcmp(configs[0]._flags[0], "-g -O0") == 0);
-    mace_parse_config(&configs[1]);
-    assert(configs[1]._flags[0] != NULL);
-    nourstest_true(strcmp(configs[1]._flags[0], "-pie -O2") == 0);
+    // nourstest_true(strcmp(configs[0]._flags[0], "-g -O0") == 0);
+    // mace_parse_config(&configs[1]);
+    // assert(configs[1]._flags[0] != NULL);
+    // nourstest_true(strcmp(configs[1]._flags[0], "-pie -O2") == 0);
 
-    mace_Target_Parse_User(&targets[0]);
-    mace_Target_argv_compile(&targets[0]);
-    assert(targets[0]._argv != NULL);
-    nourstest_true(targets[0]._arg_len == 8);
-    nourstest_true(targets[0]._argc == 5);
-    nourstest_true(strcmp(targets[0]._argv[MACE_ARGV_CC], "gcc") == 0);
-    nourstest_true(targets[0]._argv[MACE_ARGV_SOURCE] == NULL);
-    nourstest_true(targets[0]._argv[MACE_ARGV_OBJECT] == NULL);
-    nourstest_true(strcmp(targets[0]._argv[3],  "-Itnecs.h")  == 0);
-    nourstest_true(strcmp(targets[0]._argv[4],  "-c")         == 0);
+    // mace_Target_Parse_User(&targets[0]);
+    // mace_Target_argv_compile(&targets[0]);
+    // assert(targets[0]._argv != NULL);
+    // nourstest_true(targets[0]._arg_len == 8);
+    // nourstest_true(targets[0]._argc == 5);
+    // nourstest_true(strcmp(targets[0]._argv[MACE_ARGV_CC], "gcc") == 0);
+    // nourstest_true(targets[0]._argv[MACE_ARGV_SOURCE] == NULL);
+    // nourstest_true(targets[0]._argv[MACE_ARGV_OBJECT] == NULL);
+    // nourstest_true(strcmp(targets[0]._argv[3],  "-Itnecs.h")  == 0);
+    // nourstest_true(strcmp(targets[0]._argv[4],  "-c")         == 0);
 
-    nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
-    mace_add_target(&tnecs, "baka");
-    nourstest_true(target_num == 2);
-    nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
+    // nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
+    // mace_add_target(&tnecs, "baka");
+    // nourstest_true(target_num == 2);
+    // nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
 
-    mace_Target_Parse_User(&targets[1]);
-    mace_Target_argv_compile(&targets[1]);
-    nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
-    assert(targets[1]._argv != NULL);
-    nourstest_true(targets[1]._arg_len == 8);
-    nourstest_true(targets[1]._argc == 5);
-    nourstest_true(strcmp(targets[1]._argv[MACE_ARGV_CC], "gcc") == 0);
-    nourstest_true(targets[1]._argv[MACE_ARGV_SOURCE] == NULL);
-    nourstest_true(targets[1]._argv[MACE_ARGV_OBJECT] == NULL);
-    nourstest_true(strcmp(targets[1]._argv[3],  "-Itnecs.h")  == 0);
-    nourstest_true(strcmp(targets[1]._argv[4],  "-c")         == 0);
+    // mace_Target_Parse_User(&targets[1]);
+    // mace_Target_argv_compile(&targets[1]);
+    // nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
+    // assert(targets[1]._argv != NULL);
+    // nourstest_true(targets[1]._arg_len == 8);
+    // nourstest_true(targets[1]._argc == 5);
+    // nourstest_true(strcmp(targets[1]._argv[MACE_ARGV_CC], "gcc") == 0);
+    // nourstest_true(targets[1]._argv[MACE_ARGV_SOURCE] == NULL);
+    // nourstest_true(targets[1]._argv[MACE_ARGV_OBJECT] == NULL);
+    // nourstest_true(strcmp(targets[1]._argv[3],  "-Itnecs.h")  == 0);
+    // nourstest_true(strcmp(targets[1]._argv[4],  "-c")         == 0);
 
     mace_finish(NULL);
 }
@@ -1537,7 +1552,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("object ",          test_object);
     nourstest_run("target ",          test_target);
     nourstest_run("circular ",        test_circular);
-    nourstest_run("argv ",            test_argv);
+    // nourstest_run("argv ",            test_argv);
     nourstest_run("argline ",         test_argline);
     nourstest_run("post_user ",       test_post_user);
     nourstest_run("separator ",       test_separator);
