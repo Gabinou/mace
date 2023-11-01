@@ -261,13 +261,13 @@ struct Config {
     *---------------------------------------------------------------------*/
 
     /*-------------------------- PRIVATE MEMBERS -------------------------*/
-    char * _name;          /* config name                         */
+    char         * _name;          /* config name                         */
     uint64_t       _hash;          /* config name hash                    */
     int            _order;         /* config order added by user          */
 
-    uint64_t            _target_order;
-    char     ** _flags;
-    int                 _flag_num;      /* Number of flags                */
+    uint64_t       _target_order;
+    char        ** _flags;
+    int            _flag_num;      /* Number of flags                */
 };
 
 struct Mace_Arguments {
@@ -4166,6 +4166,7 @@ char* mace_args2line(char *const arguments[]) {
         num += ilen;
         i++;
     }
+    return(argline);
 }
 
 pid_t mace_exec_wbash(const char *exec, char *const arguments[]) {
