@@ -18,7 +18,7 @@
 // TODO: Think about arena allocators
 // TODO: think about strings
 //  - Idea: replace null-terminated strings with n8 pascal string
-//  - strncpy, strcat -> memcpy
+//  - strncpy  -> memcpy
 //  - strncmp -> s8_Equal
 //  - strtok -> ?
 
@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <errno.h>
 #include <glob.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -299,6 +298,7 @@ void Mace_Arguments_Free(struct Mace_Arguments *args);
 enum MACE {
     MACE_DEFAULT_TARGET_LEN     =    8,
     MACE_MAX_COMMANDS           =    8,
+    MACE_MAX_ITERATIONS         =  128,
     MACE_DEFAULT_OBJECT_LEN     =   16,
     MACE_DEFAULT_OBJECTS_LEN    =  128,
     MACE_CWD_BUFFERSIZE         =  128,
@@ -360,23 +360,23 @@ char **mace_argv_flags(int * len, int * argc, char ** argv,
 /* --- mace_setters --- */
 char *mace_set_obj_dir(char    *obj);
 char *mace_set_build_dir(char  *build);
-void mace_set_compiler(char    *cc);
-void mace_set_archiver(char    *ar);
+void mace_set_compiler(char   *cc);
+void mace_set_archiver(char   *ar);
 
 /* --- mace add --- */
 void mace_add_target(struct Target   * target,  char * name);
 void mace_add_config(struct Config   * config,  char * name);
 
 /* -- Config struct OOP -- */
-void mace_Config_Free(    struct Config *config);
+void mace_Config_Free(struct Config     *config);
 int mace_Config_hasTarget(struct Config *config, int target_order);
 
 /* -- Target struct OOP -- */
 /* - Free - */
-void mace_Target_Free(             struct Target *target);
-void mace_Target_Free_argv(        struct Target *target);
-void mace_Target_Free_notargv(     struct Target *target);
-void mace_Target_Free_excludes(    struct Target *target);
+void mace_Target_Free(struct Target              *target);
+void mace_Target_Free_argv(struct Target         *target);
+void mace_Target_Free_notargv(struct Target      *target);
+void mace_Target_Free_excludes(struct Target     *target);
 void mace_Target_Free_deps_headers(struct Target *target);
 
 /* - Grow - */
@@ -446,6 +446,13 @@ pid_t mace_exec(const char * exec, char *const arguments[]);
 void  mace_wait_pid(int pid);
 void  mace_exec_print(char *const arguments[], size_t argnum);
 #ifndef MACE_CONVENIENCE_EXECUTABLE
+
+typedef uint8_t u8;
+/* --- Pascal String s8 strings --- */
+typedef struct {
+    u8      *data;
+    size_t   len;
+} s8;
 
 /* --- mace_build --- */
 /* -- linking -- */
@@ -3578,7 +3585,7 @@ void mace_add_target(struct Target *target, char *name) {
     for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++) {
         if (hash == mace_reserved_targets[i]) {
             fprintf(stderr,  "Error: '%s' is a reserved target name.\n", name);
-            exit(EPERM);
+            exit(1);
         }
     }
     targets[target_num]._hash    = hash;
@@ -3616,7 +3623,7 @@ void mace_default_target_order() {
     }
 
     fprintf(stderr, "Default target not found. Exiting");
-    exit(EPERM);
+    exit(1);
 }
 
 void mace_user_config_set(uint64_t hash, char *name) {
@@ -3631,7 +3638,7 @@ void mace_user_config_set(uint64_t hash, char *name) {
     }
 
     fprintf(stderr, "User config '%s' not found. Exiting\n", name);
-    exit(EPERM);
+    exit(1);
 }
 
 void mace_user_target_set(uint64_t hash, char *name) {
@@ -3651,7 +3658,7 @@ void mace_user_target_set(uint64_t hash, char *name) {
     }
 
     fprintf(stderr, "User target '%s' not found. Exiting.\n", name);
-    exit(EPERM);
+    exit(1);
 }
 
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
@@ -3705,7 +3712,7 @@ void mace_set_compiler(char *compiler) {
         ar = "llvm-ar";
     } else {
         fprintf(stderr, "mace error: unknown compiler '%s'. \n", compiler);
-        exit(EPERM);
+        exit(1);
     }
 }
 
@@ -4079,11 +4086,11 @@ void mace_argv_add_config(struct Target *target, char ** *argv, int * argc,
 void mace_set_separator(char *sep) {
     if (sep == NULL) {
         fprintf(stderr, "Separator should not be NULL.\n");
-        exit(EPERM);
+        exit(1);
     }
     if (strlen(sep) != 1) {
         fprintf(stderr, "Separator should have length one.\n");
-        exit(EPERM);
+        exit(1);
     }
     mace_separator = sep;
 }
@@ -4121,7 +4128,7 @@ glob_t mace_glob_sources(const char *path) {
                  ret == GLOB_NOMATCH ? "no match of pattern" :
                  ret == GLOB_NOSPACE ? "no dynamic memory" :
                  "unknown problem"));
-        exit(ENOENT);
+        exit(1);
     }
 
     return (globbed);
@@ -4130,6 +4137,7 @@ glob_t mace_glob_sources(const char *path) {
 int mace_globerr(const char *path, int eerrno) {
     fprintf(stderr, "%s: %s\n", path, strerror(eerrno));
     exit(eerrno);
+    return(1);
 }
 
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
@@ -4142,11 +4150,49 @@ void mace_exec_print(char *const arguments[], size_t argnum) {
     vsprintf("\n");
 }
 
-pid_t mace_exec(const char * exec, char *const arguments[]) {
+char* mace_args2line(char *const arguments[]) {
+    int i   = 0;
+    int num = 0, len = 64;
+
+    char* argline = calloc(len, sizeof(*argline));
+    while((arguments[i] != NULL) && (i < MACE_MAX_ITERATIONS)) {
+    size_t ilen = strlen(arguments[i]);
+        if ((num + ilen) > len) {
+            len *= 2;
+            argline = realloc(argline, len * sizeof(*argline));
+            memset(arguments[i] + len / 2, 0, len / 2);
+        }
+        memcpy(argline + num, arguments[i], ilen);
+        num += ilen;
+        i++;
+    }
+}
+
+pid_t mace_exec_wbash(const char *exec, char *const arguments[]) {
+    char *argline = mace_args2line(arguments);
     pid_t pid = fork();
     if (pid < 0) {
         fprintf(stderr, "Error: forking issue.\n");
-        exit(ENOENT);
+        exit(1);
+    } else if (pid == 0) {
+        char *bashargs[] = {
+            "/bin/bash",
+            "-c",
+            argline,
+            NULL
+        };
+        execvp("/bin/bash", bashargs);
+        exit(0);
+    }
+    free(argline);
+    return (pid);
+}
+
+pid_t mace_exec(const char *exec, char *const arguments[]) {
+    pid_t pid = fork();
+    if (pid < 0) {
+        fprintf(stderr, "Error: forking issue.\n");
+        exit(1);
     } else if (pid == 0) {
         execvp(exec, arguments);
         exit(0);
@@ -4154,7 +4200,7 @@ pid_t mace_exec(const char * exec, char *const arguments[]) {
     return (pid);
 }
 
-// Wait on process with pid to finish
+/* Wait on process with pid to finish */
 void mace_wait_pid(int pid) {
     int status;
     if (waitpid(pid, &status, 0) > 0) {
@@ -4189,8 +4235,8 @@ void mace_link_dynamic_library(struct Target * target) {
 
     /* --- Adding target --- */
     size_t oflag_len = 2;
-    size_t lib_len = strlen(lib);
-    char *libv     = calloc(lib_len + oflag_len + 1, sizeof(*libv));
+    size_t lib_len   = strlen(lib);
+    char *libv       = calloc(lib_len + oflag_len + 1, sizeof(*libv));
     strncpy(libv, "-o", oflag_len);
     strncpy(libv + oflag_len, lib, lib_len);
     int libc  = argc;
@@ -4199,14 +4245,14 @@ void mace_link_dynamic_library(struct Target * target) {
     /* --- Adding -fPIC flag --- */
     char *fPICflag     = calloc(6, sizeof(*fPICflag));
     strncpy(fPICflag, "-fPIC", 5);
-    int cfPICflag = argc;
-    argv[argc++] = fPICflag;
+    int cfPICflag   = argc;
+    argv[argc++]    = fPICflag;
 
     /* --- Adding -shared flag --- */
     char *sharedflag     = calloc(8, sizeof(*sharedflag));
     strncpy(sharedflag, "-shared", 7);
     int csharedflag = argc;
-    argv[argc++] = sharedflag;
+    argv[argc++]    = sharedflag;
 
     /* --- Adding objects --- */
     if ((argc_objects > 0) && (argv_objects != NULL)) {
@@ -4573,7 +4619,7 @@ bool mace_Target_Object_Add(struct Target * target, char * token) {
         target->_argv_objects_cnt[hash_id]++;
         if (target->_argv_objects_cnt[hash_id] >= 10) {
             fprintf(stderr, "Too many same name sources/objects\n");
-            exit(EPERM);
+            exit(1);
         }
     }
 
@@ -4653,7 +4699,7 @@ void mace_Headers_Checksums(struct Target *target) {
                 fprintf(stderr, "Could not read checksum from '%s'. Deleting. \n", checksum_path);
                 fclose(fd);
                 remove(checksum_path);
-                exit(EIO);
+                exit(1);
             }
             changed = !mace_sha1dc_cmp(hash_previous, hash_current);
             fclose(fd);
@@ -4663,8 +4709,8 @@ void mace_Headers_Checksums(struct Target *target) {
         if (changed) {
             fd = fopen(checksum_path, "w");
             if (fd == NULL) {
-                fprintf(stderr, "Error:%d %s\n", errno, strerror(errno));
-                exit(EPERM);
+                fprintf(stderr, "Could not open file %s", checksum_path);
+                exit(1);
             }
             fwrite(hash_current, 1, SHA1_LEN, fd); // SHA1_LEN
             fclose(fd);
@@ -4695,7 +4741,7 @@ bool mace_Source_Checksum(struct Target *target, char *source_path, char *obj_pa
             fprintf(stderr, "Could not read checksum from '%s'. Deleting. \n", checksum_path);
             fclose(fd);
             remove(checksum_path);
-            exit(EIO);
+            exit(1);
         }
         changed = !mace_sha1dc_cmp(hash_previous, hash_current);
         fclose(fd);
@@ -4705,8 +4751,8 @@ bool mace_Source_Checksum(struct Target *target, char *source_path, char *obj_pa
     if (changed) {
         fd = fopen(checksum_path, "w");
         if (fd == NULL) {
-            fprintf(stderr, "Error:%d %s\n", errno, strerror(errno));
-            exit(EPERM);
+            fprintf(stderr, "Could not open file %s", checksum_path);
+            exit(1);
         }
         fwrite(hash_current, 1, SHA1_LEN, fd); // SHA1_LEN
         fclose(fd);
@@ -4733,7 +4779,7 @@ bool mace_Target_Source_Add(struct Target * target, char * token) {
     /* - Expand path - */
     char *rpath = calloc(PATH_MAX, sizeof(*rpath));
     if (realpath(arg, rpath) == NULL) {
-        printf("Warning! realpath error : %s '%s'\n", strerror(errno), arg);
+        printf("Warning! realpath error : %s\n", rpath);
         free(rpath);
         rpath = arg;
     } else {
@@ -4883,7 +4929,7 @@ void mace_object_path(char *source) {
 
     if (path == NULL) {
         fprintf(stderr, "Object directory '%s' does not exist.\n", obj_dir);
-        exit(ENOENT);
+        exit(1);
     }
 
     /* --- Grow object string --- */
@@ -5023,7 +5069,7 @@ void mace_prebuild_target(struct Target *target) {
 
         } else {
             fprintf(stderr, "Error: source is neither a .c file, a folder, nor has a wildcard in it\n");
-            exit(ENOENT);
+            exit(1);
         }
 
         token = strtok(NULL, mace_separator);
@@ -5052,7 +5098,7 @@ void mace_build_target(struct Target *target) {
     /* --- Linking --- */
     if ((target->kind <= MACE_TARGET_NULL) || (target->kind >= MACE_TARGET_NUM)) {
         fprintf(stderr, "Wrong target type.");
-        exit(EPERM);
+        exit(1);
     }
     mace_link[target->kind - 1](target);
     assert(chdir(cwd) == 0);
@@ -5090,7 +5136,7 @@ void mace_build_order_add(size_t order) {
     assert(build_order_num < target_num);
     if (mace_in_build_order(order, build_order, build_order_num)) {
         fprintf(stderr, "Target ID is already in build_order. Exiting.");
-        exit(EPERM);
+        exit(1);
     }
     build_order[build_order_num++] = order;
 }
@@ -5129,7 +5175,7 @@ void mace_build_order_recursive(struct Target target, size_t * o_cnt) {
     /* All dependencies of target were built, add it to build order */
     if (target._d_cnt != target._deps_links_num) {
         fprintf(stderr, "Error: Not all target dependencies before target in build order.");
-        exit(EPERM);
+        exit(1);
     }
 
     mace_build_order_add(order);
@@ -5194,7 +5240,7 @@ void mace_parse_config(struct Config *config) {
     mace_Config_Free(config);
     if (config->flags == NULL) {
         fprintf(stderr, "Config has no flags.");
-        exit(EPERM);
+        exit(1);
     }
 
     if (config->target != NULL)
@@ -5660,7 +5706,7 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
     if ((obj_file_flag[0] != '-') || (obj_file_flag[1] != 'o')) {
         /* error? */
         fprintf(stderr, "obj_file_flag '%s' missing the -o flag.");
-        exit(EPERM);
+        exit(1);
     }
     int oflagl = 2;
     int obj_hash_id;
@@ -5689,7 +5735,7 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
     FILE *fd = fopen(obj_file, "rb");
     if (fd == NULL) {
         fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
-        exit(EPERM);
+        exit(1);
     }
     target->_deps_headers_num[source_i] = 0;
 
@@ -5774,7 +5820,7 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
     if ((obj_file_flag[0] != '-') || (obj_file_flag[1] != 'o')) {
         /* error? */
         fprintf(stderr, "obj_file_flag '%s' missing the -o flag.");
-        exit(EPERM);
+        exit(1);
     }
     int oflagl = 2;
     int obj_hash_id;
@@ -5793,7 +5839,7 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
     FILE *fho = fopen(obj_file, "rb");
     if (fho == NULL) {
         fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
-        exit(EPERM);
+        exit(1);
     }
 
     /* Get total number of bytes in file */
@@ -5841,7 +5887,7 @@ void mace_pre_user(struct Mace_Arguments *args) {
     /* --- Record cwd --- */
     if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
         fprintf(stderr, "getcwd() error\n");
-        exit(errno);
+        exit(1);
     }
 
     /* --- Reserved target names --- */
@@ -5900,13 +5946,13 @@ void mace_post_user(struct Mace_Arguments *args) {
     /* 2. Check that a target exists */
     if ((targets == NULL) || (target_num <= 0)) {
         fprintf(stderr, "No targets to compile. Exiting.\n");
-        exit(ENXIO);
+        exit(1);
     }
 
     /* 3. Check for circular dependency */
     if (mace_circular_deps(targets, target_num)) {
         fprintf(stderr, "Circular dependency in linked library detected. Exiting\n");
-        exit(ENXIO);
+        exit(1);
     }
 
     /* 4. Parsing configs */
@@ -5952,11 +5998,11 @@ void mace_post_user(struct Mace_Arguments *args) {
     /* 9. Check that compiler and archiver are set */
     if (cc == NULL) {
         fprintf(stderr, "Compiler not set. Exiting.\n");
-        exit(ENXIO);
+        exit(1);
     }
     if (ar == NULL) {
         fprintf(stderr, "Archiver not set. Exiting.\n");
-        exit(ENXIO);
+        exit(1);
     }
 }
 
@@ -6080,7 +6126,7 @@ char *mace_checksum_filename(char *file, int mode) {
     char *slash      = strrchr(file, '/'); // last slash in path
     if (dot == NULL) {
         fprintf(stderr, "Could not find extension in filename");
-        exit(EPERM);
+        exit(1);
     }
 
     /* File length of just file without extension */
@@ -6137,8 +6183,8 @@ void mace_sha1dc(char *file, uint8_t hash[SHA1_LEN]) {
     /* - open file - */
     FILE *fd = fopen(file, "rb");
     if (fd == NULL) {
-        fprintf(stderr, "cannot open file: %s: %s\n", file, strerror(errno));
-        exit(EPERM);
+        fprintf(stderr, "cannot open file: %s\n", file);
+        exit(1);
     }
 
     /* - compute checksum - */
@@ -6152,12 +6198,12 @@ void mace_sha1dc(char *file, uint8_t hash[SHA1_LEN]) {
             break;
     }
     if (ferror(fd)) {
-        fprintf(stderr, " file read error: %s: %s\n", file, strerror(errno));
-        exit(EPERM);
+        fprintf(stderr, " file read error: %s\n", file);
+        exit(1);
     }
     if (!feof(fd)) {
-        fprintf(stderr, "not end of file?: %s: %s\n", file, strerror(errno));
-        exit(EPERM);
+        fprintf(stderr, "not end of file?: %s\n", file);
+        exit(1);
     }
 
     /* - check for collision - */
@@ -6165,7 +6211,7 @@ void mace_sha1dc(char *file, uint8_t hash[SHA1_LEN]) {
 
     if (foundcollision) {
         fprintf(stderr, "sha1dc: collision detected");
-        exit(EPERM);
+        exit(1);
     }
 
     fclose(fd);
@@ -6348,11 +6394,11 @@ struct Mace_Arguments mace_parse_args(int argc, char *argv[]) {
                 } else {
                     printf("unknown option -%c\n", ps.optopt);
                 }
-                exit(EPERM);
+                exit(1);
                 break;
             default:
                 printf("error: unhandled option -%c\n", c);
-                exit(EPERM);
+                exit(1);
                 break;
         }
     }
