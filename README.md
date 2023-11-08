@@ -62,7 +62,8 @@ See the first ~250 lines of `mace.h`
     - Full C functionality in your macefile.
 
 ## Limitations
-- Tested on Linux only.
+- POSIX glob.h required.
+    - On Windows, Cygwin or MSYS2 shells might work. Untested.
 - Cannot deal with circular dependencies.
 - C99 and above, C++ not supported.
 
@@ -92,6 +93,7 @@ See the first ~250 lines of `mace.h`
 
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
+- API inspired by [Premake5](https://premake.github.io/).
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
  
