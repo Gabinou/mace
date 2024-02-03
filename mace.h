@@ -4175,7 +4175,6 @@ char *mace_args2line(char *const arguments[]) {
         memset(argline + len, 0, len);
         len *= 2;
     }
-    argline[num++] = ' ';
     argline[num] = '\0';
     return (argline);
 }

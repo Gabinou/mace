@@ -547,20 +547,20 @@ void test_argv() {
 
 void test_argline() {
     char *const argv[] = {
-        "putain ",
-        "de ",
-        "merdouille ",
-        "tabarouette ",
+        "putain",
+        "de",
+        "merdouille",
+        "tabarouette",
         "ta mère-euuuh-",
         "enculedesmouches.",
         NULL
     };
     char *argline = mace_args2line(argv);
-    s8 compare = s8_literal("putain de merdouille tabarouette ta mère-euuuh-enculedesmouches.");
+    s8 compare = s8_literal("putain de merdouille tabarouette ta mère-euuuh- enculedesmouches. ");
     s8 s8argline = s8_var(argline);
     nourstest_true(s8equal(&compare, &s8argline));
-    // printf("argline '%s' \n", argline);
-    // getchar();
+    printf("\nargline '%s' \n", argline);
+    getchar();
     free(argline);
 }
 
