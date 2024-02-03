@@ -23,7 +23,7 @@ struct Config win_debug = {.flags = "-g -O0", .target = "win_bar",
 /* 3. mace function is declared in mace.h, MUST be defined by user      */
 /*======================================================================*/
 int mace(int argc, char *argv[]) {
-    MACE_SET_COMPILER(CC):
+    MACE_SET_COMPILER(CC);
     MACE_SET_BUILD_DIR(build);
     MACE_SET_OBJ_DIR(obj);
 
@@ -67,7 +67,7 @@ int mace(int argc, char *argv[]) {
     // Change default target from 'all' to `foo`, skipping `bar_test`.
     // `bar` depends on `foo`, so `foo` gets built first.
     // NOTE: if user selects win_debug config, this default target is overriden
-    MACE_DEFAULT_TARGET(bar);
+    MACE_SET_DEFAULT_TARGET(bar);
 
     /* -- Configs -- */
     MACE_ADD_CONFIG(debug);     /* First config is default config         */
