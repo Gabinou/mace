@@ -3742,14 +3742,6 @@ void argv_free(int argc, char **argv) {
     argv = NULL;
 }
 
-char **argv_grows(int * len, int * argc, char ** argv) {
-    if ((*argc) >= (*len)) {
-        (*len) *= 2;
-        argv = realloc(argv, (*len) * sizeof(*argv));
-    }
-    return (argv);
-}
-
 void mace_argv_free(char **argv, int argc) {
     for (int i = 0; i < argc; i++) {
         if (argv[i] != NULL) {
@@ -3772,7 +3764,7 @@ char **mace_argv_flags(int * len, int * argc, char ** argv,
     char *sav = NULL;
     char *token = strtok_r(buffer, separator, &sav);
     while (token != NULL) {
-        argv = argv_grows(len, argc, argv);
+        argv = mace_argv_grow(argv, argc, len);
         char *to_use = token;
         char *rpath = NULL;
         if (path) {
@@ -3967,8 +3959,7 @@ void mace_Target_sources_grow(struct Target *target) {
     }
 
     /* -- Realloc sources -- */
-    target->_argv_sources = argv_grows(&target->_len_sources, &target->_argc_sources,
-                                       target->_argv_sources);
+    target->_argv_sources = mace_argv_grow(target->_argv_sources, &target->_argc_sources, &target->_len_sources);
 
     /* -- Realloc objects -- */
     if (target->_len_sources >= target->_argc_objects_hash) {
@@ -3981,10 +3972,11 @@ void mace_Target_sources_grow(struct Target *target) {
 
 char **mace_argv_grow(char ** argv, int * argc, int * arg_len) {
     if (*argc >= *arg_len) {
-        (*arg_len) *= 2;
-        size_t bytesize = *arg_len * sizeof(*argv);
+        size_t new_len = (*arg_len) * 2;
+        size_t bytesize = new_len * sizeof(*argv);
         argv = realloc(argv, bytesize);
-        memset(argv + (*arg_len) / 2, 0, bytesize / 2);
+        memset(argv + (*arg_len), 0, bytesize / 2);
+        (*arg_len) = new_len;
     }
     return (argv);
 }
@@ -4177,12 +4169,13 @@ char* mace_args2line(char *const arguments[]) {
         i++;
     }
 
-    if ((num + 1) > len) {
+    while ((num + 1) > len) {
         argline = realloc(argline, len * 2 * sizeof(*argline));
         memset(argline + len, 0, len);
         len *= 2;
     }
     argline[num++] = ' ';
+    argline[num] = '\0';
     return(argline);
 }
 
