@@ -1409,7 +1409,6 @@ void test_parse_d() {
 
 void test_config_specific() {
     struct Config debug = {
-        .target  = "sota",
         .flags   = "-g -O0"
     };
     mace_pre_user(NULL);
@@ -1481,11 +1480,8 @@ void test_config_global() {
     mace_mkdir(build_dir);
 
     mace_set_separator(",");
-    assert(debug.target == NULL);
     MACE_ADD_CONFIG(debug);
     MACE_ADD_CONFIG(release);
-    assert(configs[0].target == NULL);
-    assert(configs[1].target == NULL);
     assert(config_num == 2);
 
     mace_user_config_set(mace_hash("release"), "release");
