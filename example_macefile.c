@@ -22,7 +22,7 @@ struct Config win_debug     = {
 };
 
 struct Config win_release   = {
-    .flags  = "-O2",                
+    .flags  = "-O2",
     .cc     = "x86_64-w64-mingw32-gcc",
     .ar     = "x86_64-w64-mingw32-ar"
 };
@@ -35,7 +35,7 @@ struct Config l2w_tcc_debug     = {
 };
 
 struct Config l2w_tcc_release   = {
-    .flags  = "-O2",                
+    .flags  = "-O2",
     .cc     = "x86_64-win32-tcc",
     .ar     = "x86_64-win32-tcc -ar"
 };
@@ -47,7 +47,7 @@ struct Config l2w_gcc_debug     = {
 };
 
 struct Config l2w_gcc_release   = {
-    .flags  = "-O2",                
+    .flags  = "-O2",
     .cc     = "x86_64-w64-mingw32-gcc",
     .ar     = "x86_64-w64-mingw32-ar"
 };
@@ -118,7 +118,7 @@ struct Target win_sota = {
                 "include/systems,names,names/popup,names/menu,"
                 "second_party/noursmath,second_party/tnecs,"
                 "second_party/parg,second_party/nourstest,"
-                "third_party/physfs,third_party/tinymt," 
+                "third_party/physfs,third_party/tinymt,"
                 "third_party/stb,third_party/cJson,"
                 "/usr/include/SDL2",
     .sources  = "src/*.c,src/bars/,src/menu/,src/popup/,"
@@ -126,7 +126,7 @@ struct Target win_sota = {
                 "src/controller",
     .links    = "SDL2,SDL2_image,SDL2_mixer,m,cjson,"
                 "noursmath,physfs,tinymt,tnecs,parg",
-                /* TODO: Remove flags given by sdl2-config */
+    /* TODO: Remove flags given by sdl2-config */
     .flags    = "-lmingw32,-lSDL2main,-std=iso9899:1999,"
                 "-fno-strict-overflow,-fno-strict-aliasing,"
                 "-fwrapv,-fno-delete-null-pointer-checks,"
@@ -143,7 +143,7 @@ struct Target sota = {
                 "include/systems,names,names/popup,names/menu,"
                 "second_party/noursmath,second_party/tnecs,"
                 "second_party/parg,second_party/nourstest,"
-                "third_party/physfs,third_party/tinymt," 
+                "third_party/physfs,third_party/tinymt,"
                 "third_party/stb,third_party/cJson,"
                 "/usr/include/SDL2",
     .sources  = "src,src/bars/,src/menu/,src/popup/,"
@@ -167,10 +167,10 @@ struct Target l2w_sota = {
                 "include/systems,names,names/popup,names/menu,"
                 "second_party/noursmath,second_party/tnecs,"
                 "second_party/parg,second_party/nourstest,"
-                "third_party/physfs,third_party/tinymt," 
+                "third_party/physfs,third_party/tinymt,"
                 "third_party/stb,third_party/cJson,"
                 "/usr/local/x86_64-w64-mingw32/include,",
-                "/usr/local/lib/tcc/win32/include",
+    "/usr/local/lib/tcc/win32/include",
     .sources  = "src,src/bars/,src/menu/,src/popup/,"
                 "src/systems/,src/game/,src/map/,src/unit/,"
                 "src/controller/",
@@ -229,11 +229,11 @@ int mace(int argc, char *argv[]) {
     MACE_ADD_CONFIG(l2w_tcc_debug);
     MACE_ADD_CONFIG(l2w_gcc_debug);
     MACE_ADD_CONFIG(l2w_gcc_release);
-    
+
     /* -- Targets -- */
     /* - second_party - */
     MACE_ADD_TARGET(noursmath);
-    MACE_ADD_TARGET(parg); 
+    MACE_ADD_TARGET(parg);
     MACE_ADD_TARGET(tnecs);
 
     /* - third_party - */
@@ -255,5 +255,5 @@ int mace(int argc, char *argv[]) {
     MACE_TARGET_CONFIG(sota, debug);
     MACE_TARGET_CONFIG(test, debug);
 
-    return(0);
+    return (0);
 }
