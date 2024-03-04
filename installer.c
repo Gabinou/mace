@@ -51,14 +51,14 @@ int mace(int argc, char *argv[]) {
 
     /* -- mace convenience executable -- */
     // Note: "mace" token is reserved for user entry point.
-    struct Target MACE      = { /* Unitialized values guaranteed to be 0 / NULL */
-        .sources            = "mace.c",
-        .kind               = MACE_EXECUTABLE,
+    struct Target MACE  = { /* Unitialized values guaranteed to be 0 / NULL */
+        .sources        = "mace.c",
+        .kind           = MACE_EXECUTABLE,
         // Overrides main in mace.h with custom main.
-        .flags              = "-DMACE_OVERRIDE_MAIN -DCC="STRINGIFY(CC)" "
+        .flags          = "-DMACE_OVERRIDE_MAIN -DCC="STRINGIFY(CC)" "
                               "-DBUILDER="STRINGIFY(BUILDER)" "
                               "-DDEFAULT_MACEFILE="STRINGIFY(DEFAULT_MACEFILE),
-        .command_post_build =
+        .cmd_post       =
                 /* Install mace convenience executable*/
                 "install -T " STRINGIFY(BUILD_DIR) "/mace " STRINGIFY(PREFIX) "/bin/mace &&"
                 /* Install mace.h header*/
@@ -73,4 +73,5 @@ int mace(int argc, char *argv[]) {
 
     // Add target with different name, i.e. "mace"
     mace_add_target(&MACE, "mace");
+    return(0);
 }
