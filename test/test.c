@@ -1537,7 +1537,54 @@ void test_config_global() {
     mace_finish(NULL);
 }
 
-// TODO: test compiling a source file with NO INCLUDES
+void test_target_no_includes() {
+    mace_pre_user(NULL);
+    mace_set_obj_dir(MACE_TEST_OBJ_DIR);
+    mace_set_build_dir(MACE_TEST_BUILD_DIR);
+    mace_mkdir(obj_dir);
+    mace_mkdir(build_dir);
+
+    struct Mace_Arguments args = Mace_Arguments_default;
+    mace_pre_user(&args);
+
+    mace_set_separator(",");
+    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
+        .sources            = "test.c",
+        .base_dir           = ".",
+        .kind               = MACE_EXECUTABLE,
+    };
+    MACE_ADD_TARGET(tnecs);
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
+
+    mace_post_user(&args);
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
+
+    mace_make_dirs();
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
+
+    mace_build_order_targets();
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
+
+    /* --- Check which objects need recompilation --- */
+    mace_prebuild_targets();
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
+
+    /* --- Perform compilation with build_order --- */
+    mace_build_targets();
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
+
+    mace_finish(NULL);
+}
+
+// TODO: flags disappearing after 128 flags
+//      Flags get printed
+//      Flags DON'T get executed
 
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
@@ -1559,6 +1606,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("parse_d ",         test_parse_d);
     nourstest_run("config_global ",   test_config_global);
     nourstest_run("config_spec ",     test_config_specific);
+    nourstest_run("no_includes ",     test_target_no_includes);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
