@@ -91,6 +91,11 @@ See the first ~250 lines of `mace.h`
 2. Compile test: `gcc benchmarks.c -o bench`
 3. Run benchmarks `./benchmarks`
 
+### Known issues
+- Some flags disappear if they are too numerous
+- Can't compile targets if there are no headers?
+    - Cannot reproduce in tests
+
 ## Credits
 - Inspiration for this project: [mage](https://github.com/magefile/mage)
 - API inspired by [Premake5](https://premake.github.io/).
