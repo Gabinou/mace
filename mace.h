@@ -4816,7 +4816,9 @@ bool mace_Target_Object_Add(struct Target *target, char *token) {
 }
 
 void mace_Headers_Checksums_Checks(struct Target *target) {
-    assert(target->_hdrs_changed != NULL);
+    if (target->_hdrs_changed != NULL)
+        return;
+
     if (build_all) {
         size_t bytesize = target->_argc_sources * sizeof(*target->_recompiles);
         memset(target->_recompiles, 1, bytesize);
