@@ -24,7 +24,7 @@ Specificity, reduced scope, everything in service of *simplicity*.
 
 Use the MACEFLAGS environment variable to set default flags.
  
-### How to: Make-like build
+### How to: Make-like convenience executable build
 1. Install `mace` convenience executable
     1. Bootstrapping: `gcc installer.c -o installer`
     2. Run installer: `sudo ./installer`. 
