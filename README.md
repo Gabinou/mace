@@ -7,9 +7,9 @@ Uses C to exclusively build C.
 Specificity, reduced scope, everything in service of *simplicity*. 
 
 ## Features
-- C syntax: `macefile.c`.
+- C syntax build file.
 - Simple API.
-- Single header build system: `mace.h`.
+- Single header: `mace.h`.
 - `make`-like usage and flags with `mace` convenience executable.
 - Tab completion (`zsh` only), see `_mace.zsh`
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
