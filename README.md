@@ -12,28 +12,24 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - Single header build system: `mace.h`.
 - `make`-like usage and flags with `mace` convenience executable.
 - Tab completion (`zsh` only), see `_mace.zsh`
-- Compatible with gcc, clang, tcc toolchains.
+- Compatible with `gcc`, `clang`, `tcc` toolchains.
 
-## How to
+## How to: Single-header build 
 1. Get `mace.h`
-2. Write your own macefile e.g. `macefile.c` ([example](https://github.com/Gabinou/mace/blob/master/example_macefile.c))
-3. Compile builder executable `gcc macefile.c -o builder`
-4. Build `./builder` 
+2. Write your own macefile e.g. [`macefile.c`](https://github.com/Gabinou/mace/blob/master/example_macefile.c)
+3. Bootstrapping: `gcc macefile.c -o builder`
+4. Building: `./builder` 
     1. Reserved targets: `./builder clean`, `./builder all`
     2. Configs: `./builder -g release`
 
 Use the MACEFLAGS environment variable to set default flags.
-
-### Convenience executable
-Compile and build with a single `mace` command.
-
+ 
+### How to: Make-like build
 1. Install `mace` convenience executable
-    1. Compile `installer.c`: `gcc installer.c -o installer`
+    1. Bootstrapping: `gcc installer.c -o installer`
     2. Run installer: `sudo ./installer`. 
 2. Write your own macefile e.g. `macefile.c`
-3. Build `mace`
-
-The `mace` convenience executable also use the environment variable MACEFLAGS.
+3. Bootstrapping & building: `mace`
 
 Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
@@ -43,29 +39,19 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 - `-DAR=<archiver>` to change archiver used by `mace`. Defaults to `ar`.
 - `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
 
-## Documentation
-
-See the first ~250 lines of `mace.h`
-- `Target` and `Config` structs
-- Public functions and macros  
-- `mace` function
-
 ## Why?
-- I want a much simpler build system.
-    - Complexity bad. Simplicity good.
-- I want to build C projects only.
-- Using C to build C gets me free lunches.
-    - No weird syntax to create.
-    - No bespoke parser to implement.
+- Too many build complex, slow build systems.
 - Using C to build C gets you free lunches.
     - Learning C is learning `mace`.
     - Full C functionality in your macefile.
+- Using C to build C gets me free lunches.
+    - No weird syntax to create.
+    - No bespoke parser to implement.
 
 ## Limitations
 - POSIX glob.h required.
-    - On Windows, Cygwin or MSYS2 shells might work. Untested.
-- Cannot deal with circular dependencies.
-- C99 and above, C++ not supported.
+    - On Windows, `Cygwin` or `MSYS2` shells might work. Untested.
+- Circular dependencies unsupported.
 
 ## Under the hood
 - User inputs target dependencies with `target.links` and `target.dependencies`
@@ -74,12 +60,6 @@ See the first ~250 lines of `mace.h`
     - Uses checksum to check if sources, headers change for recompilation.
 - Compiler computes object file dependencies, saved to `.d` files in `<obj_dir>`
     - Parsed into binary `.ho` file for faster reading.
-
-### Lines
-- mace.h: ~6400 Lines
-    - parg:     ~600 lines
-    - sha1dc:   ~3000 lines
-    - mace:     ~3800 lines
 
 ### Running tests
 1. `cd` into test folder
