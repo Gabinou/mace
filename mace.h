@@ -272,6 +272,11 @@ struct Config {
     int            _flag_num;      /* Number of flags                */
 };
 
+/*----------------------------------------------------------------------------*/
+/*                            PRIVATE INTERNALS                               */
+/*----------------------------------------------------------------------------*/
+
+
 struct Mace_Arguments {
     char        *user_target;
     char        *macefile;
