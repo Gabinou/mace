@@ -92,7 +92,6 @@ See the first ~250 lines of `mace.h`
 3. Run benchmarks `./benchmarks`
 
 ### Known issues
-- Some flags disappear if they are too numerous
 - Can't compile targets if there are no headers?
     - Cannot reproduce in tests
 
