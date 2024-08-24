@@ -5503,6 +5503,7 @@ void mace_pre_build() {
         return;
 
     for (int z = 0; z < build_order_num; z++) {
+        mace_Target_Grow_Headers(&targets[build_order[z]]);
         mace_prebuild_target(&targets[build_order[z]]);
     }
 }
@@ -5694,6 +5695,9 @@ void mace_Target_Grow_deps_headers(struct Target *target, int source_i) {
 }
 
 void mace_Target_Grow_Headers(struct Target *target) {
+    /*  1- Alloc headers if NULL,                       */
+    /*  2- Grow headers if num close enough to len      */
+
     /* -- Alloc headers -- */
     if (target->_headers == NULL) {
         target->_headers_len = 8;

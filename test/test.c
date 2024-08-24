@@ -1563,6 +1563,7 @@ void test_config_global() {
 }
 
 void test_target_no_includes() {
+    mace_post_build(NULL);
     mace_pre_user(NULL);
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
     mace_set_build_dir(MACE_TEST_BUILD_DIR);
@@ -1583,14 +1584,6 @@ void test_target_no_includes() {
     nourstest_true(targets != NULL);
 
     mace_post_user(&args);
-    nourstest_true(target_num == 1);
-    nourstest_true(targets != NULL);
-
-    mace_make_dirs();
-    nourstest_true(target_num == 1);
-    nourstest_true(targets != NULL);
-
-    mace_build_order();
     nourstest_true(target_num == 1);
     nourstest_true(targets != NULL);
 
