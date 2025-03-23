@@ -3,6 +3,7 @@
 !.gitignore
 !style.txt
 !style.sh
+!lint.sh
 !*.h
 !*.c
 !*.d
