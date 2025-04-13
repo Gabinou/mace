@@ -29,7 +29,7 @@ typedef int32_t b32;
 #define countof(a)   (sizeof(a) / sizeof(*(a)))
 #define lengthof(s)  (countof(s) - 1)
 
-typedef struct {
+typedef struct s8 {
     u8      *data;
     size_t   len;
 } s8;
@@ -583,13 +583,13 @@ void test_argline() {
     s8 s8argline = s8_var(argline);
     nourstest_true(s8equal(&compare, &s8argline));
     printf("\nargline '%s' \n", argline);
-    getchar();
     free(argline);
 }
 
 void test_post_user() {
-    pid_t pid;
-    int status;
+    pid_t pid = 0;
+    int status = 0;
+    mace_target = 0;
 
     // mace does not exit if nothing is wrong
     mace_pre_user(NULL);
@@ -617,6 +617,7 @@ void test_post_user() {
     }
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) == 0);
+    mace_pre_user(&args);
 
     // mace exits as expected if CC is NULL
     pid = fork();
@@ -1566,6 +1567,7 @@ void test_target_no_includes() {
     mace_mkdir(build_dir);
 
     struct Mace_Arguments args = Mace_Arguments_default;
+    mace_default_target = 0;
     mace_pre_user(&args);
 
     mace_set_separator(",");
@@ -1575,6 +1577,7 @@ void test_target_no_includes() {
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(tnecs);
+    mace_target = 0;
     nourstest_true(target_num == 1);
     nourstest_true(targets != NULL);
 

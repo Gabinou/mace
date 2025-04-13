@@ -6119,6 +6119,7 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
     assert(target->_deps_headers[source_i] != NULL);
     fread(target->_deps_headers[source_i], bytesize, 1, fho);
     fclose(fho);
+    free(obj_file);
 }
 
 /// @brief Save header order dependencies to .ho. .d should exist.
@@ -6213,6 +6214,10 @@ void mace_post_user(struct Mace_Arguments *args) {
         fprintf(stderr, "Circular dependency in linked library detected. Exiting\n");
         exit(1);
     }
+    
+    if (targets == NULL) {
+        return;
+    }
 
     /* 4. Parsing configs */
     mace_parse_configs();
@@ -6227,6 +6232,7 @@ void mace_post_user(struct Mace_Arguments *args) {
 
     /* 7. Check which config should be compiled */
     mace_user_config_set(args->user_config_hash, args->user_config);
+    assert(mace_target < target_num);
     mace_config_resolve(&targets[mace_target]);
     struct Config *config = &configs[mace_config];
 
