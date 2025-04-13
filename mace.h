@@ -32,9 +32,9 @@
 
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
-/*----------------------------------------------------------------------------*/
-/*                                ENTRY POINT                                 */
-/*----------------------------------------------------------------------------*/
+/*----------------------------------------------*/
+/*                  ENTRY POINT                 */
+/*----------------------------------------------*/
 
 // The 'mace' function must be implemented by the user.
 extern int mace(int argc, char *argv[]);
@@ -50,21 +50,21 @@ extern int mace(int argc, char *argv[]);
 //      - First added config is default
 //   8- Set target config   -> MACE_TARGET_CONFIG
 
-/*---------------------------------------------------------------------*/
-/*                               EXAMPLE                                /
-*                             MACE FUNCTION                             /
-* int mace(int argc, char *argv[]) {                                    /
-*   MACE_SET_COMPILER(gcc);                                             /
-*   MACE_SET_OBJ_DIR(obj);                                              /
-*   MACE_SET_BUILD_DIR(build);                                          /
-*   ...                                                                 /
-*   MACE_ADD_TARGET(foo);                                               /
-* };                                                                    /
-*----------------------------------------------------------------------*/
+/*----------------------------------------------*/
+/*                   EXAMPLE                     /
+*                 MACE FUNCTION                  /
+* int mace(int argc, char *argv[]) {             /
+*   MACE_SET_COMPILER(gcc);                      /
+*   MACE_SET_OBJ_DIR(obj);                       /
+*   MACE_SET_BUILD_DIR(build);                   /
+*   ...                                          /
+*   MACE_ADD_TARGET(foo);                        /
+* };                                             /
+*------------------------------------------------*/
 
-/*---------------------------------------------------------------------*/
-/*                             PUBLIC API                              */
-/*---------------------------------------------------------------------*/
+/*----------------------------------------------*/
+/*                  PUBLIC API                  */
+/*----------------------------------------------*/
 
 /* -- Targets -- */
 struct Target;
