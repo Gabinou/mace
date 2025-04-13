@@ -1646,7 +1646,7 @@ int mace(int argc, char *argv[]) {
     nourstest_run("parse_d ",         test_parse_d);
     nourstest_run("config_global ",   test_config_global);
     nourstest_run("config_spec ",     test_config_specific);
-    nourstest_run("no_includes ",     test_target_no_includes);
+    nourstest_run("no_includes \n",   test_target_no_includes);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
