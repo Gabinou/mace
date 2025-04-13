@@ -5269,7 +5269,7 @@ void mace_run_commands(const char *commands) {
 ///     - Compute checksums for each source, header file 
 ///     - Check which files need to be re-compiled depending on checksums 
 void mace_prebuild_target(struct Target *target) {
-    sprintf("\nPre-Build target %s\n", target->_name);
+    sprintf("Pre-Build target %s\n", target->_name);
     // Check which sources don't need to be recompiled
     /* --- Move to target base_dir, compile there --- */
     if (target->base_dir != NULL)
