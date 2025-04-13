@@ -5269,7 +5269,7 @@ void mace_run_commands(const char *commands) {
 ///     - Compute checksums for each source, header file 
 ///     - Check which files need to be re-compiled depending on checksums 
 void mace_prebuild_target(struct Target *target) {
-    sprintf("Pre-Build target %s\n", target->_name);
+    sprintf("\nPre-Build target %s\n", target->_name);
     // Check which sources don't need to be recompiled
     /* --- Move to target base_dir, compile there --- */
     if (target->base_dir != NULL)
@@ -5396,12 +5396,14 @@ void mace_build_order_recursive(struct Target target, size_t *o_cnt) {
 
     size_t order = mace_target_order(target); // target order
     /* Target already in build order, skip */
-    if (mace_in_build_order(order, build_order, build_order_num))
+    if (mace_in_build_order(order, build_order, build_order_num)) {
         return;
+    }
 
     /* Target has no dependencies, add target to build order */
     if (target._deps_links == NULL) {
         mace_build_order_add(order);
+        assert(mace_in_build_order(order, build_order, build_order_num));
         return;
     }
 
@@ -5416,8 +5418,9 @@ void mace_build_order_recursive(struct Target target, size_t *o_cnt) {
     }
 
     /* Target already in build order, skip */
-    if (mace_in_build_order(order, build_order, build_order_num))
+    if (mace_in_build_order(order, build_order, build_order_num)) {
         return;
+    }
 
     if (target._d_cnt != target._deps_links_num) {
         fprintf(stderr, "Error: Not all target dependencies before target in build order.\n");
@@ -5536,12 +5539,14 @@ void mace_build_order(void) {
         return;
     }
     /* If user_target is clean, no build order */
-    if (mace_user_target == MACE_CLEAN_ORDER)
+    if (mace_user_target == MACE_CLEAN_ORDER) {
         return;
+    }
 
     /* If user_target not set and default target is clean, no build order */
-    if ((mace_user_target == MACE_NULL_ORDER) && (mace_default_target == MACE_CLEAN_ORDER))
+    if ((mace_user_target == MACE_NULL_ORDER) && (mace_default_target == MACE_CLEAN_ORDER)) {
         return;
+    }
 
     // If user_target is not all, or default_target is not all
     //  - Build only specified target
@@ -6236,7 +6241,6 @@ void mace_post_user(struct Mace_Arguments *args) {
 
     /* 7. Check which config should be compiled */
     mace_user_config_set(args->user_config_hash, args->user_config);
-    printf("%d %d", mace_target, target_num);
     assert(mace_target < target_num);
     mace_config_resolve(&targets[mace_target]);
     struct Config *config = &configs[mace_config];
