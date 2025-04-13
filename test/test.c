@@ -587,8 +587,8 @@ void test_argline() {
 }
 
 void test_post_user() {
-    pid_t pid = 0;
-    int status = 0;
+    pid_t pid   = 0;
+    int status  = 0;
     mace_target = 0;
 
     // mace does not exit if nothing is wrong
@@ -601,6 +601,11 @@ void test_post_user() {
     };
     MACE_ADD_TARGET(tnecs);
     struct Mace_Arguments args = Mace_Arguments_default;
+    mace_target         = 0;
+    mace_user_target    = 0;
+    mace_default_target = 0;
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
 
     pid = fork();
     if (pid < 0) {
@@ -612,12 +617,15 @@ void test_post_user() {
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(&args);
+        mace_post_build(NULL);
+        mace_post_build(&args);
         close(fd);
         exit(0);
     }
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) == 0);
-    mace_pre_user(&args);
+    mace_post_build(&args);
+    mace_post_build(NULL);
 
     // mace exits as expected if CC is NULL
     pid = fork();
@@ -631,6 +639,8 @@ void test_post_user() {
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(&args);
+        mace_post_build(NULL);
+        mace_post_build(&args);
         close(fd);
         exit(0);
     }
@@ -640,6 +650,7 @@ void test_post_user() {
 
     // MACE_SET_COMPILER(gcc);
     mace_post_build(NULL);
+    mace_post_build(&args);
 }
 
 void test_separator() {

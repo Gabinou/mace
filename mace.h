@@ -6219,6 +6219,10 @@ void mace_post_user(struct Mace_Arguments *args) {
         return;
     }
 
+    if (target_num == 0) {
+        return;
+    }
+
     /* 4. Parsing configs */
     mace_parse_configs();
 
@@ -6232,6 +6236,7 @@ void mace_post_user(struct Mace_Arguments *args) {
 
     /* 7. Check which config should be compiled */
     mace_user_config_set(args->user_config_hash, args->user_config);
+    printf("%d %d", mace_target, target_num);
     assert(mace_target < target_num);
     mace_config_resolve(&targets[mace_target]);
     struct Config *config = &configs[mace_config];
