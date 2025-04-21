@@ -73,5 +73,6 @@ int mace(int argc, char *argv[]) {
 
     // Add target with different name, i.e. "mace"
     mace_add_target(&MACE, "mace");
+    MACE_SET_DEFAULT_TARGET(mace);
     return(0);
 }
