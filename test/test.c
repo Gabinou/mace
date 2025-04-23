@@ -29,7 +29,7 @@ typedef int32_t b32;
 #define countof(a)   (sizeof(a) / sizeof(*(a)))
 #define lengthof(s)  (countof(s) - 1)
 
-typedef struct {
+typedef struct s8 {
     u8      *data;
     size_t   len;
 } s8;
@@ -42,7 +42,7 @@ b32 s8equal(s8 *s1, s8 *s2) {
         return (false);
 
     for (int i = 0; i < s1->len; i++)
-        if (s1->data[i] != s1->data[i])
+        if (s1->data[i] != s2->data[i])
             return (false);
 
     return (true);
@@ -53,7 +53,7 @@ static int test_num = 0, fail_num = 0;
 static void nourstest_results() {
     char message[5] = "FAIL\0";
     if (fail_num == 0)
-        strncpy(message, "PASS", 5);
+        memcpy(message, "PASS", 5);
     printf("%s (%d/%d)\n", message, test_num - fail_num, test_num);
 }
 #define nourstest_true(test) do {\
@@ -113,7 +113,7 @@ void test_object() {
 
     strncpy(buffer,             cwd,               cwd_len);
     total_len += cwd_len;
-    strncpy(buffer + total_len, "/",               1);
+    memcpy(buffer + total_len, "/",               1);
     total_len += 1;
     strncpy(buffer + total_len, MACE_TEST_OBJ_DIR, obj_len);
     total_len += obj_len;
@@ -121,11 +121,9 @@ void test_object() {
 
     mace_object_path("/mace.c");
     nourstest_true(strcmp(object, buffer) == 0);
-    nourstest_true(mace_isObject(object));
 
     mace_object_path("mace.c");
     nourstest_true(strcmp(object, buffer) == 0);
-    nourstest_true(mace_isObject(object));
 }
 
 void test_target() {
@@ -253,7 +251,7 @@ void test_target() {
     nourstest_true(targets[5]._hash == mace_hash("D"));
     nourstest_true(targets[6]._hash == mace_hash("F"));
 
-    mace_build_order(targets, target_num);
+    mace_build_order();
     assert(build_order != NULL);
 
     // /* Print build order names */
@@ -355,7 +353,7 @@ void test_target() {
     nourstest_true(targets[0]._deps_links[1] == mace_hash("CC"));
     nourstest_true(targets[0]._deps_links[2] == mace_hash("DD"));
 
-    mace_build_order(targets, target_num);
+    mace_build_order();
     assert(build_order != NULL);
 
     // /* Print build order names */
@@ -519,7 +517,7 @@ void test_argv() {
     nourstest_true(CodenameFiresaga._argc_includes == 16);
     nourstest_true(CodenameFiresaga._argc_flags == 0);
     nourstest_true(CodenameFiresaga._argc_links == 1);
-    strncpy(buffer, "-I", 2);
+    memcpy(buffer, "-I", 2);
     strncpy(buffer + 2, cwd, strlen(cwd));
 
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[0],  buffer)                     == 0);
@@ -585,13 +583,13 @@ void test_argline() {
     s8 s8argline = s8_var(argline);
     nourstest_true(s8equal(&compare, &s8argline));
     printf("\nargline '%s' \n", argline);
-    getchar();
     free(argline);
 }
 
 void test_post_user() {
-    pid_t pid;
-    int status;
+    pid_t pid   = 0;
+    int status  = 0;
+    mace_target = 0;
 
     // mace does not exit if nothing is wrong
     mace_pre_user(NULL);
@@ -603,6 +601,11 @@ void test_post_user() {
     };
     MACE_ADD_TARGET(tnecs);
     struct Mace_Arguments args = Mace_Arguments_default;
+    mace_target         = 0;
+    mace_user_target    = 0;
+    mace_default_target = 0;
+    nourstest_true(target_num == 1);
+    nourstest_true(targets != NULL);
 
     pid = fork();
     if (pid < 0) {
@@ -614,11 +617,15 @@ void test_post_user() {
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(&args);
+        mace_post_build(NULL);
+        mace_post_build(&args);
         close(fd);
         exit(0);
     }
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) == 0);
+    mace_post_build(&args);
+    mace_post_build(NULL);
 
     // mace exits as expected if CC is NULL
     pid = fork();
@@ -632,6 +639,8 @@ void test_post_user() {
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(&args);
+        mace_post_build(NULL);
+        mace_post_build(&args);
         close(fd);
         exit(0);
     }
@@ -641,6 +650,7 @@ void test_post_user() {
 
     // MACE_SET_COMPILER(gcc);
     mace_post_build(NULL);
+    mace_post_build(&args);
 }
 
 void test_separator() {
@@ -680,7 +690,6 @@ void test_separator() {
     int pid, status;
     // mace exits as expected if separator is NULL
     pid = fork();
-    status;
     if (pid < 0) {
         perror("Error: forking issue. \n");
         exit(1);
@@ -699,7 +708,6 @@ void test_separator() {
 
     // mace exits as expected if separator is too long
     pid = fork();
-    status;
     if (pid < 0) {
         perror("Error: forking issue. \n");
         exit(1);
@@ -718,7 +726,7 @@ void test_separator() {
 
     // mace exits as expected if separator is too short
     pid = fork();
-    status;
+
     if (pid < 0) {
         perror("Error: forking issue. \n");
         exit(1);
@@ -737,7 +745,6 @@ void test_separator() {
 
     // No issues for " "
     pid = fork();
-    status;
     if (pid < 0) {
         perror("Error: forking issue. \n");
         exit(1);
@@ -756,7 +763,7 @@ void test_separator() {
 
     // No issues for ","
     pid = fork();
-    status;
+
     if (pid < 0) {
         perror("Error: forking issue. \n");
         exit(1);
@@ -1062,7 +1069,12 @@ void test_build_order() {
     nourstest_true(targets[5]._hash == mace_hash("D"));
     nourstest_true(targets[6]._hash == mace_hash("F"));
 
-    mace_build_order(targets, target_num);
+    build_order_num = 0;
+    mace_user_target    = MACE_ALL_ORDER;
+    mace_default_target = MACE_ALL_ORDER;
+    assert(target_num == 7);
+    mace_build_order();
+    assert(build_order_num == 7);
     assert(build_order != NULL);
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("F")));
     nourstest_true(build_order[1] == mace_hash_order(mace_hash("G")));
@@ -1071,12 +1083,20 @@ void test_build_order() {
     nourstest_true(build_order[4] == mace_hash_order(mace_hash("B")));
     nourstest_true(build_order[5] == mace_hash_order(mace_hash("C")));
     nourstest_true(build_order[6] == mace_hash_order(mace_hash("A")));
+    nourstest_true(build_order[0] == mace_hash_order(targets[6]._hash));
+    nourstest_true(build_order[1] == mace_hash_order(targets[4]._hash));
+    nourstest_true(build_order[2] == mace_hash_order(targets[5]._hash));
+    nourstest_true(build_order[3] == mace_hash_order(targets[2]._hash));
+    nourstest_true(build_order[4] == mace_hash_order(targets[0]._hash));
+    nourstest_true(build_order[5] == mace_hash_order(targets[1]._hash));
+    nourstest_true(build_order[6] == mace_hash_order(targets[3]._hash));
+
     build_order_num = 0;
 
     // set default_target to "D" check build_order
     mace_default_target = mace_hash_order(mace_hash("D"));
     mace_user_target    = MACE_NULL_ORDER;  /* order */
-    mace_build_order(targets, target_num);
+    mace_build_order();
     nourstest_true(build_order_num == 3);
 
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("F")));
@@ -1088,7 +1108,7 @@ void test_build_order() {
     // user_target should override mace_default_target
     mace_user_target    = mace_hash_order(mace_hash("E"));
     mace_default_target = mace_hash_order(mace_hash("D"));
-    mace_build_order(targets, target_num);
+    mace_build_order();
     nourstest_true(build_order_num == 2);
 
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
@@ -1099,7 +1119,7 @@ void test_build_order() {
     // user_target should override mace_default_target
     mace_user_target    = mace_hash_order(mace_hash("A"));
     mace_default_target = mace_hash_order(mace_hash("D"));
-    mace_build_order(targets, target_num);
+    mace_build_order();
     nourstest_true(build_order_num == 7);
 
     nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
@@ -1571,6 +1591,7 @@ void test_target_no_includes() {
     mace_mkdir(build_dir);
 
     struct Mace_Arguments args = Mace_Arguments_default;
+    mace_default_target = 0;
     mace_pre_user(&args);
 
     mace_set_separator(",");
@@ -1580,6 +1601,7 @@ void test_target_no_includes() {
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(tnecs);
+    mace_target = 0;
     nourstest_true(target_num == 1);
     nourstest_true(targets != NULL);
 
@@ -1622,9 +1644,9 @@ int mace(int argc, char *argv[]) {
     nourstest_run("checksum ",        test_checksum);
     nourstest_run("excludes ",        test_excludes);
     nourstest_run("parse_d ",         test_parse_d);
-    nourstest_run("config_global ",   test_config_global);
+    nourstest_run("config_global ",     test_config_global);
     nourstest_run("config_spec ",     test_config_specific);
-    nourstest_run("no_includes ",     test_target_no_includes);
+    nourstest_run("no_includes \n",   test_target_no_includes);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");

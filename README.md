@@ -16,9 +16,9 @@ Specificity, reduced scope, everything in service of *simplicity*.
 
 ## How to: Single-header build 
 1. Get `mace.h`
-2. Write your own macefile e.g. [`macefile.c`](https://github.com/Gabinou/mace/blob/master/example_macefile.c)
-3. Bootstrapping: `gcc macefile.c -o builder`
-4. Building: `./builder` 
+2. Write your own [`macefile.c`](https://github.com/Gabinou/mace/blob/master/example_macefile.c)
+3. Bootstrap: `gcc macefile.c -o builder`
+4. Build: `./builder` 
     1. Reserved targets: `./builder clean`, `./builder all`
     2. Configs: `./builder -g release`
 
@@ -26,12 +26,12 @@ Use the MACEFLAGS environment variable to set default flags.
  
 ### How to: Make-like convenience executable build
 1. Install `mace` convenience executable
-    1. Bootstrapping: `gcc installer.c -o installer`
-    2. Run installer: `sudo ./installer`. 
-2. Write your own macefile e.g. `macefile.c`
-3. Bootstrapping & building: `mace`
+    1. Bootstrap: `gcc installer.c -o installer`
+    2. Install: `sudo ./installer`. 
+2. Write your own `macefile.c`
+3. Build: `mace`
 
-Use these macro definitions when compiling `installer` to customize `mace`:
+Flags for `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
 - `-DDEFAULT_MACEFILE=<file>` to change default macefile name. Defaults to `macefile.c`.
 - `-DBUILDER=<file>` to change builder executable path.
@@ -63,7 +63,10 @@ Use these macro definitions when compiling `installer` to customize `mace`:
 
 ### Running tests
 1. `cd` into test folder
-2. Compile test: `gcc test.c -o test -I..`
+2. Compile test:
+```bash
+gcc --std=iso9899:1999 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fwrapv -fno-delete-null-pointer-checks -g test.c -o test -I..
+```
 3. Run tests `./test`
 
 ### Running benchmarks
@@ -76,8 +79,5 @@ Use these macro definitions when compiling `installer` to customize `mace`:
     - Cannot reproduce in tests
 
 ## Credits
-- Inspiration for this project: [mage](https://github.com/magefile/mage)
-- API inspired by [Premake5](https://premake.github.io/).
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
- 
