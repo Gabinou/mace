@@ -600,7 +600,7 @@ void test_post_user() {
         .kind               = MACE_STATIC_LIBRARY,
     };
     MACE_ADD_TARGET(tnecs);
-    struct Mace_Arguments args = Mace_Arguments_default;
+    Mace_Args args = Mace_Args_default;
     mace_target         = 0;
     mace_user_target    = 0;
     mace_default_target = 0;
@@ -781,7 +781,7 @@ void test_separator() {
     nourstest_true(WEXITSTATUS(status) == 0);
 }
 void test_parse_args() {
-    struct Mace_Arguments args;
+    Mace_Args args;
     int len                 = 8;
     int argc                = 0;
     char **argv             = calloc(len, sizeof(*argv));
@@ -798,7 +798,7 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     nourstest_true(args.build_all        == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -814,7 +814,7 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     nourstest_true(args.build_all        == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -831,7 +831,7 @@ void test_parse_args() {
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
     nourstest_true(args.build_all        == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 #undef TARGET
@@ -849,7 +849,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == false);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 #undef TARGET
@@ -866,7 +866,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == false);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -882,7 +882,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == false);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -898,7 +898,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == true);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -914,7 +914,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == false);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -930,7 +930,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == false);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == false);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -946,7 +946,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == false);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == true);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -962,7 +962,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == false);
     nourstest_true(args.silent           == false);
     nourstest_true(args.dry_run          == true);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 
@@ -979,7 +979,7 @@ void test_parse_args() {
     nourstest_true(args.debug            == true);
     nourstest_true(args.silent           == true);
     nourstest_true(args.dry_run          == true);
-    Mace_Arguments_Free(&args);
+    Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
 }
@@ -1590,7 +1590,7 @@ void test_target_no_includes() {
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
-    struct Mace_Arguments args = Mace_Arguments_default;
+    Mace_Args args = Mace_Args_default;
     mace_default_target = 0;
     mace_pre_user(&args);
 
