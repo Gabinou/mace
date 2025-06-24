@@ -1,5 +1,5 @@
 
-## About
+# mace
 
 Single-header build system for C.
 Uses C to exclusively build C.
@@ -10,7 +10,7 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - C syntax build file.
 - Simple API.
 - Single header: `mace.h`.
-- `make`-like usage and flags with `mace` convenience executable.
+- `make`-like usage, flags with `mace` convenience executable.
 - Tab completion (`zsh` only), see `_mace.zsh`
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
 
@@ -40,7 +40,7 @@ Flags for `installer` to customize `mace`:
 - `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
 
 ## Why?
-- Too many build complex, slow build systems.
+- Too many complex, slow build systems.
 - Using C to build C gets you free lunches.
     - Learning C is learning `mace`.
     - Full C functionality in your macefile.
@@ -79,5 +79,7 @@ gcc --std=iso9899:1999 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fw
     - Cannot reproduce in tests
 
 ## Credits
+Copyright (c) 2025 Gabriel Taillon
+
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
