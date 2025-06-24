@@ -75,7 +75,16 @@ extern int mace(int argc, char *argv[]);
 /*----------------------------------------------*/
 
 /* -- Types -- */
-typedef int32_t b32;
+typedef uint8_t     u8;
+typedef uint16_t    u16;
+typedef uint32_t    u32;
+typedef uint64_t    u64;
+typedef int8_t      i8;
+typedef int16_t     i16;
+typedef int32_t     i32;
+typedef int64_t     i64;
+typedef int32_t     b32;
+
 /* -- Targets -- */
 struct Target;
 // Note: stringifies variable name for hashing
@@ -152,7 +161,7 @@ enum MACE_TARGET_KIND { /* for target.kind */
 };
 
 /******************* STRUCTS ******************/
-struct Target {
+typedef struct Target {
     /*------------- PUBLIC MEMBERS --------------*/
     const char *includes;   /* dirs */
     const char *sources;    /* files, dirs, glob */
@@ -191,7 +200,7 @@ struct Target {
     /*                      EXAMPLE                     /
     **                 TARGET DEFINITION                /
     **                                                  /
-    ** struct Target mytarget = {                       /
+    ** Target mytarget = {                       /
     **     .includes           = "include,include/foo", /
     **     .sources            = "src/'*'',src/bar.c",  /
     **     .sources_exclude    = "src/main.c",          /
@@ -208,7 +217,7 @@ struct Target {
     /* target name                         */
     char *_name;
     /* target name hash                    */
-    uint64_t       _hash;
+    u64       _hash;
     /* target order added by user          */
     int            _order;
 
@@ -248,7 +257,7 @@ struct Target {
     // include objects with number to prevent
     // collisions!
     /* objects, in argv form        */
-    uint64_t *_argv_objects_hash; 
+    u64 *_argv_objects_hash; 
     /* num of args in argv_sources  */
     int       _argc_objects_hash; 
     /* sources, in argv form        */
@@ -257,20 +266,20 @@ struct Target {
     int       *_argv_objects_cnt; 
     /* Note: Includes objects with number to
     ** prevent collisions.          */
-    uint64_t *_objects_hash_nocoll;
+    u64 *_objects_hash_nocoll;
     int       _objects_hash_nocoll_num;
     int       _objects_hash_nocoll_len;
 
     /* -- Exclusions --  */
     /* hash of excluded source files      */
-    uint64_t   *_excludes;
+    u64   *_excludes;
     int _excludes_num;
     int _excludes_len;
 
     /* --- Dependencies ---  */
     /* -- Target dependencies --  */
     /* target or libs hashes               */
-    uint64_t    *_deps_links;       
+    u64    *_deps_links;       
     /* target or libs hashes               */
     size_t       _deps_links_num;   
     /* target or libs hashes               */
@@ -279,7 +288,7 @@ struct Target {
     size_t       _d_cnt;            
 
     /* -- Object dependencies --  */
-    uint64_t   *_headers_checksum_hash;
+    u64   *_headers_checksum_hash;
     char      **_headers_checksum;
     /* # hdrs with same path   */
     int        *_headers_checksum_cnt;
@@ -288,7 +297,7 @@ struct Target {
     char      **_headers;
     /* Note: Same number of _headers and _headers_checksum */
     /* [hdr_order] filename hashes */
-    uint64_t   *_headers_hash;
+    u64   *_headers_hash;
     /* len of headers              */
     int         _headers_num;
     /* number of headers           */
@@ -308,10 +317,10 @@ struct Target {
     b32 *_recompiles;
     /* [hdr_order]      */
     b32 *_hdrs_changed;
-};
+} Target;
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 
-struct Config {
+typedef struct Config {
     /*----------------- PUBLIC MEMBERS --------------*/
     char *flags;
     char *cc;
@@ -321,7 +330,7 @@ struct Config {
     /*                   EXAMPLE                        /
     **               CONFIG DEFINITION                  /
     **                                                  /
-    ** struct Config myconfig = {                       /
+    ** Config myconfig = {                       /
     **     .target             = "foo",                 /
     **     .flags              = "-g -O0 -rdynamic",    /
     ** };                                               /
@@ -334,15 +343,15 @@ struct Config {
     /* config name                          */
     char          *_name;
     /* config name hash                     */
-    uint64_t       _hash;
+    u64       _hash;
     /* config order added by user           */
     int            _order;
 
-    uint64_t       _target_order;
+    u64       _target_order;
     char         **_flags;
     /* Number of flags                      */
     int            _flag_num;
-};
+} Config;
 
 /*-----------------------------------------------*/
 /*                   PRIVATE                     */
@@ -355,8 +364,8 @@ typedef struct Mace_Args {
     char        *dir;
     char        *cc;
     char        *ar;
-    uint64_t     user_target_hash;
-    uint64_t     user_config_hash;
+    u64     user_target_hash;
+    u64     user_config_hash;
     int          jobs;
     b32          debug;
     b32          silent;
@@ -432,12 +441,12 @@ static Mace_Args mace_combine_args_env(Mace_Args args, Mace_Args env);
 static char  *mace_str_buffer(const char *const strlit);
 
 /* --- mace_checksum --- */
-static void  mace_sha1dc(char *file, uint8_t hash2[SHA1_LEN]);
-static b32  mace_sha1dc_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]);
+static void  mace_sha1dc(char *file, u8 hash2[SHA1_LEN]);
+static b32  mace_sha1dc_cmp(u8 hash1[SHA1_LEN], u8 hash2[SHA1_LEN]);
 static char *mace_checksum_filename(char *file, int mode);
 
 /* --- mace_hashing --- */
-static uint64_t mace_hash(const char *str);
+static u64 mace_hash(const char *str);
 
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 /* -- argv -- */
@@ -457,128 +466,161 @@ static char *mace_set_build_dir(char *build);
 static void  mace_set_cc_depflag(char *depflag);
 
 /* --- mace add --- */
-static void mace_add_target(struct Target *target, char *name);
-static void mace_add_config(struct Config *config, char *name);
+static void mace_add_target(Target *target, char *name);
+static void mace_add_config(Config *config, char *name);
 
 /* --- mace target config --- */
-static void mace_target_config(char *ntarget, char *nconfig);
+static void mace_target_config(char *ntarget,
+                               char *nconfig);
 
 /* -- Config struct OOP -- */
-static void mace_Config_Free(    struct Config *config);
+static void mace_Config_Free(    Config *config);
 
 /* -- Target struct OOP -- */
 /* - Free - */
-static void mace_Target_Free(             struct Target *target);
-static void mace_Target_Free_argv(        struct Target *target);
-static void mace_Target_Free_notargv(     struct Target *target);
-static void mace_Target_Free_excludes(    struct Target *target);
-static void mace_Target_Free_deps_headers(struct Target *target);
+static void mace_Target_Free(             Target *target);
+static void mace_Target_Free_argv(        Target *target);
+static void mace_Target_Free_notargv(     Target *target);
+static void mace_Target_Free_excludes(    Target *target);
+static void mace_Target_Free_deps_headers(Target *target);
 
 /* - Grow - */
-static void mace_Target_Grow_Headers(     struct Target *target);
-static void mace_Target_Grow_deps_headers(struct Target *target, int obj_hash_id);
+static void mace_Target_Grow_Headers(     Target *target);
+static void mace_Target_Grow_deps_headers(Target *target,
+                                          int obj_hash_id);
 
 /* - hash - */
-static int  Target_hasObjectHash(           struct Target *target, uint64_t hash);
-static void Target_Object_Hash_Add(         struct Target *target, uint64_t hash);
-static int  Target_hasObjectHash_nocoll(    struct Target *target, uint64_t hash);
-static void Target_Object_Hash_Add_nocoll(  struct Target *target, uint64_t hash);
+static int  Target_hasObjectHash(           Target *target,
+                                            u64 hash);
+static void Target_Object_Hash_Add(         Target *target,
+                                            u64 hash);
+static int  Target_hasObjectHash_nocoll(    Target *target,
+                                            u64 hash);
+static void Target_Object_Hash_Add_nocoll(  Target *target,
+                                            u64 hash);
 
 /* - obj_deps - */
-static char *mace_Target_Read_d(struct Target *target, int source_i);
-static void mace_Target_Read_ho(struct Target *target, int source_i);
-static void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i);
-static void mace_Target_Parse_Objdep(struct Target *target, int source_i);
-static int  mace_Target_header_order(struct Target *target, uint64_t hash);
-static void mace_Target_Parse_Objdeps(struct Target *target);
+static char *mace_Target_Read_d(Target *target, int source_i);
+static void mace_Target_Read_ho(Target *target, int source_i);
+static void mace_Target_Read_Objdeps(Target *target, char *deps, int source_i);
+static void mace_Target_Parse_Objdep(Target *target, int source_i);
+static int  mace_Target_header_order(Target *target, u64 hash);
+static void mace_Target_Parse_Objdeps(Target *target);
 
 /* - target dependencies - */
-static b32 mace_Target_hasDep(   struct Target *target, uint64_t hash);
-static void mace_Target_Deps_Add( struct Target *target, uint64_t hash);
-static void mace_Target_Deps_Hash(struct Target *target);
-static void mace_Target_Deps_Grow(struct Target *target);
+static b32 mace_Target_hasDep(   Target *target, u64 hash);
+static void mace_Target_Deps_Add( Target *target, u64 hash);
+static void mace_Target_Deps_Hash(Target *target);
+static void mace_Target_Deps_Grow(Target *target);
 
 /* - Adding Files - */
-static b32     mace_Target_Source_Add(struct Target *target, char *token);
-static b32     mace_Target_Object_Add(struct Target *target, char *token);
-static uint64_t mace_Target_Header_Add(struct Target *target, char *header);
-static void     mace_Target_Objdep_Add(struct Target *target, 
-                                       int header_order, int obj_hash_id);
-static void     mace_Target_Header_Add_Objpath(struct Target *target, char *header);
+static b32     mace_Target_Source_Add(  Target *target,
+                                        char *token);
+static b32     mace_Target_Object_Add(  Target *target,
+                                        char *token);
+static u64 mace_Target_Header_Add( Target *target,
+                                        char *header);
+static void     mace_Target_Objdep_Add( Target *target,
+                                       int header_order,
+                                       int obj_hash_id);
+static void     mace_Target_Header_Add_Objpath(Target *target,
+                                               char *header);
 
 /* - Checksums - */
-static b32 mace_Source_Checksum(struct Target *target, char *s, char *o);
-static void mace_Headers_Checksums(struct Target *target);
-static void mace_Headers_Checksums_Checks(struct Target *target);
+static b32 mace_Source_Checksum(Target *target,
+                                char *s,
+                                char *o);
+static void mace_Headers_Checksums(Target *target);
+static void mace_Headers_Checksums_Checks(Target *target);
 
 /* - argv - */
-static void mace_argv_add_config(struct Target *target, char ** *argv, int *argc,
-                          int *arg_len);
+static void mace_argv_add_config(Target *target,
+                                 char ** *argv,
+                                 int *argc,
+                                 int *arg_len);
 
-static void mace_Target_argv_grow(struct Target *target);
-static void mace_Target_Parse_User(struct Target *target);
-static void mace_Target_argv_compile(struct Target *target);
-static void mace_Target_Parse_Source(struct Target *target, char *path, char *src);
-static void mace_Target_argv_allatonce(struct Target *target);
+static void mace_Target_argv_grow(Target *target);
+static void mace_Target_Parse_User(Target *target);
+static void mace_Target_argv_compile(Target *target);
+static void mace_Target_Parse_Source(Target *target,
+                                     char *path,
+                                     char *src);
+static void mace_Target_argv_allatonce(Target *target);
 /* utils */
-static char **mace_argv_grow(char **argv, int *argc, int *arg_len);
-static void   mace_argv_free(char **argv, int argc);
+static char **mace_argv_grow(char **argv,
+                             int *argc,
+                             int *arg_len);
+static void   mace_argv_free(char **argv,
+                             int argc);
 
 /* - recompilation flag - */
-static void mace_Target_Recompiles_Add(struct Target *target, b32 add);
+static void mace_Target_Recompiles_Add(Target *target,
+                                       b32 add);
 
 /* - compilation - */
-static void mace_Target_compile(struct Target *target);
-static void mace_Target_precompile(struct Target *target);
-static void mace_Target_compile_allatonce(struct Target *target);
+static void mace_Target_compile(            Target *target);
+static void mace_Target_precompile(         Target *target);
+static void mace_Target_compile_allatonce(  Target *target);
 
 /* --- mace_glob --- */
-static int     mace_globerr(const char *path, int eerrno);
+static int     mace_globerr(const char *path,
+                            int eerrno);
 static glob_t  mace_glob_sources(const char *path);
 
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 /* --- mace_exec --- */
-static pid_t mace_exec(const char *exec, char *const arguments[]);
+static pid_t mace_exec(const char *exec,
+                       char *const arguments[]);
 static void  mace_wait_pid(int pid);
-static void  mace_exec_print(char *const arguments[], size_t argnum);
+static void  mace_exec_print(char *const arguments[],
+                             size_t argnum);
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
 /* --- mace_build --- */
 /* -- linking -- */
-static void mace_link_executable(      struct Target *target);
-static void mace_link_static_library(  struct Target *target);
-static void mace_link_dynamic_library( struct Target *target);
+static void mace_link_executable(      Target *target);
+static void mace_link_static_library(  Target *target);
+static void mace_link_dynamic_library( Target *target);
 
-typedef void (*mace_link_t)(struct Target *);
+typedef void (*mace_link_t)(Target *);
 mace_link_t mace_link[MACE_TARGET_NUM - 1] = {mace_link_executable, mace_link_static_library, mace_link_dynamic_library};
 
 /* --- mace_clean --- */
 static void mace_clean(void);
 static int mace_rmrf(char *path);
-static int mace_unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf);
+static int mace_unlink_cb(const char *fpath,
+                          const struct stat *sb,
+                          int typeflag,
+                          struct FTW *ftwbuf);
 
 /* -- compiling object files -> .o -- */
-static void mace_compile_glob(struct Target *target, char *globsrc,
+static void mace_compile_glob(Target *target,
+                              char *globsrc,
                               const char *flags);
-static void mace_build_target(struct Target *target);
+static void mace_build_target(Target *target);
 static void mace_run_commands(const  char *commands);
 static void mace_print_message(const char *message);
 
 /* -- build_order -- */
-static b32 mace_in_build_order(size_t order, int *build_order, int num);
-static void mace_user_target_set(uint64_t hash, char *name);
-static void mace_user_config_set(uint64_t hash, char *name);
-static void mace_config_resolve(struct Target *target);
+static b32 mace_in_build_order(size_t order,
+                               int *build_order,
+                               int num);
+static void mace_user_target_set(u64 hash,
+                                 char *name);
+static void mace_user_config_set(u64 hash,
+                                 char *name);
+static void mace_config_resolve(Target *target);
 static void mace_target_resolve(void);
 static void mace_default_target_order(void);
 
 /* -- configs -- */
 static void mace_parse_configs(void);
-static void mace_parse_config(struct Config *config);
+static void mace_parse_config(Config *config);
 
 /* - build order of all targets - */
 static void mace_build_order(void);
-static void mace_build_order_recursive(struct Target target, size_t *o_cnt);
+static void mace_build_order_recursive(Target target,
+                                        size_t *o_cnt);
 
 /* --- mace_is --- */
 static int mace_isDir(      const char *path);
@@ -589,8 +631,10 @@ static int mace_isWildcard( const char *str);
 static void  mace_mkdir(const char     *path);
 static void  mace_make_dirs(void);
 static void  mace_object_path(char     *source);
-static char *mace_library_path(char    *target_name, int kind);
-static char *mace_checksum_filename(char *file, int mode);
+static char *mace_library_path(char    *target_name,
+                               int kind);
+static char *mace_checksum_filename(char *file,
+                                    int mode);
 static char *mace_executable_path(char *target_name);
 
 /* --- mace_pqueue --- */
@@ -628,9 +672,9 @@ static char *mace_command_separator     = "&&";
     static char cwd[MACE_CWD_BUFFERSIZE];
 
     /* -- Reserved targets hashes -- */
-    static uint64_t mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
-    static uint64_t mace_default_target_hash = 0;
-    static uint64_t mace_default_config_hash = 0;
+    static u64 mace_reserved_targets[MACE_RESERVED_TARGETS_NUM];
+    static u64 mace_default_target_hash = 0;
+    static u64 mace_default_config_hash = 0;
 
     /* Default target (may be set by user) */
     static int mace_default_target = MACE_ALL_ORDER;       /* order */
@@ -651,12 +695,12 @@ static char *mace_command_separator     = "&&";
     static int  build_order_num          = 0;
 
     /* -- list of targets added by user -- */
-    static struct Target   *targets     = NULL;   /* [order] as added    */
+    static Target   *targets     = NULL;   /* [order] as added    */
     static size_t           target_num  = 0;
     static size_t           target_len  = 0;
 
     /* -- list of configs added by user -- */
-    static struct Config   *configs     = NULL;   /* [order] as added    */
+    static Config   *configs     = NULL;   /* [order] as added    */
     static size_t           config_num  = 0;
     static size_t           config_len  = 0;
 
@@ -691,10 +735,10 @@ static char *mace_command_separator     = "&&";
 
 /* sha-1 compression function that takes an already expanded message, and additionally store intermediate states */
 /* only stores states ii (the state between step ii-1 and step ii) when DOSTORESTATEii is defined in ubc_check.h */
-void sha1_compression_states(uint32_t[5], const uint32_t[16], uint32_t[80], uint32_t[80][5]);
+void sha1_compression_states(u32[5], const u32[16], u32[80], u32[80][5]);
 
 /*
-// Function type for sha1_recompression_step_T (uint32_t ihvin[5], uint32_t ihvout[5], const uint32_t me2[80], const uint32_t state[5]).
+// Function type for sha1_recompression_step_T (u32 ihvin[5], u32 ihvout[5], const u32 me2[80], const u32 state[5]).
 // Where 0 <= T < 80
 //       me2 is an expanded message (the expansion of an original message block XOR'ed with a disturbance vector's message block difference.)
 //       state is the internal state (a,b,c,d,e) before step T of the SHA-1 compression function while processing the original message block.
@@ -702,17 +746,17 @@ void sha1_compression_states(uint32_t[5], const uint32_t[16], uint32_t[80], uint
 //       ihvin: The reconstructed input chaining value.
 //       ihvout: The reconstructed output chaining value.
 */
-typedef void(*sha1_recompression_type)(uint32_t *, uint32_t *, const uint32_t *, const uint32_t *);
+typedef void(*sha1_recompression_type)(u32 *, u32 *, const u32 *, const u32 *);
 
 /* A callback function type that can be set to be called when a collision block has been found: */
-/* void collision_block_callback(uint64_t byteoffset, const uint32_t ihvin1[5], const uint32_t ihvin2[5], const uint32_t m1[80], const uint32_t m2[80]) */
-typedef void(*collision_block_callback)(uint64_t, const uint32_t *, const uint32_t *,
-                                        const uint32_t *, const uint32_t *);
+/* void collision_block_callback(u64 byteoffset, const u32 ihvin1[5], const u32 ihvin2[5], const u32 m1[80], const u32 m2[80]) */
+typedef void(*collision_block_callback)(u64, const u32 *, const u32 *,
+                                        const u32 *, const u32 *);
 
 /* The SHA-1 context. */
 typedef struct {
-    uint64_t total;
-    uint32_t ihv[5];
+    u64 total;
+    u32 ihv[5];
     unsigned char buffer[64];
     int found_collision;
     int safe_hash;
@@ -721,11 +765,11 @@ typedef struct {
     int reduced_round_coll;
     collision_block_callback callback;
 
-    uint32_t ihv1[5];
-    uint32_t ihv2[5];
-    uint32_t m1[80];
-    uint32_t m2[80];
-    uint32_t states[80][5];
+    u32 ihv1[5];
+    u32 ihv2[5];
+    u32 m1[80];
+    u32 m2[80];
+    u32 states[80][5];
 } SHA1_CTX;
 
 /* Initialize SHA-1 context. */
@@ -815,10 +859,10 @@ typedef struct {
     int testt;
     int maski;
     int maskb;
-    uint32_t dm[80];
+    u32 dm[80];
 } dv_info_t;
 extern dv_info_t sha1_dvs[];
-void ubc_check(const uint32_t W[80], uint32_t dvmask[DVMASKSIZE]);
+void ubc_check(const u32 W[80], u32 dvmask[DVMASKSIZE]);
 
 #define DOSTORESTATE58
 #define DOSTORESTATE65
@@ -1054,7 +1098,7 @@ defined(__sparc))
     #define sha1_load(m, t, temp)  { temp = m[t]; sha1_bswap32(temp); }
 #endif
 
-#define sha1_store(W, t, x) *(volatile uint32_t *)&W[t] = x
+#define sha1_store(W, t, x) *(volatile u32 *)&W[t] = x
 
 #define sha1_f1(b,c,d) ((d)^((b)&((c)^(d))))
 #define sha1_f2(b,c,d) ((b)^(c)^(d))
@@ -1098,9 +1142,9 @@ defined(__sparc))
 #define SHA1_STORE_STATE(i) states[i][0] = a; states[i][1] = b; states[i][2] = c; states[i][3] = d; states[i][4] = e;
 
 #ifdef BUILDNOCOLLDETECTSHA1COMPRESSION
-void sha1_compression(uint32_t ihv[5], const uint32_t m[16]) {
-    uint32_t W[80];
-    uint32_t a, b, c, d, e;
+void sha1_compression(u32 ihv[5], const u32 m[16]) {
+    u32 W[80];
+    u32 a, b, c, d, e;
     unsigned i;
 
     memcpy(W, m, 16 * 4);
@@ -1206,8 +1250,8 @@ void sha1_compression(uint32_t ihv[5], const uint32_t m[16]) {
 #endif /*BUILDNOCOLLDETECTSHA1COMPRESSION*/
 
 
-static void sha1_compression_W(uint32_t ihv[5], const uint32_t W[80]) {
-    uint32_t a = ihv[0], b = ihv[1], c = ihv[2], d = ihv[3], e = ihv[4];
+static void sha1_compression_W(u32 ihv[5], const u32 W[80]) {
+    u32 a = ihv[0], b = ihv[1], c = ihv[2], d = ihv[3], e = ihv[4];
 
     HASHCLASH_SHA1COMPRESS_ROUND1_STEP(a, b, c, d, e, W, 0);
     HASHCLASH_SHA1COMPRESS_ROUND1_STEP(e, a, b, c, d, W, 1);
@@ -1302,10 +1346,10 @@ static void sha1_compression_W(uint32_t ihv[5], const uint32_t W[80]) {
 
 
 
-void sha1_compression_states(uint32_t ihv[5], const uint32_t m[16], uint32_t W[80],
-     uint32_t states[80][5]) {
-    uint32_t a = ihv[0], b = ihv[1], c = ihv[2], d = ihv[3], e = ihv[4];
-    uint32_t temp;
+void sha1_compression_states(u32 ihv[5], const u32 m[16], u32 W[80],
+     u32 states[80][5]) {
+    u32 a = ihv[0], b = ihv[1], c = ihv[2], d = ihv[3], e = ihv[4];
+    u32 temp;
 
     #ifdef DOSTORESTATE00
     SHA1_STORE_STATE(0)
@@ -1727,9 +1771,9 @@ void sha1_compression_states(uint32_t ihv[5], const uint32_t m[16], uint32_t W[8
 
 
 #define SHA1_RECOMPRESS(t) \
-    static void sha1recompress_fast_ ## t (uint32_t ihvin[5], uint32_t ihvout[5], const uint32_t me2[80], const uint32_t state[5]) \
+    static void sha1recompress_fast_ ## t (u32 ihvin[5], u32 ihvout[5], const u32 me2[80], const u32 state[5]) \
     { \
-        uint32_t a = state[0], b = state[1], c = state[2], d = state[3], e = state[4]; \
+        u32 a = state[0], b = state[1], c = state[2], d = state[3], e = state[4]; \
         if (t > 79) HASHCLASH_SHA1COMPRESS_ROUND4_STEP_BW(b, c, d, e, a, me2, 79); \
         if (t > 78) HASHCLASH_SHA1COMPRESS_ROUND4_STEP_BW(c, d, e, a, b, me2, 78); \
         if (t > 77) HASHCLASH_SHA1COMPRESS_ROUND4_STEP_BW(d, e, a, b, c, me2, 77); \
@@ -2224,8 +2268,8 @@ void sha1_compression_states(uint32_t ihv[5], const uint32_t m[16], uint32_t W[8
     #pragma warning(pop)
 #endif
 
-static void sha1_recompression_step(uint32_t step, uint32_t ihvin[5], uint32_t ihvout[5],
-                                    const uint32_t me2[80], const uint32_t state[5]) {
+static void sha1_recompression_step(u32 step, u32 ihvin[5], u32 ihvout[5],
+                                    const u32 me2[80], const u32 state[5]) {
     switch (step) {
             #ifdef DOSTORESTATE0
         case 0:
@@ -2635,10 +2679,10 @@ static void sha1_recompression_step(uint32_t step, uint32_t ihvin[5], uint32_t i
 
 
 
-static void sha1_process(SHA1_CTX *ctx, const uint32_t block[16]) {
+static void sha1_process(SHA1_CTX *ctx, const u32 block[16]) {
     unsigned i, j;
-    uint32_t ubc_dv_mask[DVMASKSIZE] = { 0xFFFFFFFF };
-    uint32_t ihvtmp[5];
+    u32 ubc_dv_mask[DVMASKSIZE] = { 0xFFFFFFFF };
+    u32 ihvtmp[5];
 
     ctx->ihv1[0] = ctx->ihv[0];
     ctx->ihv1[1] = ctx->ihv[1];
@@ -2655,7 +2699,7 @@ static void sha1_process(SHA1_CTX *ctx, const uint32_t block[16]) {
 
         if (ubc_dv_mask[0] != 0) {
             for (i = 0; sha1_dvs[i].dvType != 0; ++i) {
-                if (ubc_dv_mask[0] & ((uint32_t)(1) << sha1_dvs[i].maskb)) {
+                if (ubc_dv_mask[0] & ((u32)(1) << sha1_dvs[i].maskb)) {
                     for (j = 0; j < 80; ++j)
                         ctx->m2[j] = ctx->m1[j] ^ sha1_dvs[i].dm[j];
 
@@ -2743,7 +2787,7 @@ void SHA1DCUpdate(SHA1_CTX *ctx, const char *buf, size_t len) {
     if (left && len >= fill) {
         ctx->total += fill;
         memcpy(ctx->buffer + left, buf, fill);
-        sha1_process(ctx, (uint32_t *)(ctx->buffer));
+        sha1_process(ctx, (u32 *)(ctx->buffer));
         buf += fill;
         len -= fill;
         left = 0;
@@ -2752,10 +2796,10 @@ void SHA1DCUpdate(SHA1_CTX *ctx, const char *buf, size_t len) {
         ctx->total += 64;
 
         #if defined(SHA1DC_ALLOW_UNALIGNED_ACCESS)
-        sha1_process(ctx, (uint32_t *)(buf));
+        sha1_process(ctx, (u32 *)(buf));
         #else
         memcpy(ctx->buffer, buf, 64);
-        sha1_process(ctx, (uint32_t *)(ctx->buffer));
+        sha1_process(ctx, (u32 *)(ctx->buffer));
         #endif /* defined(SHA1DC_ALLOW_UNALIGNED_ACCESS) */
         buf += 64;
         len -= 64;
@@ -2774,9 +2818,9 @@ static const unsigned char sha1_padding[64] = {
 };
 
 int SHA1DCFinal(unsigned char output[SHA1_LEN], SHA1_CTX *ctx) {
-    uint32_t last = ctx->total & 63;
-    uint32_t padn = (last < 56) ? (56 - last) : (120 - last);
-    uint64_t total;
+    u32 last = ctx->total & 63;
+    u32 padn = (last < 56) ? (56 - last) : (120 - last);
+    u64 total;
     SHA1DCUpdate(ctx, (const char *)(sha1_padding), padn);
 
     total = ctx->total - padn;
@@ -2789,7 +2833,7 @@ int SHA1DCFinal(unsigned char output[SHA1_LEN], SHA1_CTX *ctx) {
     ctx->buffer[61] = (unsigned char)(total >> 16);
     ctx->buffer[62] = (unsigned char)(total >> 8);
     ctx->buffer[63] = (unsigned char)(total);
-    sha1_process(ctx, (uint32_t *)(ctx->buffer));
+    sha1_process(ctx, (u32 *)(ctx->buffer));
     output[0] = (unsigned char)(ctx->ihv[0] >> 24);
     output[1] = (unsigned char)(ctx->ihv[0] >> 16);
     output[2] = (unsigned char)(ctx->ihv[0] >> 8);
@@ -2849,38 +2893,38 @@ int SHA1DCFinal(unsigned char output[SHA1_LEN], SHA1_CTX *ctx) {
     #include SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C
 #endif
 
-static const uint32_t DV_I_43_0_bit     = (uint32_t)(1) << 0;
-static const uint32_t DV_I_44_0_bit     = (uint32_t)(1) << 1;
-static const uint32_t DV_I_45_0_bit     = (uint32_t)(1) << 2;
-static const uint32_t DV_I_46_0_bit     = (uint32_t)(1) << 3;
-static const uint32_t DV_I_46_2_bit     = (uint32_t)(1) << 4;
-static const uint32_t DV_I_47_0_bit     = (uint32_t)(1) << 5;
-static const uint32_t DV_I_47_2_bit     = (uint32_t)(1) << 6;
-static const uint32_t DV_I_48_0_bit     = (uint32_t)(1) << 7;
-static const uint32_t DV_I_48_2_bit     = (uint32_t)(1) << 8;
-static const uint32_t DV_I_49_0_bit     = (uint32_t)(1) << 9;
-static const uint32_t DV_I_49_2_bit     = (uint32_t)(1) << 10;
-static const uint32_t DV_I_50_0_bit     = (uint32_t)(1) << 11;
-static const uint32_t DV_I_50_2_bit     = (uint32_t)(1) << 12;
-static const uint32_t DV_I_51_0_bit     = (uint32_t)(1) << 13;
-static const uint32_t DV_I_51_2_bit     = (uint32_t)(1) << 14;
-static const uint32_t DV_I_52_0_bit     = (uint32_t)(1) << 15;
-static const uint32_t DV_II_45_0_bit    = (uint32_t)(1) << 16;
-static const uint32_t DV_II_46_0_bit    = (uint32_t)(1) << 17;
-static const uint32_t DV_II_46_2_bit    = (uint32_t)(1) << 18;
-static const uint32_t DV_II_47_0_bit    = (uint32_t)(1) << 19;
-static const uint32_t DV_II_48_0_bit    = (uint32_t)(1) << 20;
-static const uint32_t DV_II_49_0_bit    = (uint32_t)(1) << 21;
-static const uint32_t DV_II_49_2_bit    = (uint32_t)(1) << 22;
-static const uint32_t DV_II_50_0_bit    = (uint32_t)(1) << 23;
-static const uint32_t DV_II_50_2_bit    = (uint32_t)(1) << 24;
-static const uint32_t DV_II_51_0_bit    = (uint32_t)(1) << 25;
-static const uint32_t DV_II_51_2_bit    = (uint32_t)(1) << 26;
-static const uint32_t DV_II_52_0_bit    = (uint32_t)(1) << 27;
-static const uint32_t DV_II_53_0_bit    = (uint32_t)(1) << 28;
-static const uint32_t DV_II_54_0_bit    = (uint32_t)(1) << 29;
-static const uint32_t DV_II_55_0_bit    = (uint32_t)(1) << 30;
-static const uint32_t DV_II_56_0_bit    = (uint32_t)(1) << 31;
+static const u32 DV_I_43_0_bit     = (u32)(1) << 0;
+static const u32 DV_I_44_0_bit     = (u32)(1) << 1;
+static const u32 DV_I_45_0_bit     = (u32)(1) << 2;
+static const u32 DV_I_46_0_bit     = (u32)(1) << 3;
+static const u32 DV_I_46_2_bit     = (u32)(1) << 4;
+static const u32 DV_I_47_0_bit     = (u32)(1) << 5;
+static const u32 DV_I_47_2_bit     = (u32)(1) << 6;
+static const u32 DV_I_48_0_bit     = (u32)(1) << 7;
+static const u32 DV_I_48_2_bit     = (u32)(1) << 8;
+static const u32 DV_I_49_0_bit     = (u32)(1) << 9;
+static const u32 DV_I_49_2_bit     = (u32)(1) << 10;
+static const u32 DV_I_50_0_bit     = (u32)(1) << 11;
+static const u32 DV_I_50_2_bit     = (u32)(1) << 12;
+static const u32 DV_I_51_0_bit     = (u32)(1) << 13;
+static const u32 DV_I_51_2_bit     = (u32)(1) << 14;
+static const u32 DV_I_52_0_bit     = (u32)(1) << 15;
+static const u32 DV_II_45_0_bit    = (u32)(1) << 16;
+static const u32 DV_II_46_0_bit    = (u32)(1) << 17;
+static const u32 DV_II_46_2_bit    = (u32)(1) << 18;
+static const u32 DV_II_47_0_bit    = (u32)(1) << 19;
+static const u32 DV_II_48_0_bit    = (u32)(1) << 20;
+static const u32 DV_II_49_0_bit    = (u32)(1) << 21;
+static const u32 DV_II_49_2_bit    = (u32)(1) << 22;
+static const u32 DV_II_50_0_bit    = (u32)(1) << 23;
+static const u32 DV_II_50_2_bit    = (u32)(1) << 24;
+static const u32 DV_II_51_0_bit    = (u32)(1) << 25;
+static const u32 DV_II_51_2_bit    = (u32)(1) << 26;
+static const u32 DV_II_52_0_bit    = (u32)(1) << 27;
+static const u32 DV_II_53_0_bit    = (u32)(1) << 28;
+static const u32 DV_II_54_0_bit    = (u32)(1) << 29;
+static const u32 DV_II_55_0_bit    = (u32)(1) << 30;
+static const u32 DV_II_56_0_bit    = (u32)(1) << 31;
 
 dv_info_t sha1_dvs[] = {
     {1, 43, 0, 58, 0, 0, { 0x08000000, 0x9800000c, 0xd8000010, 0x08000010, 0xb8000010, 0x98000000, 0x60000000, 0x00000008, 0xc0000000, 0x90000014, 0x10000010, 0xb8000014, 0x28000000, 0x20000010, 0x48000000, 0x08000018, 0x60000000, 0x90000010, 0xf0000010, 0x90000008, 0xc0000000, 0x90000010, 0xf0000010, 0xb0000008, 0x40000000, 0x90000000, 0xf0000010, 0x90000018, 0x60000000, 0x90000010, 0x90000010, 0x90000000, 0x80000000, 0x00000010, 0xa0000000, 0x20000000, 0xa0000000, 0x20000010, 0x00000000, 0x20000010, 0x20000000, 0x00000010, 0x20000000, 0x00000010, 0xa0000000, 0x00000000, 0x20000000, 0x20000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0x00000020, 0x00000001, 0x40000002, 0x40000040, 0x40000002, 0x80000004, 0x80000080, 0x80000006, 0x00000049, 0x00000103, 0x80000009, 0x80000012, 0x80000202, 0x00000018, 0x00000164, 0x00000408, 0x800000e6, 0x8000004c, 0x00000803, 0x80000161, 0x80000599 } }
@@ -2917,8 +2961,8 @@ dv_info_t sha1_dvs[] = {
     , {2, 56, 0, 65, 0, 31, { 0x2600001a, 0x00000010, 0x0400001c, 0xcc000014, 0x0c000002, 0xc0000010, 0xb400001c, 0x3c000004, 0xbc00001a, 0x20000010, 0x2400001c, 0xec000014, 0x0c000002, 0xc0000010, 0xb400001c, 0x2c000004, 0xbc000018, 0xb0000010, 0x0000000c, 0xb8000010, 0x08000018, 0x78000010, 0x08000014, 0x70000010, 0xb800001c, 0xe8000000, 0xb0000004, 0x58000010, 0xb000000c, 0x48000000, 0xb0000000, 0xb8000010, 0x98000010, 0xa0000000, 0x00000000, 0x00000000, 0x20000000, 0x80000000, 0x00000010, 0x00000000, 0x20000010, 0x20000000, 0x00000010, 0x60000000, 0x00000018, 0xe0000000, 0x90000000, 0x30000010, 0xb0000000, 0x20000000, 0x20000000, 0xa0000000, 0x00000010, 0x80000000, 0x20000000, 0x20000000, 0x20000000, 0x80000000, 0x00000010, 0x00000000, 0x20000010, 0xa0000000, 0x00000000, 0x20000000, 0x20000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0x00000020, 0x00000001, 0x40000002, 0x40000041, 0x40000022, 0x80000005, 0xc0000082, 0xc0000046 } }
     , {0, 0, 0, 0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 };
-void ubc_check(const uint32_t W[80], uint32_t dvmask[1]) {
-    uint32_t mask = ~((uint32_t)(0));
+void ubc_check(const u32 W[80], u32 dvmask[1]) {
+    u32 mask = ~((u32)(0));
     mask &= (((((W[44] ^ W[45]) >> 29) & 1) - 1) | ~(DV_I_48_0_bit | DV_I_51_0_bit | DV_I_52_0_bit |
                                                      DV_II_45_0_bit | DV_II_46_0_bit | DV_II_50_0_bit | DV_II_51_0_bit));
     mask &= (((((W[49] ^ W[50]) >> 29) & 1) - 1) | ~(DV_I_46_0_bit | DV_II_45_0_bit | DV_II_50_0_bit |
@@ -3669,9 +3713,9 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
 /***************** MACE_ADD_CONFIG *****************/
 /// @brief Add config to list of configs. 
 ///     Note: Expects name to be stringified config variable name
-void mace_add_config(struct Config *config, char *name) {
+void mace_add_config(Config *config, char *name) {
     configs[config_num]        = *config;
-    uint64_t hash = mace_hash(name);
+    u64 hash = mace_hash(name);
     configs[config_num]._name  = name;
     configs[config_num]._hash  = hash;
     configs[config_num]._order = target_num;
@@ -3684,10 +3728,10 @@ void mace_add_config(struct Config *config, char *name) {
 /**************** MACE_ADD_TARGET ***************/
 /// @brief Add target to list of targets. 
 ///     Note: Expects name to be stringified target variable name
-void mace_add_target(struct Target *target, char *name) {
+void mace_add_target(Target *target, char *name) {
     targets[target_num]          = *target;
     targets[target_num]._name    = name;
-    uint64_t hash = mace_hash(name);
+    u64 hash = mace_hash(name);
     for (int i = 0; i < MACE_RESERVED_TARGETS_NUM; i++) {
         if (hash == mace_reserved_targets[i]) {
             fprintf(stderr,  "Error: '%s' is a reserved target name.\n", name);
@@ -3752,7 +3796,7 @@ void mace_default_config_order(void) {
 }
 
 /// @brief Find user config from its hash.
-void mace_user_config_set(uint64_t hash, char *name) {
+void mace_user_config_set(u64 hash, char *name) {
     if (hash == 0)
         return;
 
@@ -3784,7 +3828,7 @@ void mace_target_resolve(void) {
 }
 
 /// @brief Decide if user config or default config should be used.
-void mace_config_resolve(struct Target *target) {
+void mace_config_resolve(Target *target) {
     /* Config priority: */
     //  - user      config
     //  - target    config
@@ -3807,7 +3851,7 @@ void mace_config_resolve(struct Target *target) {
 }
 
 /// @brief Set mace_user_target from input hash.
-void mace_user_target_set(uint64_t hash, char *name) {
+void mace_user_target_set(u64 hash, char *name) {
     if (hash == 0)
         return;
 
@@ -3829,8 +3873,8 @@ void mace_user_target_set(uint64_t hash, char *name) {
 
 /// @brief Set default config for target.
 void mace_target_config(char *target_name, char *config_name) {
-    uint64_t target_hash = mace_hash(target_name);
-    uint64_t config_hash = mace_hash(config_name);
+    u64 target_hash = mace_hash(target_name);
+    u64 config_hash = mace_hash(config_name);
     int target_order = -1;
     for (int i = 0; i < target_num; i++) {
         if (target_hash == targets[i]._hash) {
@@ -3858,7 +3902,7 @@ void mace_target_config(char *target_name, char *config_name) {
 #endif /* MACE_CONVENIENCE_EXECUTABLE */
 /************** mace_hash ***************/
 /// @brief Main hashing algorithm of mace: djb2.
-uint64_t mace_hash(const char *str) {
+u64 mace_hash(const char *str) {
     /* djb2 hashing algorithm by Dan Bernstein.
     * Description: This algorithm (k=33) was first reported by dan bernstein many
     * years ago in comp.lang.c. Another version of this algorithm (now favored by bernstein)
@@ -3866,8 +3910,8 @@ uint64_t mace_hash(const char *str) {
     * (why it works better than many other constants, prime or not) has never been adequately explained.
     * [1] https://stackoverflow.com/questions/7666509/hash-function-for-string
     * [2] http://www.cse.yorku.ca/~oz/hash.html */
-    uint64_t hash = 5381;
-    int32_t str_char;
+    u64 hash = 5381;
+    i32 str_char;
     while ((str_char = *str++))
         hash = ((hash << 5) + hash) + str_char; /* hash * 33 + c */
     return (hash);
@@ -4009,7 +4053,7 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str,
 ///     - Split excludes using mace_separator
 ///     - Hash file into _excludes list
 ///  TODO: exclude directories
-void mace_Target_excludes(struct Target *target) {
+void mace_Target_excludes(Target *target) {
     if (target->excludes == NULL)
         return;
     mace_Target_Free_excludes(target);
@@ -4048,7 +4092,7 @@ void mace_Target_excludes(struct Target *target) {
 
 /// @brief Makes flags for target includes, links libraries, and flags
 ///     - NOT sources: they can be folders, so need to be globbed
-void mace_Target_Parse_User(struct Target *target) {
+void mace_Target_Parse_User(Target *target) {
     mace_Target_Free_argv(target);
     int len, bytesize;
 
@@ -4103,12 +4147,12 @@ void mace_Target_Parse_User(struct Target *target) {
 }
 
 /// @brief Realloc target->argv to bigger if num close to len
-void mace_Target_argv_grow(struct Target *target) {
+void mace_Target_argv_grow(Target *target) {
     target->_argv = mace_argv_grow(target->_argv, &target->_argc, &target->_arg_len);
 }
 
 /// @brief Alloc target sources stuff. Realloc to bigger if num close to len.
-void mace_Target_sources_grow(struct Target *target) {
+void mace_Target_sources_grow(Target *target) {
     size_t bytesize;
 
     /* -- Alloc sources -- */
@@ -4205,7 +4249,7 @@ char **mace_argv_grow(char **argv, int *argc, int *arg_len) {
 
 /// @brief Create argv, argc for compiling objects all at once.
 ///     Should be called after all sources have been added.
-void mace_Target_argv_allatonce(struct Target *target) {
+void mace_Target_argv_allatonce(Target *target) {
     if (target->_argv == NULL) {
         target->_arg_len = 8;
         target->_argc = 0;
@@ -4253,7 +4297,7 @@ void mace_Target_argv_allatonce(struct Target *target) {
 
 /// @brief Create argv, argc for compiling objects one at a time.
 ///     Should be called after mace_Target_Parse_User
-void mace_Target_argv_compile(struct Target *target) {
+void mace_Target_argv_compile(Target *target) {
     if (target->_argv == NULL) {
         target->_arg_len = 8;
         target->_argc = 0;
@@ -4305,7 +4349,7 @@ void mace_Target_argv_compile(struct Target *target) {
 }
 
 /// @brief Add config as flags to argv for compilation.
-void mace_argv_add_config(struct Target *target,
+void mace_argv_add_config(Target *target,
                           char ** *argv, int *argc, int *arg_len) {
     if (config_num <= 0)
         return;
@@ -4461,7 +4505,7 @@ void mace_wait_pid(int pid) {
 }
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 /******************* mace_build ********************/
-void mace_link_dynamic_library(struct Target *target) {
+void mace_link_dynamic_library(Target *target) {
     char *lib = mace_library_path(target->_name, MACE_DYNAMIC_LIBRARY);
     sprintf("Linking  %s", lib);
     int    argc_objects = target->_argc_sources;
@@ -4546,7 +4590,7 @@ void mace_link_dynamic_library(struct Target *target) {
     free(lib);
 }
 
-void mace_link_static_library(struct Target *target) {
+void mace_link_static_library(Target *target) {
     char *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
     sprintf("Linking  %s \n", lib);
     int    argc_objects = target->_argc_sources;
@@ -4613,7 +4657,7 @@ void mace_link_static_library(struct Target *target) {
     free(lib);
 }
 
-void mace_link_executable(struct Target *target) {
+void mace_link_executable(Target *target) {
     char *exec = mace_executable_path(target->_name);
     sprintf("Linking  %s \n", exec);
 
@@ -4703,7 +4747,7 @@ void mace_link_executable(struct Target *target) {
 }
 
 /// @brief Compile target's obj file all at once.
-void mace_Target_compile_allatonce(struct Target *target) {
+void mace_Target_compile_allatonce(Target *target) {
     // Compile ALL objects at once
     /* -- Move to obj_dir -- */
     assert(chdir(cwd) == 0);
@@ -4724,7 +4768,7 @@ void mace_Target_compile_allatonce(struct Target *target) {
 }
 
 /// @brief Target pre-compilation: check which file needs to be recompiled
-void mace_Target_precompile(struct Target *target) {
+void mace_Target_precompile(Target *target) {
     /* Compute latest object dependencies .d file */
     assert(target != NULL);
     assert(target->_argv != NULL);
@@ -4788,7 +4832,7 @@ void mace_Target_precompile(struct Target *target) {
 }
 
 /// @brief Compile targets' objects one at a time
-void mace_Target_compile(struct Target *target) {
+void mace_Target_compile(Target *target) {
     assert(target != NULL);
     assert(target->_argv != NULL);
 
@@ -4835,7 +4879,7 @@ void mace_Target_compile(struct Target *target) {
 }
 
 /// @brief Alloc _objects_hash_nocoll. Realloc if num close to len. Add hash.
-void Target_Object_Hash_Add_nocoll(struct Target *target, uint64_t hash) {
+void Target_Object_Hash_Add_nocoll(Target *target, u64 hash) {
     if (target->_objects_hash_nocoll == NULL) {
         target->_objects_hash_nocoll_num = 0;
         target->_objects_hash_nocoll_len = 8;
@@ -4854,7 +4898,7 @@ void Target_Object_Hash_Add_nocoll(struct Target *target, uint64_t hash) {
 }
 
 /// @brief Check if hash is in _objects_hash_nocoll.
-int Target_hasObjectHash_nocoll(struct Target *target, uint64_t hash) {
+int Target_hasObjectHash_nocoll(Target *target, u64 hash) {
     if (target->_objects_hash_nocoll == NULL)
         return (-1);
 
@@ -4868,7 +4912,7 @@ int Target_hasObjectHash_nocoll(struct Target *target, uint64_t hash) {
 
 
 /// @brief Add object hash to target.
-void Target_Object_Hash_Add(struct Target *target, uint64_t hash) {
+void Target_Object_Hash_Add(Target *target, u64 hash) {
     assert(target->_argv_objects_hash != NULL);
     assert(target->_argv_objects_cnt != NULL);
     target->_argv_objects_hash[target->_argc_objects_hash] = hash;
@@ -4876,7 +4920,7 @@ void Target_Object_Hash_Add(struct Target *target, uint64_t hash) {
 }
 
 /// @brief Check if target has object hash.
-int Target_hasObjectHash(struct Target *target, uint64_t hash) {
+int Target_hasObjectHash(Target *target, u64 hash) {
     if (target->_argv_objects_hash == NULL)
         return (-1);
 
@@ -4889,16 +4933,16 @@ int Target_hasObjectHash(struct Target *target, uint64_t hash) {
 }
 
 /// @brief Add target to list of recompiles.
-void mace_Target_Recompiles_Add(struct Target *target, b32 add) {
+void mace_Target_Recompiles_Add(Target *target, b32 add) {
     target->_recompiles[target->_argc_sources - 1] = add;
 }
 
 /// @brief Add object needing to be compiled to target.
-b32 mace_Target_Object_Add(struct Target *target, char *token) {
+b32 mace_Target_Object_Add(Target *target, char *token) {
     /* token is object path */
     if (token == NULL)
         return (false);
-    uint64_t hash = mace_hash(token);
+    u64 hash = mace_hash(token);
     int hash_id = Target_hasObjectHash(target, hash);
 
     if (hash_id < 0) {
@@ -4930,7 +4974,7 @@ b32 mace_Target_Object_Add(struct Target *target, char *token) {
     }
 
     /* -- Actually adding object here -- */
-    uint64_t hash_nocoll = mace_hash(arg + flag_len);
+    u64 hash_nocoll = mace_hash(arg + flag_len);
     Target_Object_Hash_Add_nocoll(target, hash_nocoll);
 
     mace_Target_sources_grow(target);
@@ -4942,7 +4986,7 @@ b32 mace_Target_Object_Add(struct Target *target, char *token) {
 }
 
 /// @brief Check if any source/header file changed for object.
-void mace_Headers_Checksums_Checks(struct Target *target) {
+void mace_Headers_Checksums_Checks(Target *target) {
     assert(target->_hdrs_changed != NULL);
     if (build_all) {
         size_t bytesize = target->_argc_sources * sizeof(*target->_recompiles);
@@ -4967,11 +5011,11 @@ void mace_Headers_Checksums_Checks(struct Target *target) {
 }
 
 /// @brief Compute checksums for all headers.
-void mace_Headers_Checksums(struct Target *target) {
+void mace_Headers_Checksums(Target *target) {
     /* --- HEADERS CHECKSUMS --- */
     assert(chdir(cwd) == 0);
-    uint8_t hash_current[SHA1_LEN];
-    uint8_t hash_previous[SHA1_LEN];
+    u8 hash_current[SHA1_LEN];
+    u8 hash_previous[SHA1_LEN];
 
     for (int i = 0; i < target->_headers_num; i++) {
         /* - Compute current checksum - */
@@ -5014,16 +5058,16 @@ void mace_Headers_Checksums(struct Target *target) {
 }
 
 /// @brief Compute checksums for all sources.
-b32 mace_Source_Checksum(struct Target *target, char *source_path, char *obj_path) {
+b32 mace_Source_Checksum(Target *target, char *source_path, char *obj_path) {
     /* --- SOURCE CHECKSUM --- */
     /* - Compute current checksum - */
-    uint8_t hash_current[SHA1_LEN];
+    u8 hash_current[SHA1_LEN];
     mace_sha1dc(source_path, hash_current);
 
     /* - Read existing checksum file - */
     assert(chdir(cwd) == 0);
     b32 changed = true; // set to false only if checksum file exists, changed
-    uint8_t hash_previous[SHA1_LEN] = {0};
+    u8 hash_previous[SHA1_LEN] = {0};
     char *checksum_path = mace_checksum_filename(obj_path, MACE_CHECKSUM_MODE_SRC);
     FILE *fd = fopen(checksum_path, "r");
     if (fd != NULL) {
@@ -5058,7 +5102,7 @@ b32 mace_Source_Checksum(struct Target *target, char *source_path, char *obj_pat
 }
 
 /// @brief Add source file to target.
-b32 mace_Target_Source_Add(struct Target *target, char *token) {
+b32 mace_Target_Source_Add(Target *target, char *token) {
     if (token == NULL)
         return (true);
 
@@ -5074,7 +5118,7 @@ b32 mace_Target_Source_Add(struct Target *target, char *token) {
     }
 
     /* - Check if file is excluded - */
-    uint64_t rpath_hash = mace_hash(rpath);
+    u64 rpath_hash = mace_hash(rpath);
     for (int i = 0; i < target->_excludes_num; i++) {
         if (target->_excludes[i] == rpath_hash) {
             free(rpath);
@@ -5092,7 +5136,7 @@ b32 mace_Target_Source_Add(struct Target *target, char *token) {
 ///     - Create object name from source name
 ///     - Make source checksum
 ///     - Check if source needs to be recompiled
-void mace_Target_Parse_Source(struct Target *target, char *path, char *src) {
+void mace_Target_Parse_Source(Target *target, char *path, char *src) {
     b32 excluded = mace_Target_Source_Add(target, path);
     if (!excluded) {
         mace_object_path(src);
@@ -5105,7 +5149,7 @@ void mace_Target_Parse_Source(struct Target *target, char *path, char *src) {
 }
 
 /// @brief Globbed files for sources and parse objects.
-void mace_compile_glob(struct Target *target, char *globsrc,
+void mace_compile_glob(Target *target, char *globsrc,
                            const char *flags) {
     glob_t globbed = mace_glob_sources(globsrc);
     for (int i = 0; i < globbed.gl_pathc; i++) {
@@ -5119,7 +5163,7 @@ void mace_compile_glob(struct Target *target, char *globsrc,
 }
 
 /******************** mace_is *********************/
-int mace_isTarget(uint64_t hash) {
+int mace_isTarget(u64 hash) {
     for (int i = 0; i < target_num; i++) {
         if (targets[i]._hash == hash)
             return (true);
@@ -5340,7 +5384,7 @@ void mace_run_commands(const char *commands) {
 /// @brief Pre-build step.
 ///     - Compute checksums for each source, header file 
 ///     - Check which files need to be re-compiled depending on checksums 
-void mace_prebuild_target(struct Target *target) {
+void mace_prebuild_target(Target *target) {
     sprintf("Pre-Build target %s\n", target->_name);
     // Check which sources don't need to be recompiled
     /* --- Move to target base_dir, compile there --- */
@@ -5393,7 +5437,7 @@ void mace_prebuild_target(struct Target *target) {
 }
 
 /// @brief Build input target: compile then link.
-void mace_build_target(struct Target *target) {
+void mace_build_target(Target *target) {
     sprintf("Building target %s\n", target->_name);
     /* --- Compile now. --- */
     if (target->base_dir != NULL)
@@ -5432,7 +5476,7 @@ b32 mace_in_build_order(size_t order, int *b_order, int num) {
 
 /// @brief Get target order from input hash
 /// @return Target order (as added by user), or -1 if not found
-int mace_hash_order(uint64_t hash) {
+int mace_hash_order(u64 hash) {
     int order = -1;
     for (int i = 0; i < target_num; i++) {
         if (hash == targets[i]._hash) {
@@ -5444,7 +5488,7 @@ int mace_hash_order(uint64_t hash) {
 }
 
 /// @brief Get target order (as added by user)
-int mace_target_order(struct Target target) {
+int mace_target_order(Target target) {
     return (mace_hash_order(target._hash));
 }
 
@@ -5461,7 +5505,7 @@ void mace_build_order_add(size_t order) {
 
 /// @brief Depth first search through target depencies to construct a 
 ///     build_order to for user target and all its dependencies
-void mace_build_order_recursive(struct Target target, size_t *o_cnt) {
+void mace_build_order_recursive(Target target, size_t *o_cnt) {
     /* Make sure recursion number isn't greater than target number */
     if ((*o_cnt) >= target_num)
         return;
@@ -5505,7 +5549,7 @@ void mace_build_order_recursive(struct Target target, size_t *o_cnt) {
 }
 
 /// @brief Check if target depends on target with input hash.
-b32 mace_Target_hasDep(struct Target *target, uint64_t target_hash) {
+b32 mace_Target_hasDep(Target *target, u64 target_hash) {
     if (target->_deps_links == NULL)
         return (false);
 
@@ -5518,12 +5562,12 @@ b32 mace_Target_hasDep(struct Target *target, uint64_t target_hash) {
 
 /// @brief Check if any two targets depend on each other.
 ///     TODO: Resolve circular dependencies somehow.
-b32 mace_circular_deps(struct Target *targs, size_t len) {
+b32 mace_circular_deps(Target *targs, size_t len) {
     /* -- Circular dependency conditions -- */
     /*   1- Target i has j dependency       */
     /*   2- Target j has i dependency       */
     for (int i = 0; i < target_num; i++) {
-        uint64_t hash_i = targs[i]._hash;
+        u64 hash_i = targs[i]._hash;
         /* 1- going through target i's dependencies */
         for (int z = 0; z < targs[i]._deps_links_num; z++) {
             int j = mace_hash_order(targs[i]._deps_links[z]);
@@ -5564,7 +5608,7 @@ void mace_make_dirs(void) {
 
 /// @brief Read config string, splitting string into _flags using
 ///     mace_separator.
-void mace_parse_config(struct Config *config) {
+void mace_parse_config(Config *config) {
     mace_Config_Free(config);
     if (config->flags == NULL) {
         fprintf(stderr, "Config has no flags.\n");
@@ -5670,7 +5714,7 @@ void mace_build(void) {
 
     /* Actually build all targets */
     for (int z = 0; z < build_order_num; z++) {
-        struct Target *target = &targets[build_order[z]];
+        Target *target = &targets[build_order[z]];
         /* -- config argv -- */
         mace_argv_add_config(target, &target->_argv, &target->_argc, &target->_arg_len);
 
@@ -5682,7 +5726,7 @@ void mace_build(void) {
     }
 }
 
-void mace_Config_Free(struct Config *config) {
+void mace_Config_Free(Config *config) {
     if (config == NULL)
         return;
 
@@ -5696,14 +5740,14 @@ void mace_Config_Free(struct Config *config) {
     }
 }
 
-void mace_Target_Free(struct Target *target) {
+void mace_Target_Free(Target *target) {
     mace_Target_Free_argv(target);
     mace_Target_Free_notargv(target);
     mace_Target_Free_excludes(target);
     mace_Target_Free_deps_headers(target);
 }
 
-void mace_Target_Free_deps_headers(struct Target *target) {
+void mace_Target_Free_deps_headers(Target *target) {
     if (target->_headers != NULL) {
         for (int i = 0; i < target->_headers_num; i++) {
             if (target->_headers[i] != NULL) {
@@ -5769,14 +5813,14 @@ void mace_Target_Free_deps_headers(struct Target *target) {
     }
 }
 
-void mace_Target_Free_excludes(struct Target *target) {
+void mace_Target_Free_excludes(Target *target) {
     if (target->_excludes != NULL) {
         free(target->_excludes);
         target->_excludes = NULL;
     }
 }
 
-void mace_Target_Free_notargv(struct Target *target) {
+void mace_Target_Free_notargv(Target *target) {
     if (target->_deps_links != NULL) {
         free(target->_deps_links);
         target->_deps_links = NULL;
@@ -5787,7 +5831,7 @@ void mace_Target_Free_notargv(struct Target *target) {
     }
 }
 
-void mace_Target_Free_argv(struct Target *target) {
+void mace_Target_Free_argv(Target *target) {
     mace_argv_free(target->_argv_includes, target->_argc_includes);
     target->_argv_includes  = NULL;
     target->_argc_includes  = 0;
@@ -5825,7 +5869,7 @@ void mace_Target_Free_argv(struct Target *target) {
 
 /// @brief Alloc _deps_header arrays if don't exist. 
 ///     Realloc to bigger if num close to len
-void mace_Target_Grow_deps_headers(struct Target *target, int source_i) {
+void mace_Target_Grow_deps_headers(Target *target, int source_i) {
     if (target->_deps_headers[source_i] == NULL) {
         target->_deps_headers_num[source_i] = 0;
         target->_deps_headers_len[source_i] = 8;
@@ -5843,7 +5887,7 @@ void mace_Target_Grow_deps_headers(struct Target *target, int source_i) {
 
 /// @brief Alloc header arrays if don't exist. 
 ///     Realloc to bigger if num close to len
-void mace_Target_Grow_Headers(struct Target *target) {
+void mace_Target_Grow_Headers(Target *target) {
     /* -- Alloc headers -- */
     if (target->_headers == NULL) {
         target->_headers_len = 8;
@@ -5913,7 +5957,7 @@ void mace_Target_Grow_Headers(struct Target *target) {
 }
 /// @brief Read target object .d files to check which headers are
 ///     required for re-compilation
-void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
+void mace_Target_Read_Objdeps(Target *target, char *deps, int source_i) {
     /* --- Split headers into tokens --- */
     char *header   = strtok(deps, mace_separator);
     size_t cwd_len = strlen(cwd);
@@ -5940,7 +5984,7 @@ void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
         }
 
         /* add header to list of all headers */
-        uint64_t hash = mace_Target_Header_Add(target, header);
+        u64 hash = mace_Target_Header_Add(target, header);
 
         /* Add header to list of header_deps of object */
         int header_order = mace_Target_header_order(target, hash);
@@ -5952,7 +5996,7 @@ void mace_Target_Read_Objdeps(struct Target *target, char *deps, int source_i) {
 
 /// @brief Check if target has header from input filename hash.
 /// @return -1 if not found, header_order if found.
-int mace_Target_header_order(struct Target *target, uint64_t hash) {
+int mace_Target_header_order(Target *target, u64 hash) {
     for (int i = 0; i < target->_headers_num; ++i) {
         if (target->_headers_hash[i] == hash)
             return (i);
@@ -5960,9 +6004,9 @@ int mace_Target_header_order(struct Target *target, uint64_t hash) {
     return (-1);
 }
 
-void mace_Target_Header_Add_Objpath(struct Target *target, char *header) {
+void mace_Target_Header_Add_Objpath(Target *target, char *header) {
     char *header_checksum = mace_checksum_filename(header, MACE_CHECKSUM_MODE_INCLUDE);
-    uint64_t hash = mace_hash(header_checksum);
+    u64 hash = mace_hash(header_checksum);
 
     /* Check if header_checksum already exists */
     int hash_id = -1;
@@ -5993,10 +6037,10 @@ void mace_Target_Header_Add_Objpath(struct Target *target, char *header) {
 }
 
 /// @brief Add header file name to target.
-uint64_t mace_Target_Header_Add(struct Target *target, char *header) {
+u64 mace_Target_Header_Add(Target *target, char *header) {
     /* Check if header hash already in _headers_hash */
     /* Add header hash to _headers_hash */
-    uint64_t hash = mace_hash(header);
+    u64 hash = mace_hash(header);
 
     /* Add header name to _headers */
     mace_Target_Grow_Headers(target);
@@ -6020,7 +6064,7 @@ uint64_t mace_Target_Header_Add(struct Target *target, char *header) {
 }
 
 /// @brief Add header as dependency of target.
-void mace_Target_Objdep_Add(struct Target *target, int header_order, int source_i) {
+void mace_Target_Objdep_Add(Target *target, int header_order, int source_i) {
     /* Check if header_order in _deps_headers */
     assert(source_i > -1);
     assert(source_i <= target->_argc_sources);
@@ -6037,7 +6081,7 @@ void mace_Target_Objdep_Add(struct Target *target, int header_order, int source_
 }
 
 /// @brief Read .d file and built .ho file from it.
-char *mace_Target_Read_d(struct Target *target, int source_i) {
+char *mace_Target_Read_d(Target *target, int source_i) {
     char *obj_file_flag = target->_argv_objects[source_i];
 
     /* obj_file_flag should start with "-o" */
@@ -6089,7 +6133,7 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
 
         /* Check that target has object with nocoll hashes */
         obj_file[ext + 1] = 'o';
-        uint64_t obj_hash = mace_hash(obj_file);
+        u64 obj_hash = mace_hash(obj_file);
         obj_hash_id = Target_hasObjectHash_nocoll(target, obj_hash);
         assert(obj_hash_id < target->_objects_hash_nocoll_num);
         assert(obj_hash_id > -1);
@@ -6121,7 +6165,7 @@ char *mace_Target_Read_d(struct Target *target, int source_i) {
 
 /// @brief Parse .d file, recording all header files to .ho files
 ///     Should only be called if source file changed
-void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
+void mace_Target_Parse_Objdep(Target *target, int source_i) {
     /* Set _deps_headers_num to invalid */
     target->_deps_headers_num[source_i] = -1;
 
@@ -6145,7 +6189,7 @@ void mace_Target_Parse_Objdep(struct Target *target, int source_i) {
 }
 
 /// @brief Read .ho file and put all read headers in _deps_headers
-void mace_Target_Read_ho(struct Target *target, int source_i) {
+void mace_Target_Read_ho(Target *target, int source_i) {
     // Only read if .ho file was not created.
     if (target->_deps_headers_num[source_i] > 0)
         return;
@@ -6200,7 +6244,7 @@ void mace_Target_Read_ho(struct Target *target, int source_i) {
 }
 
 /// @brief Save header order dependencies to .ho. .d should exist.
-void mace_Target_Parse_Objdeps(struct Target *target) {
+void mace_Target_Parse_Objdeps(Target *target) {
     /* Loop over all _argv_sources */
     for (int i = 0; i < target->_argc_sources; i++) {
         mace_Target_Parse_Objdep(target, i);
@@ -6315,7 +6359,7 @@ void mace_post_user(Mace_Args *args) {
     mace_user_config_set(args->user_config_hash, args->user_config);
     assert(mace_target < target_num);
     mace_config_resolve(&targets[mace_target]);
-    struct Config *config = &configs[mace_config];
+    Config *config = &configs[mace_config];
 
     /* 8. Process queue alloc */
     assert(args->jobs >= 1);
@@ -6400,7 +6444,7 @@ void mace_post_build(Mace_Args *args) {
     build_order_num = 0;
 }
 /// @brief Realloc _deps_links to bigger if num close to len
-void mace_Target_Deps_Grow(struct Target *target) {
+void mace_Target_Deps_Grow(Target *target) {
     if (target->_deps_links_len <= target->_deps_links_num) {
         target->_deps_links_len *= 2;
         size_t bytesize = target->_deps_links_len * sizeof(*target->_deps_links);
@@ -6408,14 +6452,14 @@ void mace_Target_Deps_Grow(struct Target *target) {
     }
 }
 
-void mace_Target_Deps_Add(struct Target *target, uint64_t target_hash) {
+void mace_Target_Deps_Add(Target *target, u64 target_hash) {
     if (!mace_Target_hasDep(target, target_hash)) {
         mace_Target_Deps_Grow(target);
         target->_deps_links[target->_deps_links_num++] = target_hash;
     }
 }
 
-void mace_Target_Deps_Hash(struct Target *target) {
+void mace_Target_Deps_Hash(Target *target) {
     /* --- Preliminaries --- */
     if ((target->links == NULL) && (target->dependencies == NULL))
         return;
@@ -6528,13 +6572,13 @@ char *mace_checksum_filename(char *file, int mode) {
 }
 
 /// @brief Check if two shadc1 checksums are equal
-inline b32 mace_sha1dc_cmp(uint8_t hash1[SHA1_LEN], uint8_t hash2[SHA1_LEN]) {
+inline b32 mace_sha1dc_cmp(u8 hash1[SHA1_LEN], u8 hash2[SHA1_LEN]) {
     return (memcmp(hash1, hash2, SHA1_LEN) == 0);
 }
 
 /// @brief Check for collision in sha1dc checksum between input file and hash
 /// TODO: What should user do if sha1dc collision found? 
-void mace_sha1dc(char *file, uint8_t hash[SHA1_LEN]) {
+void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
     assert(file != NULL);
     size_t size;
     int foundcollision;
