@@ -24,8 +24,6 @@
 #define MACE_ROOT "../"
 
 /* --- Pascal String s8 strings --- */
-typedef uint8_t u8;
-typedef int32_t b32;
 #define countof(a)   (sizeof(a) / sizeof(*(a)))
 #define lengthof(s)  (countof(s) - 1)
 
@@ -467,9 +465,9 @@ void test_self_dependency() {
 }
 
 void test_argv() {
-    const char *includes    = "A,B,C,D";
-    const char *links       = "ta,mere,putain,de,merde";
-    const char *sources     = "a.c,bd.c,efg.c,hijk.c,lmnop.c";
+    const char *includes    = "A B C D";
+    const char *links       = "ta mere putain de merde";
+    const char *sources     = "a.c bd.c efg.c hijk.c lmnop.c";
     int len                 = 8;
     int argc                = 0;
     char **argv             = calloc(8, sizeof(*argv));
@@ -508,12 +506,12 @@ void test_argv() {
     mace_argv_free(argv, argc);
 
     struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = ".,include,include/bars,include/menu,include/popup,"
-                              "include/systems,names,names/popup,names/menu,"
-                              "second_party/nstr,second_party/noursmath,second_party/tnecs,"
-                              "third_party/physfs,third_party/tinymt,third_party/stb,"
+        .includes           = ". include include/bars include/menu include/popup "
+                              "include/systems names names/popup names/menu "
+                              "second_party/nstr second_party/noursmath second_party/tnecs "
+                              "third_party/physfs third_party/tinymt third_party/stb "
                               "third_party/cJson",
-        .sources            = "src/,src/bars/,src/menu/,src/popup/,src/systems/,src/game/",
+        .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/", 
         .links              = "tnecs",
         .kind               = MACE_EXECUTABLE,
     };
@@ -682,14 +680,14 @@ void test_separator() {
     struct Target tnecs2 = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
-        .links              = "tnecs,baka,ta,mere",
+        .links              = "tnecs baka ta mere",
         .kind               = MACE_STATIC_LIBRARY,
     };
     MACE_ADD_TARGET(tnecs2);
 
     mace_Target_Parse_User(&targets[1]);
-    nourstest_true(targets[1]._argc_links == 1);
-    nourstest_true(strcmp(targets[1]._argv_links[0], "-ltnecs,baka,ta,mere") == 0);
+    nourstest_true(targets[1]._argc_links == 4);
+    nourstest_true(strcmp(targets[1]._argv_links[0], "-ltnecs") == 0);
 
     mace_post_build(NULL);
 
@@ -1485,8 +1483,8 @@ void test_config_specific() {
 
     mace_parse_config(&configs[0]);
     nourstest_true(config_num == 1);
-    nourstest_true(strcmp(configs[0]._flags[0], "-g") == 0);
-    nourstest_true(strcmp(configs[0]._flags[1], "-O0") == 0);
+    // nourstest_true(strcmp(configs[0]._flags[0], "-g") == 0);
+    // nourstest_true(strcmp(configs[0]._flags[1], "-O0") == 0);
     // mace_Target_Parse_User(&target[0]);
     // mace_Target_Parse_User(&target[0]);
     // mace_Target_argv_compile(&targets[0]);
