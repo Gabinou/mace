@@ -146,8 +146,8 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "SDL2,SDL2_image,SDL2_ttf,m,GLEW,cJSON,nmath,"
-                              "physfs,tinymt,tnecs,nstr,parg",
+        .links              = "SDL2 SDL2_image SDL2_ttf m GLEW cJSON nmath "
+                              "physfs tinymt tnecs nstr parg",
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(firesaga);
@@ -177,7 +177,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "B,C,D",
+        .links              = "B C D",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -185,7 +185,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "D,E",
+        .links              = "D E",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -200,7 +200,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "F,G",
+        .links              = "F G",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -251,10 +251,15 @@ void test_target() {
     nourstest_true(targets[5]._hash == mace_hash("D"));
     nourstest_true(targets[6]._hash == mace_hash("F"));
 
+    // for (int i = 0; i < target_num; ++i) {
+    //     printf("%s ",  targets[build_order[i]]._name);
+    // }
+    // printf("\n");
+
     mace_build_order();
     assert(build_order != NULL);
 
-    // /* Print build order names */
+    /* Print build order names */
     // for (int i = 0; i < target_num; ++i) {
     //     printf("%s ",  targets[build_order[i]]._name);
     // }
@@ -283,8 +288,8 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "AA,CC,DD",
-        .dependencies       = "AA,CC,DD",
+        .links              = "AA CC DD",
+        .dependencies       = "AA CC DD",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -299,7 +304,7 @@ void test_target() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .dependencies       = "FF,GG",
+        .dependencies       = "FF GG",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -381,7 +386,7 @@ void test_circular() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "B,C,D",
+        .links              = "B C D",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -389,7 +394,7 @@ void test_circular() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "D,E",
+        .links              = "D E",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -397,7 +402,7 @@ void test_circular() {
         .includes           = "tnecs.h",
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
-        .links              = "F,G",
+        .links              = "F G",
         .kind               = MACE_EXECUTABLE,
     };
 
@@ -475,6 +480,7 @@ void test_argv() {
     mace_mkdir(build_dir);
 
     argv = mace_argv_flags(&len, &argc, argv, includes, "-I", false, mace_separator);
+    assert(argv[1] != NULL);
     nourstest_true(argc == 4);
     nourstest_true(len == 8);
     nourstest_true(strcmp(argv[0], "-IA") == 0);
