@@ -83,3 +83,5 @@ Copyright (c) 2025 Gabriel Taillon
 
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
+
+Originally created for use in a game I am developing: [Codename Firesaga](https://gitlab.com/Gabinou/firesagamaker).
