@@ -129,12 +129,6 @@ struct Config;
 // Set default config for target.
 #define MACE_TARGET_CONFIG(target, config) mace_target_config(#target, #config)
 
-/* -- Unsupported compiler utils -- */
-//  - Set automatically in mace_set_compiler 
-//      for tcc, gcc, clang.
-//  - Only set these manually if using a
-//      different compiler.
-
 /* -- Archiver -- */
 // Archiver setting priority:
 //      a- input argument (with -a,--ar)
@@ -146,17 +140,18 @@ struct Config;
 /* -- cc_depflag -- */
 // Set cc_depflag: compiler flag to
 // build .d dependency files.
+// Ex: tcc -MM ...
 #define MACE_SET_CC_DEPFLAG(cc_depflag) _MACE_SET_CC_DEPFLAG(cc_depflag)
 #define _MACE_SET_CC_DEPFLAG(cc_depflag) mace_set_cc_depflag(#cc_depflag)
 
 /* -- Target kinds -- */
 enum MACE_TARGET_KIND { /* for target.kind */
     MACE_TARGET_NULL     = 0,
-    MACE_EXECUTABLE      = 1,
-    MACE_STATIC_LIBRARY  = 2,
-    MACE_SHARED_LIBRARY  = 3,
-    MACE_DYNAMIC_LIBRARY = 3,
-    MACE_TARGET_NUM      = 4,
+    MACE_EXECUTABLE,
+    MACE_STATIC_LIBRARY,
+    MACE_SHARED_LIBRARY,
+    MACE_DYNAMIC_LIBRARY,
+    MACE_TARGET_NUM,
 };
 
 /******************* STRUCTS ******************/
@@ -200,11 +195,11 @@ typedef struct Target {
     **                 TARGET DEFINITION                /
     **                                                  /
     ** Target mytarget = {                              /
-    **     .includes           = "include,include/foo", /
-    **     .sources            = "src/'*'',src/bar.c",  /
+    **     .includes           = "include include/foo", /
+    **     .sources            = "src/'*'' src/bar.c",  /
     **     .sources_exclude    = "src/main.c",          /
     **     .dependencies       = "mytarget1",           /
-    **     .links              = "lib1,lib2,mytarget2", /
+    **     .links              = "lib1 lib2 mytarget2", /
     **     .kind               = MACE_LIBRARY,          /
     ** };                                               /
     **      NOTE: default separator is " ",             /
@@ -321,9 +316,9 @@ typedef struct Target {
 
 typedef struct Config {
     /*----------------- PUBLIC MEMBERS --------------*/
-    char *flags;
     char *cc;
     char *ar;
+    const char *flags;
 
     /*-------------------------------------------------*/
     /*                   EXAMPLE                        /
