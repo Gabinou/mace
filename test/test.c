@@ -70,7 +70,8 @@ static void nourstest_run(char *name, void (*test)()) {
 #endif /*__NOURSTEST_H__ */
 
 #define BUILDDIR "build/"
-
+// TODO: test multiple commands in pre/post commands
+// with separator e.g. &&
 void test_isFunc() {
     nourstest_true(mace_isSource("test.c"));
     nourstest_true(mace_isSource("doesnotexist.c"));

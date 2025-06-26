@@ -151,7 +151,7 @@ enum MACE_TARGET_KIND { /* for target.kind */
     MACE_STATIC_LIBRARY,
     MACE_SHARED_LIBRARY,
     MACE_DYNAMIC_LIBRARY,
-    MACE_TARGET_NUM,
+    MACE_TARGET_KIND_NUM,
 };
 
 /******************* STRUCTS ******************/
@@ -400,9 +400,9 @@ enum MACE_CONFIG {
 
 enum MACE_RESERVED_TARGETS {
     /* Order of ALL target */
-    MACE_ALL_ORDER              =   -1,
-    MACE_CLEAN_ORDER            =   -2,
     MACE_NULL_ORDER             =   -3,
+    MACE_CLEAN_ORDER            =   -2,
+    MACE_ALL_ORDER              =   -1,
     MACE_ORDER_START            =    0,
     MACE_RESERVED_TARGETS_NUM   =    2,
 };
@@ -596,7 +596,7 @@ static void mace_link_static_library(  Target *target);
 static void mace_link_dynamic_library( Target *target);
 
 typedef void (*mace_link_t)(Target *);
-mace_link_t mace_link[MACE_TARGET_NUM - 1] = {mace_link_executable,
+mace_link_t mace_link[MACE_TARGET_KIND_NUM - 1] = {mace_link_executable,
     mace_link_static_library,
     mace_link_dynamic_library
 };
@@ -5498,7 +5498,7 @@ void mace_build_target(Target *target) {
     assert(chdir(cwd) == 0);
 
     /* --- Linking --- */
-    if ((target->kind <= MACE_TARGET_NULL) || (target->kind >= MACE_TARGET_NUM)) {
+    if ((target->kind <= MACE_TARGET_NULL) || (target->kind >= MACE_TARGET_KIND_NUM)) {
         fprintf(stderr, "Wrong target type.\n");
         exit(1);
     }
