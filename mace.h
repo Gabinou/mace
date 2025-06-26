@@ -100,7 +100,7 @@ struct Target;
 // Compiler setting priority:
 //      a- input argument (with -c,--cc)
 //      b- config
-//      c- macefile       (with MACE_SET_COMPILER,mace_set_compiler)
+//      c- macefile       (with MACE_SET_COMPILER)
 #define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
 #define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
 
@@ -117,7 +117,7 @@ struct Target;
 
 /* -- Separator -- */
 // Separator for files/folders in target
-// member variables. Default is ",".
+// member variables. Default is " ".
 #define  MACE_SET_SEPARATOR(sep) _MACE_SET_SEPARATOR(sep)
 #define _MACE_SET_SEPARATOR(sep)  mace_set_separator(#sep)
 
@@ -207,7 +207,7 @@ typedef struct Target {
     **     .links              = "lib1,lib2,mytarget2", /
     **     .kind               = MACE_LIBRARY,          /
     ** };                                               /
-    **      NOTE: default separator is ",",             /
+    **      NOTE: default separator is " ",             /
     **      set with 'mace_set_separator'               /
     *                                                   /
     *--------------------------------------------------*/
@@ -333,7 +333,7 @@ typedef struct Config {
     **     .target             = "foo",                 /
     **     .flags              = "-g -O0 -rdynamic",    /
     ** };                                               /
-    **    NOTE: default separator is ",",               /
+    **    NOTE: default separator is " ",               /
     **          set with 'mace_set_separator'           /
     **                                                  /
     *--------------------------------------------------*/
