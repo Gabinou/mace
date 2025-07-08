@@ -3721,7 +3721,7 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
             printf(format, __VA_ARGS__);\
     } while(0)
 
-#define sprintf(format, ...) do {\
+#define Sprintf(format, ...) do {\
         if (!silent)\
             printf(format, __VA_ARGS__);\
     } while(0)
@@ -4568,7 +4568,7 @@ void mace_wait_pid(int pid) {
 /******************* mace_build ********************/
 void mace_link_dynamic_library(Target *target) {
     char *lib = mace_library_path(target->_name, MACE_DYNAMIC_LIBRARY);
-    sprintf("Linking  %s", lib);
+    Sprintf("Linking  %s", lib);
     int    argc_objects = target->_argc_sources;
     char **argv_objects = target->_argv_objects;
 
@@ -4653,7 +4653,7 @@ void mace_link_dynamic_library(Target *target) {
 
 void mace_link_static_library(Target *target) {
     char *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
-    sprintf("Linking  %s \n", lib);
+    Sprintf("Linking  %s \n", lib);
     int    argc_objects = target->_argc_sources;
     char **argv_objects = target->_argv_objects;
 
@@ -4720,7 +4720,7 @@ void mace_link_static_library(Target *target) {
 
 void mace_link_executable(Target *target) {
     char *exec = mace_executable_path(target->_name);
-    sprintf("Linking  %s \n", exec);
+    Sprintf("Linking  %s \n", exec);
 
     char **argv_links    = target->_argv_links;
     char **argv_flags    = target->_argv_flags;
@@ -4910,7 +4910,7 @@ void mace_Target_compile(Target *target) {
 
         /* - Add process to queue - */
         if (argc < target->_argc_sources) {
-            sprintf("Compiling %s\n", target->_argv_sources[argc]);
+            Sprintf("Compiling %s\n", target->_argv_sources[argc]);
             target->_argv[MACE_ARGV_SOURCE] = target->_argv_sources[argc];
             target->_argv[MACE_ARGV_OBJECT] = target->_argv_objects[argc];
             argc++;
@@ -5365,7 +5365,7 @@ void mace_print_message(const char *message) {
     if (message == NULL)
         return;
 
-    sprintf("%s\n", message);
+    Sprintf("%s\n", message);
 }
 /**************** mace_clean ****************/
 /// @brief Mace implementation of recursive 
@@ -5398,9 +5398,9 @@ int mace_unlink_cb(const char *fpath,
 
 /// @brief Remove content of object and build directories.
 void mace_clean(void) {
-    sprintf("Cleaning '%s'\n", obj_dir);
+    Sprintf("Cleaning '%s'\n", obj_dir);
     mace_rmrf(obj_dir);
-    sprintf("Cleaning '%s'\n", build_dir);
+    Sprintf("Cleaning '%s'\n", build_dir);
     mace_rmrf(build_dir);
 }
 
@@ -5460,7 +5460,7 @@ void mace_run_commands(const char *commands) {
 ///     - Check which files need to be re-compiled
 ///       depending on checksums 
 void mace_prebuild_target(Target *target) {
-    sprintf("Pre-Build target %s\n", target->_name);
+    Sprintf("Pre-Build target %s\n", target->_name);
     // Check which sources don't need to be recompiled
     /* --- Move to target base_dir, compile there --- */
     if (target->base_dir != NULL)
@@ -5513,7 +5513,7 @@ void mace_prebuild_target(Target *target) {
 
 /// @brief Build input target: compile then link.
 void mace_build_target(Target *target) {
-    sprintf("Building target %s\n", target->_name);
+    Sprintf("Building target %s\n", target->_name);
     /* --- Compile now. --- */
     if (target->base_dir != NULL)
         assert(chdir(target->base_dir) == 0);

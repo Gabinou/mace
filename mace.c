@@ -98,6 +98,7 @@ int main(int argc, char *argv[]) {
     char *dflag = "-d";
     char *nflag = "-n";
     char *sflag = "-s";
+    char *jflag = "-j";
 
     char *argv_run[] = {"./"STRINGIFY(BUILDER), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
     int argc_run = 1;
@@ -121,7 +122,12 @@ int main(int argc, char *argv[]) {
         argv_run[argc_run++] = "-a";
         argv_run[argc_run++] = args.ar;
     }
-
+    char jobstr[8] = {0};
+    if (args.jobs >= 1) {
+        argv_run[argc_run++] = "-j";
+        sprintf(jobstr, "%d", args.jobs);
+        argv_run[argc_run++] = jobstr;
+    }
     argv_run[argc_run++] = args.user_target;
 
     /* - Run it - */
