@@ -168,7 +168,7 @@ typedef struct Target {
     
     /* Linker flags are passed to the linker.
     ** Written as -Wl, *option*.
-    ** Prepend "-Wl,", pass to compiled     */
+    ** Prepend "-Wl,", pass to compiler     */
     const char *link_flags; 
     
     /* Dependencies are targets,
@@ -304,7 +304,7 @@ typedef struct Target {
     int     *_deps_headers_len;
 
     /* --- Check for cwd in header dependencies ---  */
-    b32 checkcwd;
+    b32 _checkcwd;
 
     /* --- Recompile switches ---  */
     /* [argc_source]    */
@@ -316,9 +316,9 @@ typedef struct Target {
 
 typedef struct Config {
     /*----------------- PUBLIC MEMBERS --------------*/
-    char *cc;
-    char *ar;
-    const char *flags;
+    char *cc;           /* compiler     */
+    char *ar;           /* archiver     */
+    const char *flags;  /* passed as is */
 
     /*-------------------------------------------------*/
     /*                   EXAMPLE                        /
@@ -3759,7 +3759,7 @@ void mace_add_target(Target *target, char *name) {
     }
     targets[target_num]._hash    = hash;
     targets[target_num]._order   = target_num;
-    targets[target_num].checkcwd = true;
+    targets[target_num]._checkcwd = true;
     mace_Target_Deps_Hash(&targets[target_num]);
     mace_Target_Parse_User(&targets[target_num]);
     mace_Target_argv_compile(&targets[target_num]);
@@ -6064,7 +6064,7 @@ void mace_Target_Read_Objdeps(Target *target,
         }
 
         /* Skip if header is not in cwd */
-        if (target->checkcwd && (strncmp(header, cwd, cwd_len) != 0)) {
+        if (target->_checkcwd && (strncmp(header, cwd, cwd_len) != 0)) {
             header = strtok(NULL, mace_separator);
             continue;
         }
