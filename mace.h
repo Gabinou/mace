@@ -4868,7 +4868,6 @@ void mace_Target_precompile(Target *target) {
         if ((argc < target->_argc_sources) &&
             (pnum < plen))
             continue;
-
         /* Wait for process */
         if (pnum > 0) {
             pid_t wait = mace_pqueue_pop();
@@ -6749,7 +6748,7 @@ Mace_Args Mace_Args_default = {
     .user_target_hash   = 0,
     .user_config        = NULL,
     .user_config_hash   = 0,
-    .jobs               = 1,
+    .jobs               = 12,
     .cc                 = NULL,
     .ar                 = NULL,
     .macefile           = NULL,
@@ -6774,7 +6773,7 @@ Mace_Args mace_combine_args_env(Mace_Args args,
         b32 _ar                = (args.ar               != Mace_Args_default.cc);
         b32 _user_target_hash  = (args.user_target_hash != Mace_Args_default.user_target_hash);
         b32 _user_config_hash  = (args.user_config_hash != Mace_Args_default.user_config_hash);
-        b32 _jobs              = (args.jobs             != Mace_Args_default.jobs);
+        b32 _jobs              = (args.jobs             >= 1);
         b32 _debug             = (args.debug            != Mace_Args_default.debug);
         b32 _silent            = (args.silent           != Mace_Args_default.silent);
         b32 _dry_run           = (args.dry_run          != Mace_Args_default.dry_run);
@@ -6793,7 +6792,6 @@ Mace_Args mace_combine_args_env(Mace_Args args,
         out.silent           = _silent           ? args.silent           : env.silent;
         out.dry_run          = _dry_run          ? args.dry_run          : env.dry_run;
         out.build_all        = _build_all        ? args.build_all        : env.build_all;
-
         return (out);
     }
 
