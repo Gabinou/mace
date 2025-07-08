@@ -49,7 +49,7 @@ Flags for `installer` to customize `mace`:
     - No bespoke parser to implement.
 
 ## Limitations
-- POSIX glob.h required.
+- POSIX `glob.h` required.
     - On Windows, `Cygwin` or `MSYS2` shells might work. Untested.
 - Circular dependencies unsupported.
 
@@ -84,4 +84,4 @@ Copyright (c) 2025 Gabriel Taillon
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
 
-Originally created for use in a game I am developing: [Codename Firesaga](https://gitlab.com/Gabinou/firesagamaker).
+Originally created for use in a game I am developing: [Codename: Firesaga](https://gitlab.com/Gabinou/firesagamaker).
