@@ -373,8 +373,8 @@ void Mace_Args_Free(Mace_Args *args);
 /***************** CONSTANTS ****************/
 #define MACE_VER_PATCH 2
 #define MACE_VER_MINOR 0
-#define MACE_VER_MAJOR 3
-#define MACE_VER_STRING "2.0.3"
+#define MACE_VER_MAJOR 4
+#define MACE_VER_STRING "2.0.4"
 #define MACE_USAGE_MIDCOLW 12
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 

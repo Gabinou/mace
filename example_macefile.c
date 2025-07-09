@@ -1,6 +1,9 @@
 
 #include "mace.h"
 
+// Compiler/archiver defines so that they can be set
+// 1. Two step build: when bootsrapping with "-D CC=gcc" preprocessor option
+// 2. One step build: when bootsrapping with "-D CC=gcc" preprocessor option
 #ifndef CC
     #define CC "tcc"
 #endif
@@ -8,6 +11,8 @@
     #define AR "tcc -ar"
 #endif
 
+// Configs to share flags, compiler, archiver 
+// between targets.
 struct Config debug         = {
     .flags = "-g3 -rdynamic -O0"
 };

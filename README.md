@@ -14,22 +14,22 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - Tab completion (`zsh` only), see `_mace.zsh`
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
 
-## How to: Single-header build 
-1. Get `mace.h`
-2. Write your own [`macefile.c`](https://github.com/Gabinou/mace/blob/master/example_macefile.c)
-3. Bootstrap: `gcc macefile.c -o builder`
-4. Build: `./builder` 
-    1. Reserved targets: `./builder clean`, `./builder all`
-    2. Configs: `./builder -g release`
+## How to
+### Write a macefile 
+1. See [`example_macefile.c`](example_macefile.c)
+2. Read `struct Target` and `struct Config` in [`mace.h`](mace.h)  
+
+### Two step build (single-header build)
+1. Bootstrap: `gcc macefile.c -o builder`
+2. Build: `./builder` 
 
 Use the MACEFLAGS environment variable to set default flags.
  
-### How to: Make-like convenience executable build
-1. Install `mace` convenience executable
+### One step build (with mace convenience executable)
+0. Install `mace` convenience executable
     1. Bootstrap: `gcc installer.c -o installer`
-    2. Install: `sudo ./installer`. 
-2. Write your own `macefile.c`
-3. Build: `mace`
+    2. Install: `./installer`. 
+1. Build: `mace`
 
 Flags for `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
@@ -38,6 +38,14 @@ Flags for `installer` to customize `mace`:
 - `-DCC=<compiler>` to change compiler used by `mace`. Defaults to `gcc`.
 - `-DAR=<archiver>` to change archiver used by `mace`. Defaults to `ar`.
 - `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
+
+### Common options
+1. Reserved targets: 
+    - `<./builder or mace> clean`
+    - `<./builder or mace> all`
+2. Configs: `<./builder or mace> -g release`
+3. Compiler: `<./builder or mace> -c gcc`
+4. Macefile: `<./builder or mace> -f my_macefile.c`
 
 ## Why?
 - Too many complex, slow build systems.
