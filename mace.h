@@ -41,6 +41,10 @@
 #ifndef MACE_CONVENIENCE_EXECUTABLE
 
 /*----------------------------------------------*/
+/*                  PUBLIC API                  */
+/*----------------------------------------------*/
+
+/*----------------------------------------------*/
 /*               USER ENTRY POINT               */
 /*----------------------------------------------*/
 
@@ -69,10 +73,6 @@ extern int mace(int argc, char *argv[]);
 *   MACE_ADD_TARGET(foo);                        /
 * };                                             /
 *-----------------------------------------------*/
-
-/*----------------------------------------------*/
-/*                  PUBLIC API                  */
-/*----------------------------------------------*/
 
 /* -- Types -- */
 typedef uint8_t     u8;
@@ -173,6 +173,7 @@ typedef struct Target {
     
     /* Dependencies are targets,
     ** built before self. */
+    // Note: are there any dependencies that are not linked?
     const char *dependencies;   /* targets */
     const char *flags;          /* passed as is */
 
@@ -6816,7 +6817,8 @@ Mace_Args mace_parse_env(void) {
         Mace_Args out = mace_parse_args(argc, argv);
         mace_argv_free(argv, argc);
         return (out);
-    };
+    }
+
     return (Mace_Args_default);
 }
 

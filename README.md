@@ -17,14 +17,15 @@ Specificity, reduced scope, everything in service of *simplicity*.
 ## How to
 ### Write a macefile 
 1. See [`example_macefile.c`](example_macefile.c)
-2. Read `struct Target` and `struct Config` in [`mace.h`](mace.h)  
+2. Read `PUBLIC API` section in [`mace.h`](mace.h)  
 
 ### Two step build (single-header build)
 1. Bootstrap: `gcc macefile.c -o builder`
 2. Build: `./builder` 
 
-Use the MACEFLAGS environment variable to set default flags.
- 
+Use the `MACEFLAGS` environment variable to set default flags.
+Same as `MAKEFLAGS` e.g. `export MACEFLAGS=-j12`
+
 ### One step build (with mace convenience executable)
 0. Install `mace` convenience executable
     1. Bootstrap: `gcc installer.c -o installer`
@@ -34,7 +35,7 @@ Use the MACEFLAGS environment variable to set default flags.
 Flags for `installer` to customize `mace`:
 - `-DPREFIX=<path>` to change install path. Defaults to `/usr/local`.
 - `-DDEFAULT_MACEFILE=<file>` to change default macefile name. Defaults to `macefile.c`.
-- `-DBUILDER=<file>` to change builder executable path.
+- `-DBUILDER=<file>` to change builder executable name. Defaults to `builder`.
 - `-DCC=<compiler>` to change compiler used by `mace`. Defaults to `gcc`.
 - `-DAR=<archiver>` to change archiver used by `mace`. Defaults to `ar`.
 - `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
