@@ -28,7 +28,7 @@ Same as `MAKEFLAGS` e.g. `export MACEFLAGS=-j12`
 
 ### One step build (with mace convenience executable)
 0. Install `mace` convenience executable
-    1. Bootstrap: `gcc installer.c -o installer`
+    1. Bootstrap: `gcc installer_macefile.c -o installer`
     2. Install: `./installer`. 
 1. Build: `mace`
 
