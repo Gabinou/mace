@@ -9,7 +9,7 @@
 *
 */
 
-#define MACE_CONVENCIENCE_EXECUTABLE
+#define MACE_CONVENIENCE_EXECUTABLE
 #include "mace.h"
 
 /* -- Default compiler used by mace executable to compile macefiles. -- */

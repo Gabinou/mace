@@ -45,10 +45,10 @@
 #define _STRINGIFY(x) #x
 
 struct Target MACE  = {
-    .sources        = "mace.c",
+    .sources        = "convenience_executable.c",
     .kind           = MACE_EXECUTABLE,
     /* Flags: 
-    **  1. Override main in mace.h with custom main in mace.c
+    **  1. Override main in mace.h with custom main in convenience_executable.c
     **  2. Set compiler, names */
     .flags          = "-DMACE_OVERRIDE_MAIN -DCC="STRINGIFY(CC)" "
                       "-DBUILDER="STRINGIFY(BUILDER)" "
