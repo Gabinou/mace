@@ -9,10 +9,9 @@
 *
 */
 
-#define MACE_CONVENIENCE_EXECUTABLE
 #include "mace.h"
 
-/* -- Default compiler used by mace executable to compile macefiles. -- */
+/* -- Default compiler used by convenience executable. -- */
 #ifndef CC
     #define CC gcc
 #endif
@@ -22,7 +21,7 @@
     #define DEFAULT_MACEFILE macefile.c
 #endif /* DEFAULT_MACEFILE */
 
-/* -- Name of the builder executable to compile macefile into. -- */
+/* -- Name of the executable to compile macefile into. -- */
 #ifndef BUILDER
     #define BUILDER builder
 #endif
