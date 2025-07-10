@@ -53,6 +53,7 @@ struct Target MACE  = {
     .flags          = "-DMACE_OVERRIDE_MAIN -DCC="STRINGIFY(CC)" "
                       "-DBUILDER="STRINGIFY(BUILDER)" "
                       "-DDEFAULT_MACEFILE="STRINGIFY(DEFAULT_MACEFILE),
+                      "-O2",
     .cmd_post       =
             /* Install mace convenience executable*/
             "install -T " STRINGIFY(BUILD_DIR) "/mace " STRINGIFY(PREFIX) "/bin/mace &&"
