@@ -2,7 +2,7 @@
 # mace
 
 Single-header build system for C.
-Uses C to exclusively build C.
+Use C to build C.
 
 Specificity, reduced scope, everything in service of *simplicity*. 
 

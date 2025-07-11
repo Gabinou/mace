@@ -46,7 +46,7 @@
 
 // The 'mace' function must be implemented by the user.
 extern int mace(int argc, char *argv[]);
-// Necessary:
+// Required:
 //   1- Add targets         -> MACE_ADD_TARGET
 // Optional:
 //   2- Set compiler        -> MACE_SET_COMPILER
