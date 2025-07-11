@@ -1,5 +1,5 @@
 /*
-**  Copyright 2023 Gabriel Taillon
+**  Copyright 2023-2025 Gabriel Taillon
 **  Licensed under GPLv3
 **
 **      Éloigne de moi l'esprit d'oisiveté, de
@@ -14,28 +14,26 @@
 **  Single header build system.
 **  Use C to build C.
 **
-** Usage:
-**  - Write a macefile.c
-**       - Implement the function mace.
-**       - Set compiler, add targets, etc.
-**       - Compile and run to build.
-**
-** See README for more details.
+**  Two step build (single-header build):
+**      1. Bootstrap: `gcc macefile.c -o builder`
+**      2. Build: `./builder`
+** 
+**  One step build (with mace convenience executable)
+**      0. Install `mace` convenience executable
+**      1. Build: `mace`
 */
 
 #define _XOPEN_SOURCE 500 /* Include POSIX 1995 */
-#include <assert.h>
+#define SHA1DC_NO_STANDARD_INCLUDES
 #include <stdio.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include <glob.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
+#include <glob.h>
 #include <ftw.h>
 
 /*----------------------------------------------*/
@@ -2890,9 +2888,9 @@ int SHA1DCFinal(unsigned char output[SHA1_LEN], SHA1_CTX *ctx) {
 // ubc_check has been verified against ubc_check_verify using the 'ubc_check_test' program in the tools section
 */
 
-#ifndef SHA1DC_NO_STANDARD_INCLUDES
-    #include <stdint.h>
-#endif
+// #ifndef SHA1DC_NO_STANDARD_INCLUDES
+//     #include <stdint.h>
+// #endif
 #ifdef SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C
     #include SHA1DC_CUSTOM_INCLUDE_UBC_CHECK_C
 #endif
