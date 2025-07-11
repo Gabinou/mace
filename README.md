@@ -10,9 +10,9 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - C syntax build file.
 - Simple API.
 - Single header: `mace.h`.
-- `make`-like usage, flags with `mace` convenience executable.
-- Tab completion (`zsh` only), see `_mace.zsh`
+- `mace` convenience executable with `make`-like usage, flags.
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
+- Tab completion (`zsh` only), see `_mace.zsh`
 
 ## How to
 ### Write a macefile 
@@ -56,6 +56,7 @@ Flags for `installer` to customize `mace`:
 - Using C to build C gets me free lunches.
     - No weird syntax to create.
     - No bespoke parser to implement.
+    - Piggybacking C compilers.
 
 ## Limitations
 - POSIX `glob.h` required.
