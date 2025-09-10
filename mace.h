@@ -883,16 +883,29 @@ void ubc_check(const u32 W[80], u32 dvmask[DVMASKSIZE]);
 
 /**************** PARG DECLARATION ****************/
 /*
- * parg - parse argv
- *
- * Written in 2015-2016 by Joergen Ibsen
- * Modified in 2023 by Gabriel Taillon for IES
- *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty. <http://creativecommons.org/publicdomain/zero/1.0/>
- */
+** parg - parse argv
+**
+** Modified in 2023 by Gabriel Taillon for IES
+**
+** The MIT No Attribution License (MIT-0)
+**
+** Copyright 2015-2023 Joergen Ibsen
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and associated documentation files (the "Software"),
+** to deal in the Software without restriction, including without limitation
+** the rights to use, copy, modify, merge, publish, distribute, sublicense,
+** and/or sell copies of the Software, and to permit persons to whom the
+** Software is furnished to do so.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+** THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+** FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+** DEALINGS IN THE SOFTWARE.
+*/
 
 #ifndef PARG_INCLUDED
 #define PARG_INCLUDED
