@@ -20,7 +20,7 @@ struct Config debug         = {
 struct Target A     = {
     .includes = ". include include/unit",
     .sources  = "src src/unit",
-    .links    = "A B",
+    .links    = "C B",
     .flags    = "-fno-strict-overflow -fno-strict-aliasing "
                 "-fwrapv -fno-delete-null-pointer-checks "
                 "-std=iso9899:1999",
