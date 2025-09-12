@@ -3327,7 +3327,7 @@ void mace_parg_usage(   const char *name,
     }
     printf("Usage: %s [TARGET] [OPTIONS]\n", name);
     for (int i = 0; longopts[i].doc; ++i) {
-        if ((i == 12) && is_mace) {
+        if ((i >= 11) && !is_mace) {
             break;
         }
         if (longopts[i].val)
