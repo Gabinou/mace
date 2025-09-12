@@ -3314,12 +3314,22 @@ struct parg_state parg_state_default = {
 };
 
 /// @brief Automatic usage/help printing
-void mace_parg_usage(const char *name, const struct parg_opt *longopts) {
+void mace_parg_usage(   const char *name,
+                        const struct parg_opt *longopts) {
     assert(name     != NULL);
     assert(longopts != NULL);
-    printf("\nmace builder executable: %s \n", name);
+    b32 is_mace =   (name[0] == 'm') && (name[1] == 'a') &&
+                    (name[2] == 'c') && (name[3] == 'e');
+    if (is_mace) {
+        printf("\nmace convenience executable\n");
+    } else {
+        printf("\nmace builder executable: %s\n", name);
+    }
     printf("Usage: %s [TARGET] [OPTIONS]\n", name);
     for (int i = 0; longopts[i].doc; ++i) {
+        if ((i == 12) && is_mace) {
+            break;
+        }
         if (longopts[i].val)
             printf(" -%c", longopts[i].val);
 
@@ -3331,9 +3341,6 @@ void mace_parg_usage(const char *name, const struct parg_opt *longopts) {
             printf("%*c", (int)(MACE_USAGE_MIDCOLW - 3 - strlen(longopts[i].arg)), ' ');
         } else if (longopts[i].val || longopts[i].name)
             printf("%*c", MACE_USAGE_MIDCOLW, ' ');
-
-        // if ((!longopts[i].arg) && ((longopts[i].val) || (longopts[i].name)))
-            // printf("");
 
         if (longopts[i].doc)
             printf("%s", longopts[i].doc);
@@ -3353,15 +3360,17 @@ void reverse(char *v[], int i, int j) {
 }
 
 /* Check if state is at end of argv */
-int is_argv_end(const struct parg_state *ps, int argc, char *const argv[]) {
+int is_argv_end(const struct parg_state *ps, int argc,
+                char *const argv[]) {
     return ps->optind >= argc || argv[ps->optind] == NULL;
 }
 
-
 // *INDENT-OFF*
 /* Match string at nextchar against longopts. */
-int match_long(struct parg_state *ps, int argc, char *const argv[], const char *optstring,
-                   const struct parg_opt *longopts, int *longindex) {
+int match_long( struct parg_state *ps, int argc,
+                char *const argv[], const char *optstring,
+                const struct parg_opt *longopts,
+                int *longindex) {
     int i, match = -1, num_match = 0;
     size_t len = strcspn(ps->nextchar, "=");
 
@@ -6806,8 +6815,8 @@ Mace_Args mace_parse_env(void) {
 /// @brief Parse builder/mace convenience
 ///        executable input args using parg
 Mace_Args mace_parse_args(int argc, char *argv[]) {
-    Mace_Args out_args = Mace_Args_default;
-    struct parg_state ps = parg_state_default;
+    Mace_Args out_args      = Mace_Args_default;
+    struct parg_state ps    = parg_state_default;
     int longindex, c;
     size_t len;
 
