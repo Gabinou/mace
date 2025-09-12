@@ -19,8 +19,10 @@
 **      2. Build: `./builder`
 ** 
 **  One step build (with mace convenience executable)
-**      0. Install `mace` convenience executable
+**     -1. Bootstrap: `gcc installer_macefile.c -o installer`
+**      0. Install `mace`: `./installer`
 **      1. Build: `mace`
+**
 */
 
 #define _XOPEN_SOURCE 500 /* Include POSIX 1995 */
@@ -83,6 +85,7 @@ typedef int32_t     b32;
 
 /* -- Targets -- */
 struct Target;
+
 // Note: stringifies variable name for hashing
 #define MACE_ADD_TARGET(target) mace_add_target(&target, #target)
 
@@ -163,20 +166,18 @@ typedef struct Target {
     const char *links;      /* libraries or targets */
     
     /* Linker flags are passed to the linker.
-    ** Written as -Wl, *option*.
-    ** Prepend "-Wl,", pass to compiler     */
+    ** Prepended "-Wl,", passed to compiler     */
     const char *link_flags; 
     
     /* Dependencies are targets,
     ** built before self. */
-    // Note: are there any dependencies that are not linked?
     const char *dependencies;   /* targets */
     const char *flags;          /* passed as is */
 
     const char *cmd_pre;    /* ran before build     */
     const char *cmd_post;   /* ran after  build     */
     const char *msg_pre;    /* printed before build */
-    const char *msg_post;   /* printed after target */
+    const char *msg_post;   /* printed after build  */
 
     int kind;   /* MACE_TARGET_KIND */
 
