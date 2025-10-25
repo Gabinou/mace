@@ -4445,6 +4445,7 @@ void mace_pqueue_put(pid_t pid) {
         mace_wait_pid(pid);
     }
     if (plen > 1) {
+        // TODO  queue with no memmove
         size_t bytes = (plen - 1) * sizeof(*pqueue);
         memmove(pqueue + 1, pqueue, bytes);
     }
@@ -4493,7 +4494,12 @@ char *mace_args2line(char *const arguments[]) {
     int len = 128;
 
     char *argline = calloc(len, sizeof(*argline));
-    assert(argline != NULL);
+    if (argline == NULL) {
+        fprintf(stderr, "Error: Out of memory\n");
+        assert(0);
+        exit(1);
+    }
+
     while ((arguments[i] != NULL) && (i < MACE_MAX_ITERATIONS)) {
         size_t ilen = strlen(arguments[i]);
         while ((num + ilen + 1) > len) {
@@ -4523,6 +4529,7 @@ pid_t mace_exec_wbash(const char *exec, char *const arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
         fprintf(stderr, "Error: forking issue.\n");
+        assert(0);
         exit(1);
     } else if (pid == 0) {
         char *bashargs[] = {
