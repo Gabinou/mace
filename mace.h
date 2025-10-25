@@ -6955,7 +6955,7 @@ int main(int argc, char *argv[]) {
     args = mace_combine_args_env(args, args_env);
 
     /* --- Pre-user ops --- 
-    /* Get cwd, alloc memory,set defaults. */
+    /* Get cwd, alloc memory, set defaults. */
     mace_pre_user(&args);
 
     /* --- User ops --- */
@@ -6975,6 +6975,7 @@ int main(int argc, char *argv[]) {
     mace_build();
 
     /* --- Finish --- */
+    /* Free everything */
     mace_post_build(&args);
     return (0);
 }
