@@ -642,7 +642,7 @@ static char *mace_library_path(char    *target_name,
                                int      kind);
 static char *mace_checksum_filename(char *file,
                                     int   mode);
-static char *mace_executable_path(char *target_name);
+static char *mace_executable_path(const char *target_name);
 
 /* --- mace_pqueue --- */
 static void  mace_pqueue_put(pid_t pid);
@@ -4253,8 +4253,9 @@ void mace_Target_sources_grow(Target *target) {
     }
     /* -- Realloc sources -- */
     int previous_len  = target->_len_sources;
-    target->_argv_sources = mace_argv_grow(target->_argv_sources, &target->_argc_sources,
-                                           &target->_len_sources);
+    target->_argv_sources = mace_argv_grow( target->_argv_sources, 
+                                            &target->_argc_sources,
+                                            &target->_len_sources);
     int new_len  = target->_len_sources;
 
     /* -- Alloc object dependencies -- */
@@ -4431,12 +4432,18 @@ void mace_argv_add_config(Target *target,
 /***************** mace_pqueue ******************/
 
 pid_t mace_pqueue_pop(void) {
-    assert(pnum > 0);
+    if (pnum <= 0) {
+        assert(0);
+        return (0);
+    }
+
     return (pqueue[--pnum]);
 }
 
 void mace_pqueue_put(pid_t pid) {
-    assert(pnum < plen);
+    if (pnum >= plen) {
+        mace_wait_pid(pid);
+    }
     if (plen > 1) {
         size_t bytes = (plen - 1) * sizeof(*pqueue);
         memmove(pqueue + 1, pqueue, bytes);
@@ -4876,7 +4883,9 @@ void mace_Target_precompile(Target *target) {
         /* Wait for process */
         if (pnum > 0) {
             pid_t wait = mace_pqueue_pop();
-            mace_wait_pid(wait);
+            if (wait > 0) {
+                mace_wait_pid(wait);
+            }
         }
 
         /* Check if more to compile */
@@ -4982,8 +4991,8 @@ int Target_hasObjectHash_nocoll(Target *target, u64 hash) {
 
 /// @brief Add object hash to target.
 void Target_Object_Hash_Add(Target *target, u64 hash) {
-    assert(target->_argv_objects_hash != NULL);
-    assert(target->_argv_objects_cnt != NULL);
+    assert(target->_argv_objects_hash   != NULL);
+    assert(target->_argv_objects_cnt    != NULL);
     target->_argv_objects_hash[target->_argc_objects_hash] = hash;
     target->_argv_objects_cnt[target->_argc_objects_hash++] = 0;
 }
@@ -5276,8 +5285,11 @@ void mace_mkdir(const char *path) {
 }
 
 /// @brief Create path to executable to compile.
-char *mace_executable_path(char *target_name) {
-    assert(target_name != NULL);
+char *mace_executable_path(const char *target_name) {
+    if (target_name == NULL) {
+        assert(0);
+        return(NULL);
+    }
     size_t bld_len = strlen(build_dir);
     size_t tar_len = strlen(target_name);
 
@@ -5986,14 +5998,13 @@ void mace_Target_Grow_deps_headers(Target *target,
         target->_deps_headers_len[source_i] = 8;
         target->_deps_headers[source_i] = calloc(target->_deps_headers_len[source_i],
                                                  sizeof(**target->_deps_headers));
-        assert(target->_deps_headers[source_i] != NULL);
     }
     if (target->_deps_headers_num[source_i] >= target->_deps_headers_len[source_i]) {
         target->_deps_headers_len[source_i] *= 2;
         size_t bytesize = target->_deps_headers_len[source_i] * sizeof(**target->_deps_headers);
         target->_deps_headers[source_i] = realloc(target->_deps_headers[source_i], bytesize);
-        assert(target->_deps_headers[source_i] != NULL);
     }
+    assert(target->_deps_headers[source_i] != NULL);
 }
 
 /// @brief Alloc header arrays if don't exist. 
@@ -6289,8 +6300,10 @@ void mace_Target_Parse_Objdep(Target *target,
     target->_deps_headers_num[source_i] = -1;
 
     char *obj_file = mace_Target_Read_d(target, source_i);
-    if (obj_file == NULL)
+    if (obj_file == NULL) {
+        assert(0);
         return;
+    }
 
     /* Write _deps_header to .ho file */
     char *dot  = strrchr(obj_file,  '.'); /* last dot in path */
@@ -6300,9 +6313,10 @@ void mace_Target_Parse_Objdep(Target *target,
     obj_file[ext + 3] = '\0';
 
     FILE *fho = fopen(obj_file, "wb");
-    assert(target->_deps_headers[source_i] != NULL);
-    fwrite(target->_deps_headers[source_i], sizeof(**target->_deps_headers),
-           target->_deps_headers_num[source_i], fho);
+    // assert(target->_deps_headers[source_i] != NULL);    
+    fwrite( target->_deps_headers[source_i], 
+            sizeof(**target->_deps_headers),
+            target->_deps_headers_num[source_i], fho);
     fclose(fho);
 
     free(obj_file);
@@ -6642,7 +6656,10 @@ void mace_Target_Deps_Hash(Target *target) {
 /// @brief Compute sha1dc checksum of file.
 char *mace_checksum_filename(char *file, int mode) {
     // Files should be .c or .h
-    assert(obj_dir != NULL);
+    if (obj_dir == NULL) {
+        assert(0);
+        return(NULL);
+    }
     /* last dot in path      */
     char *dot        = strrchr(file, '.');
     /* last slash in path    */
@@ -6668,8 +6685,10 @@ char *mace_checksum_filename(char *file, int mode) {
     }
 
     char *sha1 = calloc(checksum_len, sizeof(*sha1));
-
-    assert(sha1 != NULL);
+    if (sha1 == NULL) {
+        fprintf(stderr, "Error: Out of memory.");
+        exit(1);
+    }
     strncpy(sha1, obj_dir, obj_dir_len);
     size_t total = obj_dir_len;
 
@@ -6705,7 +6724,10 @@ inline b32 mace_sha1dc_cmp(u8 hash1[SHA1_LEN], u8 hash2[SHA1_LEN]) {
 /// @brief Check for collision in sha1dc
 ///        checksum between input file and hash
 void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
-    assert(file != NULL);
+    if (file == NULL){
+        assert(0);
+        return;
+    }
     size_t size;
     int foundcollision;
 
