@@ -86,9 +86,9 @@ void test_globbing() {
     glob_t globbed;
     globbed = mace_glob_sources(MACE_ROOT"*.c");
     nourstest_true(globbed.gl_pathc == 3);
-    nourstest_true(strcmp(globbed.gl_pathv[0], MACE_ROOT"example_macefile.c") == 0);
-    nourstest_true(strcmp(globbed.gl_pathv[1], MACE_ROOT"installer.c") == 0);
-    nourstest_true(strcmp(globbed.gl_pathv[2], MACE_ROOT"mace.c") == 0);
+    nourstest_true(strcmp(globbed.gl_pathv[0], MACE_ROOT"convenience_executable.c") == 0);
+    nourstest_true(strcmp(globbed.gl_pathv[1], MACE_ROOT"example_macefile.c") == 0);
+    nourstest_true(strcmp(globbed.gl_pathv[2], MACE_ROOT"installer_macefile.c") == 0);
     globfree(&globbed);
 
     globbed = mace_glob_sources(MACE_ROOT"*.h");
@@ -791,7 +791,7 @@ void test_parse_args() {
     int argc                = 0;
     char **argv             = calloc(len, sizeof(*argv));
 
-    const char *command_1     = "mace clean";
+    const char *command_1     = "mace clean -j1";
     argv = mace_argv_flags(&len, &argc, argv, command_1, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(MACE_CLEAN));
@@ -812,7 +812,7 @@ void test_parse_args() {
     argv = mace_argv_flags(&len, &argc, argv, command_2, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(MACE_ALL));
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == false);
@@ -829,7 +829,7 @@ void test_parse_args() {
     argv = mace_argv_flags(&len, &argc, argv, command_3, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(TARGET));
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == false);
@@ -848,7 +848,7 @@ void test_parse_args() {
     args =  mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == mace_hash(TARGET));
     nourstest_true(args.build_all        == true);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == false);
@@ -865,7 +865,7 @@ void test_parse_args() {
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
     nourstest_true(args.build_all        == true);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == false);
@@ -881,7 +881,7 @@ void test_parse_args() {
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(strcmp(args.dir, "mydir") == 0);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.debug            == false);
@@ -897,7 +897,7 @@ void test_parse_args() {
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.debug            == true);
@@ -913,7 +913,7 @@ void test_parse_args() {
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(strcmp(args.macefile, "mymacefile.c") == 0);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == false);
@@ -945,7 +945,7 @@ void test_parse_args() {
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == false);
@@ -961,7 +961,7 @@ void test_parse_args() {
     args = mace_parse_args(argc, argv);
     nourstest_true(args.user_target_hash == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == false);
@@ -978,7 +978,7 @@ void test_parse_args() {
     nourstest_true(args.user_target_hash == mace_hash("allo"));
     nourstest_true(strcmp(args.user_target, "allo") == 0);
     nourstest_true(args.build_all        == false);
-    nourstest_true(args.jobs             == 1);
+    nourstest_true(args.jobs             == MACE_JOBS_DEFAULT);
     nourstest_true(args.macefile         == NULL);
     nourstest_true(args.dir              == NULL);
     nourstest_true(args.debug            == true);
@@ -1195,7 +1195,7 @@ void test_parse_d() {
     printf("\n\n");
     struct Target target1 = {0};
     MACE_ADD_TARGET(target1);
-    targets[0].checkcwd = false;
+    targets[0]._checkcwd = false;
     mace_Target_Source_Add(&targets[0], "test1.c");
     mace_Target_Object_Add(&targets[0], "test1.o");
     mace_Target_Parse_Objdep(&targets[0], 0);
@@ -1210,7 +1210,7 @@ void test_parse_d() {
     };
     assert(target_num == 1);
     MACE_ADD_TARGET(target);
-    targets[1].checkcwd = false;
+    targets[1]._checkcwd = false;
     assert(target_num == 2);
 
     mace_Target_Source_Add(&targets[1], "test2.c");
