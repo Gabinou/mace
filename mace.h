@@ -4050,11 +4050,11 @@ char **mace_argv_flags( int         *len,   int *argc,
                         char       **argv,  const char *user_str,
                         const char  *flag,  b32 path, 
                         const char  *separator) {
-    if ((len     == NULL) || (*len) <= 0) {
+    if ((len == NULL) || (*len) <= 0) {
         assert(0);
         return(NULL);
     }
-    if (argc    == NULL) {
+    if (argc == NULL) {
         assert(0);
         return(NULL);
     }
@@ -4459,7 +4459,7 @@ void mace_argv_add_config(Target *target,
 pid_t mace_pqueue_pop(void) {
     if (pnum <= 0) {
         assert(0);
-        return (0);
+        return(0);
     }
 
     return (pqueue[--pnum]);
@@ -6247,7 +6247,7 @@ void mace_Target_Header_Add_Objpath(Target *target,
         target->_headers_checksum_cnt[hash_id]++;
     }
 
-    /* Adding header_checksum*/
+    /* Adding header_checksum */
     assert(header_checksum != NULL);
     target->_headers_checksum[target->_headers_num] = header_checksum;
 }
