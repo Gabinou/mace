@@ -592,7 +592,7 @@ mace_link_t mace_link[MACE_TARGET_KIND_NUM - 1] = {mace_link_executable,
 };
 
 /* --- mace_clean --- */
-static void mace_clean(void);
+static int mace_clean(void);
 static int mace_rmrf(char *path);
 static int mace_unlink_cb(const char        *fpath,
                           const struct stat *sb,
@@ -4081,7 +4081,6 @@ char **mace_argv_flags(int *len, int *argc, char **argv, const char *user_str,
 /// @brief Parse user input target->excludes string. 
 ///     - Split excludes using mace_separator
 ///     - Hash file into _excludes list
-///  TODO: exclude directories
 void mace_Target_excludes(Target *target) {
     if (target->excludes == NULL)
         return;
@@ -4103,7 +4102,7 @@ void mace_Target_excludes(Target *target) {
 
         char *rpath = calloc(PATH_MAX, sizeof(*rpath));
         if (realpath(token, rpath) == NULL)
-            printf("Warning! excluded source '%s' does not exist\n", arg);
+            Sprintf("Warning! excluded source '%s' does not exist\n", arg);
         rpath = realloc(rpath, (strlen(rpath) + 1) * sizeof(*rpath));
 
         if (mace_isDir(rpath)) {
@@ -4496,7 +4495,7 @@ char *mace_args2line(char *const arguments[]) {
         i++;
     }
     if (i == MACE_MAX_ITERATIONS) {
-        printf("Warning! Max iterations reached. Truncating argv.");
+        Sprintf("Warning! Max iterations reached. Truncating argv.");
     }
     argline[num] = '\0';
     return (argline);
@@ -4518,7 +4517,6 @@ pid_t mace_exec_wbash(const char *exec, char *const arguments[]) {
             NULL
         };
         mace_exec_print(bashargs, 3);
-        // TODO: if (execv(exec.c_str(), argv);) { perror (cmd); exit(127); };    
         execvp("/bin/bash", bashargs);
         exit(0);
     }
@@ -5178,7 +5176,7 @@ b32 mace_Target_Source_Add(Target *target, char *token) {
     /* - Expand path - */
     char *rpath = calloc(PATH_MAX, sizeof(*rpath));
     if (realpath(token, rpath) == NULL) {
-        printf("Warning! realpath issue: %s\n", rpath);
+        Sprintf("Warning! realpath issue: %s\n", rpath);
         size_t token_len = strlen(token) + 1;
         assert(token_len < PATH_MAX);
         strncpy(rpath, token, token_len);
@@ -5286,7 +5284,6 @@ char *mace_executable_path(char *target_name) {
 }
 
 /// @brief Create path to library to compile.
-///     TODO: static and dynamic path
 char *mace_library_path(char *target_name, int kind) {
     assert(target_name != NULL);
     size_t bld_len = strlen(build_dir);
@@ -5369,18 +5366,23 @@ void mace_print_message(const char *message) {
 /// @brief Mace implementation of recursive 
 ///        remove i.e. "rm -rf"
 int mace_rmrf(char *path) {
+    if (path == NULL) {
+        return(0);
+    }
+
+    if (path[0] == '/') && (path[1] == '\0') {
+        Sprintf("Warning! mace_rmrf will not remove root");
+        return(0);
+    }
     return nftw(path, mace_unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
-/// @brief User defined function for mace_rmrf
-///     - Removes found file. 
+/// @brief Remove found file.
+///     To be used with nftw
 int mace_unlink_cb(const char *fpath,
                    const struct stat *sb,
                    int typeflag,
                    struct FTW *ftwbuf) {
-        // TODO: Do not remove anything if current dir is root
-        // TODO: More safety? 
-
         /* Do not remove current directory */
         if (ftwbuf->level == 0)
             return 0;
@@ -5395,10 +5397,18 @@ int mace_unlink_cb(const char *fpath,
 
 
 /// @brief Remove content of object and build directories.
-void mace_clean(void) {
+int mace_clean(void) {
     Sprintf("Cleaning '%s'\n", obj_dir);
+    if (obj_dir[0] == '/') && (obj_dir[1] == '\0') {
+        Sprintf("Warning! mace_rmrf will not remove root\n");
+        return(0);
+    }
     mace_rmrf(obj_dir);
     Sprintf("Cleaning '%s'\n", build_dir);
+    if (build_dir[0] == '/') && (build_dir[1] == '\0') {
+        Sprintf("Warning! mace_rmrf will not remove root\n");
+        return(0);
+    }
     mace_rmrf(build_dir);
 }
 
@@ -5657,7 +5667,7 @@ b32 mace_circular_deps(Target *targs, size_t len) {
 
             /* Dependency is self */
             if (i == j) {
-                printf("Warning! Target '%s' depends on itself.\n", targs[i]._name);
+                Sprintf("Warning! Target '%s' depends on itself.\n", targs[i]._name);
                 continue;
             }
 
@@ -6676,7 +6686,6 @@ inline b32 mace_sha1dc_cmp(u8 hash1[SHA1_LEN], u8 hash2[SHA1_LEN]) {
 
 /// @brief Check for collision in sha1dc
 ///        checksum between input file and hash
-/// TODO: What should user do if sha1dc collision found? 
 void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
     assert(file != NULL);
     size_t size;
@@ -6711,7 +6720,7 @@ void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
     /* - check for collision - */
     foundcollision = SHA1DCFinal(hash, &ctx2);
 
-    // TODO: What should user do if sha1dc collision found? 
+    // TODO: Any way to solve collision? 
     if (foundcollision) {
         fprintf(stderr, "sha1dc: collision detected");
         exit(1);
@@ -6834,7 +6843,6 @@ Mace_Args mace_parse_args(int argc, char *argv[]) {
                 out_args.user_target_hash = mace_hash(ps.optarg);
                 break;
             case 'a':
-                printf("ps.optarg %s \n", ps.optarg);
                 len = strlen(ps.optarg);
                 out_args.ar = calloc(len + 1, sizeof(*out_args.dir));
                 strncpy(out_args.ar, ps.optarg, len);
