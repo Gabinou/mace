@@ -116,7 +116,7 @@ void test_object() {
     total_len += 1;
     strncpy(buffer + total_len, MACE_TEST_OBJ_DIR, obj_len);
     total_len += obj_len;
-    strncpy(buffer + total_len, "//mace.o",        file_len);
+    strncpy(buffer + total_len, "/mace.o",        file_len);
 
     mace_object_path("/mace.c");
     nourstest_true(strcmp(object, buffer) == 0);

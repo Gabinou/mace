@@ -28,6 +28,7 @@
 #define _XOPEN_SOURCE 500 /* Include POSIX 1995 */
 #define SHA1DC_NO_STANDARD_INCLUDES
 #include <stdio.h>
+#include <errno.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -3752,8 +3753,8 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
 
 #define MACE_FREE(var) do {\
     if (var != NULL) {\
-        free(far);\
-        far = NULL;\
+        free(var);\
+        var = NULL;\
     }\
     } while(0)
 
@@ -4691,7 +4692,7 @@ void mace_link_dynamic_library(Target *target) {
     MACE_FREE(argv[csharedflag]);
     MACE_FREE(argv[libc]);
     for (int i = config_startc; i < config_endc; i++) {
-        free(argv[i]);
+        MACE_FREE(argv[i]);
     }
     MACE_FREE(argv);
     MACE_FREE(lib);
@@ -4755,14 +4756,14 @@ void mace_link_static_library(Target *target) {
         pid_t pid = mace_exec_wbash(argv[0], argv);
         mace_wait_pid(pid);
     }
-    free(buffer);
+    MACE_FREE(buffer);
     for (int i = 0; i < argc_ar; ++i) {
-        free(argv[i]);
+        MACE_FREE(argv[i]);
     }
-    free(argv[crcsflag]);
-    free(argv[libc]);
-    free(argv);
-    free(lib);
+    MACE_FREE(argv[crcsflag]);
+    MACE_FREE(argv[libc]);
+    MACE_FREE(argv);
+    MACE_FREE(lib);
 }
 
 void mace_link_executable(Target *target) {
@@ -4843,13 +4844,13 @@ void mace_link_executable(Target *target) {
         mace_wait_pid(pid);
     }
 
-    free(argv[oflag_i]);
-    free(argv[ldirflag_i]);
+    MACE_FREE(argv[oflag_i]);
+    MACE_FREE(argv[ldirflag_i]);
     for (int i = config_startc; i < config_endc; i++) {
-        free(argv[i]);
+        MACE_FREE(argv[i]);
     }
-    free(argv);
-    free(exec);
+    MACE_FREE(argv);
+    MACE_FREE(exec);
 }
 
 /// @brief Compile target's obj file all at once.
