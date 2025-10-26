@@ -4369,9 +4369,13 @@ void mace_Target_argv_allatonce(Target *target) {
     /* -- argv -L flag for build_dir -- */
     target->_argc_tail =    target->_argc;
     mace_Target_argv_grow(target);
-    assert(build_dir != NULL);
+    if (build_dir == NULL) {
+        assert(0);
+        return;
+    }
     size_t build_dir_len = strlen(build_dir);
     char *ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
+    MACE_MEMCHECK(ldirflag);
     memcpy(ldirflag, "-L", 2);
     strncpy(ldirflag + 2, build_dir, build_dir_len);
     target->_argv[target->_argc++] = ldirflag;
@@ -4494,7 +4498,6 @@ glob_t mace_glob_sources(const char *path) {
                  ret == GLOB_NOMATCH ? "no match of pattern" :
                  ret == GLOB_NOSPACE ? "no dynamic memory" :
                  "unknown problem\n"));
-        assert(0);
         exit(ret);
     }
 
@@ -4575,6 +4578,7 @@ pid_t mace_exec(const char *exec, char *const arguments[]) {
     pid_t pid = fork();
     if (pid < 0) {
         fprintf(stderr, "forking issue.\n");
+        assert(0);
         exit(1);
     } else if (pid == 0) {
         execvp(exec, arguments);
@@ -5269,7 +5273,6 @@ b32 mace_Target_Source_Add(Target *target, char *token) {
         size_t token_len = strlen(token) + 1;
         if (token_len < PATH_MAX) {
             fprintf(stderr, "token_len longer than PATH_MAX\n");
-            assert(0);
             exit(1);
         }
         strncpy(rpath, token, token_len);
@@ -5588,7 +5591,6 @@ void mace_prebuild_target(Target *target) {
     if ((target->kind <= MACE_TARGET_NULL) ||
         (target->kind >= MACE_TARGET_KIND_NUM)) {
         fprintf(stderr, "Wrong target type.\n");
-        assert(0);
         exit(1);
     }
 
@@ -5658,7 +5660,6 @@ void mace_build_target(Target *target) {
     if ((target->kind <= MACE_TARGET_NULL) ||
         (target->kind >= MACE_TARGET_KIND_NUM)) {
         fprintf(stderr, "Wrong target type.\n");
-        assert(0);
         exit(1);
     }
     mace_link[target->kind - 1](target);
@@ -6204,6 +6205,7 @@ void mace_Target_Header_Add_Objpath(Target *target,
         /* header_checksum hash found, adding number to path */
         size_t bytesize = (strlen(header_checksum) + 2) * sizeof(*header_checksum);
         header_checksum = realloc(header_checksum, bytesize);
+        MACE_MEMCHECK(header_checksum);
         char *pos = strrchr(header_checksum, '.');
         *(pos) = target->_headers_checksum_cnt[hash_id] + '0';
         memcpy(pos + 1, ".sha1", 4);
@@ -6373,7 +6375,7 @@ void mace_Target_Parse_Objdep(Target *target, int source_i) {
     obj_file[ext + 3] = '\0';
 
     FILE *fho = fopen(obj_file, "wb");
-    assert(target->_deps_headers[source_i] != NULL);    
+    assert( target->_deps_headers[source_i] != NULL);    
     fwrite( target->_deps_headers[source_i], 
             sizeof(**target->_deps_headers),
             target->_deps_headers_num[source_i], fho);
@@ -6543,11 +6545,13 @@ void mace_post_user(Mace_Args *args) {
     mace_default_config_order();
 
     /* 6. Check which target should be compiled */
-    mace_user_target_set(args->user_target_hash, args->user_target);
+    mace_user_target_set(   args->user_target_hash,
+                            args->user_target);
     mace_target_resolve();
 
     /* 7. Check which config should be compiled */
-    mace_user_config_set(args->user_config_hash, args->user_config);
+    mace_user_config_set(   args->user_config_hash,
+                            args->user_config);
     assert(mace_target < target_num);
     mace_config_resolve(&targets[mace_target]);
     Config *config = &configs[mace_config];
