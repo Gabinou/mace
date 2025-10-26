@@ -42,7 +42,7 @@ struct Target C  = {
     .kind      = MACE_STATIC_LIBRARY,
 };
 
-void mace(int argc, char *argv[]) {
+int mace(int argc, char *argv[]) {
     /* -- Setting compiler, directories -- */
     mace_set_compiler(CC);
     mace_set_archiver(AR);
@@ -62,5 +62,5 @@ void mace(int argc, char *argv[]) {
     /* - Target configs - */
     MACE_TARGET_CONFIG(A, debug);
 
-    return;
+    return(0);
 }

@@ -67,7 +67,7 @@ struct Target MACE  = {
             "rm _mace.temp"
 };
 
-void mace(int argc, char *argv[]) {
+int mace(int argc, char *argv[]) {
     MACE_SET_COMPILER(CC);
     MACE_SET_BUILD_DIR(BUILD_DIR);
     MACE_SET_OBJ_DIR(OBJ_DIR);
@@ -78,5 +78,5 @@ void mace(int argc, char *argv[]) {
     // Add target with different name, i.e. "mace"
     mace_add_target(&MACE, "mace");
     MACE_SET_DEFAULT_TARGET(mace);
-    return;
+    return(0);
 }

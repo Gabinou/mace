@@ -48,7 +48,7 @@
 /*----------------------------------------------*/
 
 // The 'mace' function must be implemented by the user.
-extern void mace(int argc, char *argv[]);
+extern int mace(int argc, char *argv[]);
 // Required:
 //   1- Add targets         -> MACE_ADD_TARGET
 // Optional:
@@ -64,7 +64,7 @@ extern void mace(int argc, char *argv[]);
 /*----------------------------------------------*/
 /*                   EXAMPLE                     /
 *                 MACE FUNCTION                  /
-* void mace(int argc, char *argv[]) {             /
+* int mace(int argc, char *argv[]) {             /
 *   MACE_SET_COMPILER(gcc);                      /
 *   MACE_SET_OBJ_DIR(obj);                       /
 *   MACE_SET_BUILD_DIR(build);                   /
