@@ -48,7 +48,7 @@
 /*----------------------------------------------*/
 
 // The 'mace' function must be implemented by the user.
-extern int mace(int argc, char *argv[]);
+extern void mace(int argc, char *argv[]);
 // Required:
 //   1- Add targets         -> MACE_ADD_TARGET
 // Optional:
@@ -6414,8 +6414,8 @@ void mace_Target_Read_ho(Target *target, int source_i) {
     obj_file[ext + 3] = '\0';
     FILE *fho = fopen(obj_file, "rb");
     if (fho == NULL) {
-        fprintf(stderr, "Object dependency file '%s' does not exist.\n", obj_file);
-        exit(1);
+        /* .ho file does not exist: no dependencies */ 
+        return;
     }
 
     /* Get total number of bytes in file */
@@ -7047,6 +7047,7 @@ int main(int argc, char *argv[]) {
     /* --- Finish --- */
     /* Free everything */
     mace_post_build(&args);
+
     return(0);
 }
 #endif /* MACE_OVERRIDE_MAIN */
