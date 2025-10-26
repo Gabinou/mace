@@ -592,7 +592,7 @@ mace_link_t mace_link[MACE_TARGET_KIND_NUM - 1] = {mace_link_executable,
 };
 
 /* --- mace_clean --- */
-static int mace_clean(void);
+static void mace_clean(void);
 static int mace_rmrf(char *path);
 static int mace_unlink_cb(const char        *fpath,
                           const struct stat *sb,
@@ -4611,7 +4611,7 @@ void mace_wait_pid(int pid) {
 /******************* mace_build ********************/
 void mace_link_dynamic_library(Target *target) {
     char *lib = mace_library_path(target->_name, MACE_DYNAMIC_LIBRARY);
-    Sprintf("Linking  %s", lib);
+    Sprintf("Linking  %s\n", lib);
     int    argc_objects = target->_argc_sources;
     char **argv_objects = target->_argv_objects;
 
@@ -4700,7 +4700,7 @@ void mace_link_dynamic_library(Target *target) {
 
 void mace_link_static_library(Target *target) {
     char *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
-    Sprintf("Linking  %s \n", lib);
+    Sprintf("Linking  %s\n", lib);
     int    argc_objects = target->_argc_sources;
     char **argv_objects = target->_argv_objects;
 
@@ -4768,7 +4768,7 @@ void mace_link_static_library(Target *target) {
 
 void mace_link_executable(Target *target) {
     char *exec = mace_executable_path(target->_name);
-    Sprintf("Linking  %s \n", exec);
+    Sprintf("Linking  %s\n", exec);
 
     char **argv_links    = target->_argv_links;
     char **argv_flags    = target->_argv_flags;
@@ -5457,8 +5457,9 @@ char *mace_str_buffer(const char *strlit) {
 }
 
 void mace_print_message(const char *message) {
-    if (message == NULL)
+    if (message == NULL) {
         return;
+    }
 
     Sprintf("%s\n", message);
 }
@@ -5497,17 +5498,18 @@ int mace_unlink_cb(const char *fpath,
 
 
 /// @brief Remove content of object and build directories.
-int mace_clean(void) {
+void mace_clean(void) {
     Sprintf("Cleaning '%s'\n", obj_dir);
     if ((obj_dir[0] == '/') && (obj_dir[1] == '\0')) {
         Sprintf("Warning! mace_rmrf will not remove root\n", "");
-        return(0);
+        return;
     }
     mace_rmrf(obj_dir);
+
     Sprintf("Cleaning '%s'\n", build_dir);
     if ((build_dir[0] == '/') && (build_dir[1] == '\0')) {
         Sprintf("Warning! mace_rmrf will not remove root\n");
-        return(0);
+        return;
     }
     mace_rmrf(build_dir);
 }
@@ -6271,6 +6273,7 @@ char *mace_Target_Read_d(Target *target, int source_i) {
     int oflagl = 2;
     int obj_hash_id;
     size_t obj_len  = strlen(obj_file_flag);
+    assert((obj_len + 5) > oflagl);
     char  *obj_file = calloc(   obj_len - oflagl + 5,
                                 sizeof(*obj_file));
     MACE_MEMCHECK(obj_file);

@@ -1588,7 +1588,6 @@ void test_config_global() {
 }
 
 void test_target_no_includes() {
-    silent = true;
     mace_post_build(NULL);
     mace_pre_user(NULL);
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
@@ -1598,6 +1597,7 @@ void test_target_no_includes() {
 
     Mace_Args args = Mace_Args_default;
     mace_default_target = 0;
+    args.silent = true;
     mace_pre_user(&args);
 
     mace_set_separator(",");
@@ -1626,7 +1626,7 @@ void test_target_no_includes() {
     nourstest_true(targets != NULL);
 
     mace_post_build(NULL);
-    silent = true;
+    silent = false;
 }
 
 // TODO: flags disappearing after 128 flags
@@ -1637,23 +1637,23 @@ int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     MACE_SET_COMPILER(gcc);
 
-    nourstest_run("isFunc ",          test_isFunc);
-    nourstest_run("globbing ",        test_globbing);
-    nourstest_run("object ",          test_object);
-    nourstest_run("target ",          test_target);
-    nourstest_run("circular ",        test_circular);
-    nourstest_run("argv ",            test_argv);
-    nourstest_run("argline ",         test_argline);
-    nourstest_run("post_user ",       test_post_user);
-    nourstest_run("separator ",       test_separator);
-    nourstest_run("parse_args ",      test_parse_args);
-    nourstest_run("build_order ",     test_build_order);
-    nourstest_run("checksum ",        test_checksum);
-    nourstest_run("excludes ",        test_excludes);
-    nourstest_run("parse_d ",         test_parse_d);
-    nourstest_run("config_global ",     test_config_global);
-    nourstest_run("config_spec ",     test_config_specific);
-    nourstest_run("no_includes \n",   test_target_no_includes);
+    nourstest_run("isFunc ",        test_isFunc);
+    nourstest_run("globbing ",      test_globbing);
+    nourstest_run("object ",        test_object);
+    nourstest_run("target ",        test_target);
+    nourstest_run("circular ",      test_circular);
+    nourstest_run("argv ",          test_argv);
+    nourstest_run("argline ",       test_argline);
+    nourstest_run("post_user ",     test_post_user);
+    nourstest_run("separator ",     test_separator);
+    nourstest_run("parse_args ",    test_parse_args);
+    nourstest_run("build_order ",   test_build_order);
+    nourstest_run("checksum ",      test_checksum);
+    nourstest_run("excludes ",      test_excludes);
+    nourstest_run("parse_d ",       test_parse_d);
+    nourstest_run("config_global ", test_config_global);
+    nourstest_run("config_spec ",   test_config_specific);
+    nourstest_run("no_includes ",   test_target_no_includes);
     nourstest_results();
 
     printf("A warning about self dependency should print now:\n \n");
