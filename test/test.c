@@ -1633,7 +1633,7 @@ void test_target_no_includes() {
 //      Flags get printed
 //      Flags DON'T get executed
 
-void mace(int argc, char *argv[]) {
+int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
     MACE_SET_COMPILER(gcc);
 
@@ -1660,5 +1660,5 @@ void mace(int argc, char *argv[]) {
     test_self_dependency();
     printf("\n");
     printf("Tests done\n");
-    return;
+    return(0);
 }
