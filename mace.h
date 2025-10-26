@@ -64,7 +64,7 @@ extern int mace(int argc, char *argv[]);
 /*----------------------------------------------*/
 /*                   EXAMPLE                     /
 *                 MACE FUNCTION                  /
-* int mace(int argc, char *argv[]) {             /
+* void mace(int argc, char *argv[]) {             /
 *   MACE_SET_COMPILER(gcc);                      /
 *   MACE_SET_OBJ_DIR(obj);                       /
 *   MACE_SET_BUILD_DIR(build);                   /
@@ -5480,18 +5480,19 @@ int mace_rmrf(char *path) {
 
 /// @brief Remove found file.
 ///     To be used with nftw
-int mace_unlink_cb(const char *fpath,
-                   const struct stat *sb,
-                   int typeflag,
-                   struct FTW *ftwbuf) {
+int mace_unlink_cb(const char           *fpath,
+                   const struct stat    *sb,
+                   int                   typeflag,
+                   struct FTW           *ftwbuf) {
         /* Do not remove current directory */
         if (ftwbuf->level == 0)
             return 0;
 
         int rv = remove(fpath);
 
-        if (rv)
+        if (rv) {
             fprintf(stderr, "Could not remove '%s'.\n", fpath);
+        }
 
         return rv;
     }
@@ -6898,14 +6899,17 @@ Mace_Args mace_parse_env(void) {
 Mace_Args mace_parse_args(int argc, char *argv[]) {
     Mace_Args out_args      = Mace_Args_default;
     struct parg_state ps    = parg_state_default;
-    int longindex, c;
+    int longindex;
+    int c;
     size_t len;
 
-    if (argc <= 1)
+    if (argc <= 1) {
         return (out_args);
+    }
 
-    while ((c = parg_getopt_long(&ps, argc, argv, "a:Bc:C:df:g:hj:no:sv", longopts,
-                                 &longindex)) != -1) {
+    while ((c = parg_getopt_long(&ps, argc, argv, 
+                                "a:Bc:C:df:g:hj:no:sv",
+                                longopts, &longindex)) != -1) {
         switch (c) {
             case 1:
                 len = strlen(ps.optarg);
@@ -7026,7 +7030,6 @@ int main(int argc, char *argv[]) {
 
     /* --- User ops --- */
     /* Sets compiler, add targets and commands. */
-    // TODO: no output for mace, func OR use output
     mace(argc, argv);
 
     /* --- Post-user ops --- */
@@ -7044,7 +7047,7 @@ int main(int argc, char *argv[]) {
     /* --- Finish --- */
     /* Free everything */
     mace_post_build(&args);
-    return (0);
+    return(0);
 }
 #endif /* MACE_OVERRIDE_MAIN */
 
