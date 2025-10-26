@@ -587,7 +587,7 @@ void test_argline() {
     s8 compare = s8_literal("putain de merdouille tabarouette ta mère-euuuh- enculedesmouches. ");
     s8 s8argline = s8_var(argline);
     nourstest_true(s8equal(&compare, &s8argline));
-    printf("\nargline '%s' \n", argline);
+    // printf("\nargline '%s' \n", argline);
     free(argline);
 }
 
@@ -1192,7 +1192,7 @@ void test_excludes() {
 
 void test_parse_d() {
     mace_pre_user(NULL);
-    printf("\n\n");
+    // printf("\n\n");
     struct Target target1 = {0};
     MACE_ADD_TARGET(target1);
     targets[0]._checkcwd = false;
@@ -1588,6 +1588,7 @@ void test_config_global() {
 }
 
 void test_target_no_includes() {
+    silent = true;
     mace_post_build(NULL);
     mace_pre_user(NULL);
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
@@ -1625,6 +1626,7 @@ void test_target_no_includes() {
     nourstest_true(targets != NULL);
 
     mace_post_build(NULL);
+    silent = true;
 }
 
 // TODO: flags disappearing after 128 flags

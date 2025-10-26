@@ -6353,7 +6353,11 @@ void mace_Target_Parse_Objdep(Target *target, int source_i) {
 
     char *obj_file = mace_Target_Read_d(target, source_i);
     if (obj_file == NULL) {
-        /* Skip: no need to write .ho file*/
+        /* Skip: no need to write .ho file */
+        return;
+    }
+    if (target->_deps_headers_num[source_i] <= 0) { 
+        /* Skip: no headers */
         return;
     }
 
@@ -6422,7 +6426,7 @@ void mace_Target_Read_ho(Target *target, int source_i) {
 
     /* Read all bytes into _deps_headers */
     target->_deps_headers[source_i] = calloc(1, bytesize);
-    assert(target->_deps_headers[source_i] != NULL);
+    MACE_MEMCHECK(target->_deps_headers[source_i]);
     fread(target->_deps_headers[source_i], bytesize, 1, fho);
     fclose(fho);
     MACE_FREE(obj_file);
