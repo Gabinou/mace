@@ -43,6 +43,8 @@ struct Target C  = {
 };
 
 struct Target clean = {
+    /* -- Phony target does not compile anything. -- */
+    /* -- But commands are still run -- */
     .cmd_pre    = "find build -type f -delete",
     .kind       = MACE_PHONY,
 };
