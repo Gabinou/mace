@@ -376,10 +376,10 @@ typedef struct Mace_Args {
 void Mace_Args_Free(Mace_Args *args);
 
 /***************** CONSTANTS ****************/
-#define MACE_VER_PATCH 2
+#define MACE_VER_PATCH 3
 #define MACE_VER_MINOR 0
-#define MACE_VER_MAJOR 9
-#define MACE_VER_STRING "2.0.9"
+#define MACE_VER_MAJOR 1
+#define MACE_VER_STRING "3.0.1"
 #define MACE_USAGE_MIDCOLW 12
 
 /* Reserved targets */
