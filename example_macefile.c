@@ -42,6 +42,11 @@ struct Target C  = {
     .kind      = MACE_STATIC_LIBRARY,
 };
 
+struct Target clean = {
+    .cmd_pre    = "find build -type f -delete",
+    .kind       = MACE_PHONY,
+};
+
 int mace(int argc, char *argv[]) {
     /* -- Setting compiler, directories -- */
     mace_set_compiler(CC);
@@ -56,6 +61,7 @@ int mace(int argc, char *argv[]) {
     MACE_ADD_TARGET(A);
     MACE_ADD_TARGET(B);
     MACE_ADD_TARGET(C);
+    MACE_ADD_TARGET(clean);
 
     MACE_SET_DEFAULT_TARGET(A);
 

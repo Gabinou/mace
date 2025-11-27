@@ -41,22 +41,21 @@ Flags for `installer` to customize `mace`:
 - `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
 
 ### Common options
-1. Reserved targets: 
-    - `<./builder or mace> clean`
+1. Reserved target: 
     - `<./builder or mace> all`
 2. Configs: `<./builder or mace> -g release`
 3. Compiler: `<./builder or mace> -c gcc`
 4. Macefile: `<./builder or mace> -f my_macefile.c`
 
 ## Why?
-- Too many complex, slow build systems.
-- Using C to build C gets you free lunches.
-    - Learning C is learning `mace`.
-    - Full C functionality in your macefile.
-- Using C to build C gets me free lunches.
-    - No weird syntax to create.
-    - No bespoke parser to implement.
-    - Piggybacking C compilers.
++ Too many complex, slow build systems.
++ Using C to build C gets you free lunches.
+    + Learning C is learning `mace`.
+    + Full C functionality in your macefile.
++ Using C to build C gets me free lunches.
+    + No weird syntax to create.
+    + No bespoke parser to implement.
+    + Piggybacking C compilers.
 
 ## Limitations
 - POSIX `glob.h` required.
@@ -94,4 +93,4 @@ Copyright (c) 2025 Gabriel Taillon
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
 
-Originally created for use in a game I am developing: [Codename: Firesaga](https://gitlab.com/Gabinou/firesagamaker).
+Originally created for: [Codename: Firesaga](https://gitlab.com/Gabinou/firesagamaker).
