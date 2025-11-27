@@ -26,9 +26,6 @@
     #define BUILDER builder
 #endif
 
-#define STRINGIFY(x) _STRINGIFY(x)
-#define _STRINGIFY(x) #x
-
 int main(int argc, char *argv[]) {
     /* -- Parse inputs -- */
     struct Mace_Args args = mace_parse_args(argc, argv);

@@ -41,9 +41,6 @@
     #define ZSH_COMPLETION /usr/share/zsh/site-functions
 #endif
 
-#define STRINGIFY(x) _STRINGIFY(x)
-#define _STRINGIFY(x) #x
-
 struct Target MACE  = {
     .sources        = "convenience_executable.c",
     .kind           = MACE_EXECUTABLE,
