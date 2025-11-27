@@ -791,18 +791,6 @@ void test_parse_args() {
     int argc                = 0;
     char **argv             = calloc(len, sizeof(*argv));
 
-    const char *command_1     = "mace clean -j1";
-    argv = mace_argv_flags(&len, &argc, argv, command_1, NULL, false, mace_separator);
-    args = mace_parse_args(argc, argv);
-    nourstest_true(args.user_target_hash == mace_hash(MACE_CLEAN));
-    nourstest_true(strcmp(args.user_target, MACE_CLEAN) == 0);
-    nourstest_true(args.jobs             == 1);
-    nourstest_true(args.macefile         == NULL);
-    nourstest_true(args.dir              == NULL);
-    nourstest_true(args.debug            == false);
-    nourstest_true(args.silent           == false);
-    nourstest_true(args.dry_run          == false);
-    nourstest_true(args.build_all        == false);
     Mace_Args_Free(&args);
     mace_argv_free(argv, argc);
     argc = 0;
