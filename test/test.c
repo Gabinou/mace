@@ -28,17 +28,15 @@
 #define lengthof(s)  (countof(s) - 1)
 
 typedef struct s8 {
-    u8      *data;
+    char    *data;
     size_t   len;
 } s8;
-#define s8_literal(s) (s8){(u8 *)s, lengthof(s)}
-#define s8_var(s) s8_var_(s)
-#define s8_var_(s) (s8){(u8 *)s, strlen(s)}
+#define s8_literal(s) {s, lengthof(s)}
 
 b32 s8equal(s8 *s1, s8 *s2) {
+    int i;
     if (s1->len != s2->len)
         return (false);
-    int i;
     for (i = 0; i < s1->len; i++)
         if (s1->data[i] != s2->data[i])
             return (false);
@@ -98,17 +96,16 @@ void test_globbing() {
 }
 
 void test_object() {
-    if ((object_len == 0) || (object == NULL)) {
-        object_len  = 24;
-        object      = malloc(object_len * sizeof(*object));
-    }
-
     char buffer[MACE_TEST_BUFFER_SIZE] = {0};
-
     size_t cwd_len   = strlen(cwd);
     size_t obj_len   = strlen(MACE_TEST_OBJ_DIR);
     size_t file_len  = strlen("//mace.o");
     size_t total_len = 0;
+
+    if ((object_len == 0) || (object == NULL)) {
+        object_len  = 24;
+        object      = malloc(object_len * sizeof(*object));
+    }
 
     strncpy(buffer,             cwd,               cwd_len);
     total_len += cwd_len;
@@ -126,14 +123,39 @@ void test_object() {
 }
 
 void test_target() {
+    Target A = {0};
+    Target B = {0};
+    Target C = {0};
+    Target D = {0};
+    Target E = {0};
+    Target F = {0};
+    Target G = {0};
+    Target AA = {0};
+    Target BB = {0};
+    Target CC = {0};
+    Target DD = {0};
+    Target EE = {0};
+    Target FF = {0};
+    Target GG = {0};
+    Target tnecs = {0};
+    Target firesaga = {0};
+
+    /* A should be compiled last, has the most dependencies */
+    uint64_t A_hash = mace_hash("A");
+    int A_order     = mace_hash_order(A_hash);
+
+    uint64_t BB_hash = mace_hash("BB");
+    int BB_order     = mace_hash_order(BB_hash);
+
+    assert(A_order >= 0);
+    assert(BB_order >= 0);
     mace_pre_user(NULL);
-    nourstest_true(target_num                           == 0);
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_STATIC_LIBRARY,
-    };
+    nourstest_true(target_num == 0);
+
+    tnecs.includes           = "tnecs.h";
+    tnecs.sources            = "tnecs.c";
+    tnecs.base_dir           = "tnecs";
+    tnecs.kind               = MACE_STATIC_LIBRARY;
     MACE_ADD_TARGET(tnecs);
 
     nourstest_true(target_num                           == 1);
@@ -141,14 +163,12 @@ void test_target() {
     nourstest_true(targets[0]._order                    == 0);
     nourstest_true(strcmp(targets[0]._name, "tnecs")    == 0);
 
-    struct Target firesaga = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "SDL2 SDL2_image SDL2_ttf m GLEW cJSON nmath "
-        "physfs tinymt tnecs nstr parg",
-        .kind               = MACE_EXECUTABLE,
-    };
+    firesaga.includes           = "tnecs.h";
+    firesaga.sources            = "tnecs.c";
+    firesaga.base_dir           = "tnecs";
+    firesaga.links              = "SDL2 SDL2_image SDL2_ttf m GLEW cJSON nmath "
+                                  "physfs tinymt tnecs nstr parg";
+    firesaga.kind           = MACE_EXECUTABLE;
     MACE_ADD_TARGET(firesaga);
 
     nourstest_true(target_num                           == 2);
@@ -172,59 +192,44 @@ void test_target() {
     mace_pre_user(NULL);
 
     /* mace computing build order as a function of linking dependencies */
-    struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "B C D",
-        .kind               = MACE_EXECUTABLE,
-    };
+    A.includes           = "tnecs.h";
+    A.sources            = "tnecs.c";
+    A.base_dir           = "tnecs";
+    A.links              = "B C D";
+    A.kind               = MACE_EXECUTABLE;
 
-    struct Target B = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "D E",
-        .kind               = MACE_EXECUTABLE,
-    };
+    B.includes           = "tnecs.h";
+    B.sources            = "tnecs.c";
+    B.base_dir           = "tnecs";
+    B.links              = "D E";
+    B.kind               = MACE_EXECUTABLE;
 
-    struct Target C = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    C.includes           = "tnecs.h";
+    C.sources            = "tnecs.c";
+    C.base_dir           = "tnecs";
+    C.kind               = MACE_EXECUTABLE;
 
-    struct Target D = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "F G",
-        .kind               = MACE_EXECUTABLE,
-    };
+    D.includes           = "tnecs.h";
+    D.sources            = "tnecs.c";
+    D.base_dir           = "tnecs";
+    D.links              = "F G";
+    D.kind               = MACE_EXECUTABLE;
 
+    E.includes           = "tnecs.h";
+    E.sources            = "tnecs.c";
+    E.base_dir           = "tnecs";
+    E.links              = "G";
+    E.kind               = MACE_EXECUTABLE;
 
-    struct Target E = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "G",
-        .kind               = MACE_EXECUTABLE,
-    };
+    F.includes           = "tnecs.h";
+    F.sources            = "tnecs.c";
+    F.base_dir           = "tnecs";
+    F.kind               = MACE_EXECUTABLE;
 
-    struct Target F = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
-
-    struct Target G = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    G.includes           = "tnecs.h";
+    G.sources            = "tnecs.c";
+    G.base_dir           = "tnecs";
+    G.kind               = MACE_EXECUTABLE;
 
     MACE_ADD_TARGET(B);
     MACE_ADD_TARGET(C);
@@ -265,11 +270,6 @@ void test_target() {
     ** printf("\n");
     */
 
-    /* A should be compiled last, has the most dependencies */
-    uint64_t A_hash = mace_hash("A");
-    int A_order     = mace_hash_order(A_hash);
-    assert(A_order >= 0);
-
     nourstest_true(target_num == 7);
     nourstest_true(build_order[0]);
     nourstest_true(build_order[target_num - 1] == A_order);
@@ -278,57 +278,43 @@ void test_target() {
     mace_pre_user(NULL);
 
     /* mace computing build order as a function of linking dependencies */
-    struct Target AA = { /* Unitialized values guaranteed to be 0 / NULL */
-        .links              = "DD",
-        .dependencies       = "EE",
-        .kind               = MACE_EXECUTABLE,
-    };
+    AA.links              = "DD";
+    AA.dependencies       = "EE";
+    AA.kind               = MACE_EXECUTABLE;
 
-    struct Target BB = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "AA CC DD",
-        .dependencies       = "AA CC DD",
-        .kind               = MACE_EXECUTABLE,
-    };
+    BB.includes           = "tnecs.h";
+    BB.sources            = "tnecs.c";
+    BB.base_dir           = "tnecs";
+    BB.links              = "AA CC DD";
+    BB.dependencies       = "AA CC DD";
+    BB.kind               = MACE_EXECUTABLE;
 
-    struct Target CC = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    CC.includes           = "tnecs.h";
+    CC.sources            = "tnecs.c";
+    CC.base_dir           = "tnecs";
+    CC.kind               = MACE_EXECUTABLE;
 
-    struct Target DD = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .dependencies       = "FF GG",
-        .kind               = MACE_EXECUTABLE,
-    };
+    DD.includes           = "tnecs.h";
+    DD.sources            = "tnecs.c";
+    DD.base_dir           = "tnecs";
+    DD.dependencies       = "FF GG";
+    DD.kind               = MACE_EXECUTABLE;
 
-    struct Target EE = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "GG",
-        .kind               = MACE_EXECUTABLE,
-    };
+    EE.includes           = "tnecs.h";
+    EE.sources            = "tnecs.c";
+    EE.base_dir           = "tnecs";
+    EE.links              = "GG";
+    EE.kind               = MACE_EXECUTABLE;
 
-    struct Target FF = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    FF.includes           = "tnecs.h";
+    FF.sources            = "tnecs.c";
+    FF.base_dir           = "tnecs";
+    FF.kind               = MACE_EXECUTABLE;
 
-    struct Target GG = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    GG.includes           = "tnecs.h";
+    GG.sources            = "tnecs.c";
+    GG.base_dir           = "tnecs";
+    GG.kind               = MACE_EXECUTABLE;
 
     MACE_ADD_TARGET(BB);
     MACE_ADD_TARGET(EE);
@@ -368,9 +354,6 @@ void test_target() {
     ** printf("\n"); */
 
     /* A should be compiled last, has the most dependencies */
-    uint64_t BB_hash = mace_hash("BB");
-    int BB_order     = mace_hash_order(BB_hash);
-    assert(BB_order >= 0);
 
     nourstest_true(target_num == 7);
     nourstest_true(build_order[0]);
@@ -380,61 +363,55 @@ void test_target() {
 }
 
 void test_circular() {
+    Target A = {0};
+    Target B = {0};
+    Target C = {0};
+    Target D = {0};
+    Target E = {0};
+    Target F = {0};
+    Target G = {0};
+
     mace_pre_user(NULL);
     /* mace detect circular dependency */
-    struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "B C D",
-        .kind               = MACE_EXECUTABLE,
-    };
+    A.includes           = "tnecs.h";
+    A.sources            = "tnecs.c";
+    A.base_dir           = "tnecs";
+    A.links              = "B C D";
+    A.kind               = MACE_EXECUTABLE;
 
-    struct Target B = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "D E",
-        .kind               = MACE_EXECUTABLE,
-    };
+    B.includes           = "tnecs.h";
+    B.sources            = "tnecs.c";
+    B.base_dir           = "tnecs";
+    B.links              = "D E";
+    B.kind               = MACE_EXECUTABLE;
 
-    struct Target D = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "F G",
-        .kind               = MACE_EXECUTABLE,
-    };
+    C.includes           = "tnecs.h";
+    C.sources            = "tnecs.c";
+    C.base_dir           = "tnecs";
+    C.links              = "F G";
+    C.kind               = MACE_EXECUTABLE;
 
-    struct Target C = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    D.includes           = "tnecs.h";
+    D.sources            = "tnecs.c";
+    D.base_dir           = "tnecs";
+    D.kind               = MACE_EXECUTABLE;
 
-    struct Target E = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "G",
-        .kind               = MACE_EXECUTABLE,
-    };
+    E.includes           = "tnecs.h";
+    E.sources            = "tnecs.c";
+    E.base_dir           = "tnecs";
+    E.links              = "G";
+    E.kind               = MACE_EXECUTABLE;
 
-    struct Target F = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "D",
-        .kind               = MACE_EXECUTABLE,
-    };
+    F.includes           = "tnecs.h";
+    F.sources            = "tnecs.c";
+    F.base_dir           = "tnecs";
+    F.links              = "D";
+    F.kind               = MACE_EXECUTABLE;
 
-    struct Target G = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    G.includes           = "tnecs.h";
+    G.sources            = "tnecs.c";
+    G.base_dir           = "tnecs";
+    G.kind               = MACE_EXECUTABLE;
 
     MACE_ADD_TARGET(B);
     MACE_ADD_TARGET(C);
@@ -451,14 +428,14 @@ void test_circular() {
 }
 
 void test_self_dependency() {
+    Target H = {0};
     mace_pre_user(NULL);
-    struct Target H = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "H",
-        .kind               = MACE_EXECUTABLE,
-    };
+    H.includes           = "tnecs.h";
+    H.sources            = "tnecs.c";
+    H.base_dir           = "tnecs";
+    H.links              = "H";
+    H.kind               = MACE_EXECUTABLE;
+
     MACE_ADD_TARGET(H);
     mace_circular_deps(targets, target_num); /* Should print a warning*/
 
@@ -473,6 +450,8 @@ void test_argv() {
     int len                 = 8;
     int argc                = 0;
     char **argv             = calloc(8, sizeof(*argv));
+    Target CodenameFiresaga = {0};
+    char buffer[PATH_MAX] = {0};
 
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
     mace_set_build_dir(MACE_TEST_BUILD_DIR);
@@ -507,18 +486,15 @@ void test_argv() {
     nourstest_true(strcmp(argv[13], "lmnop.c") == 0);
     mace_argv_free(argv, argc);
 
-    struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = ". include include/bars include/menu include/popup "
-        "include/systems names names/popup names/menu "
-        "second_party/nstr second_party/noursmath second_party/tnecs "
-        "third_party/physfs third_party/tinymt third_party/stb "
-        "third_party/cJson",
-        .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
-        .links              = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    CodenameFiresaga.includes           = ". include include/bars include/menu include/popup "
+                                          "include/systems names names/popup names/menu "
+                                          "second_party/nstr second_party/noursmath second_party/tnecs "
+                                          "third_party/physfs third_party/tinymt third_party/stb "
+                                          "third_party/cJson";
+    CodenameFiresaga.sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/";
+    CodenameFiresaga.links              = "tnecs";
+    CodenameFiresaga.kind               = MACE_EXECUTABLE;
 
-    char buffer[PATH_MAX] = {0};
     mace_Target_Parse_User(&CodenameFiresaga);
     nourstest_true(CodenameFiresaga._argc_includes == 16);
     nourstest_true(CodenameFiresaga._argc_flags == 0);
@@ -574,6 +550,7 @@ void test_argv() {
 }
 
 void test_argline() {
+    s8 s8argline    = {0};
     char *const argv[] = {
         "putain",
         "de",
@@ -585,7 +562,8 @@ void test_argline() {
     };
     char *argline = mace_args2line(argv);
     s8 compare = s8_literal("putain de merdouille tabarouette ta mère-euuuh- enculedesmouches. ");
-    s8 s8argline = s8_var(argline);
+    s8argline.data  = argline;
+    s8argline.len   = strlen(argline);
     nourstest_true(s8equal(&compare, &s8argline));
     free(argline);
 }
@@ -593,18 +571,17 @@ void test_argline() {
 void test_post_user() {
     pid_t pid   = 0;
     int status  = 0;
+    Target tnecs = {0};
+    Mace_Args args = Mace_Args_default;
     mace_target = 0;
 
     /* mace does not exit if nothing is wrong */
     mace_pre_user(NULL);
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_STATIC_LIBRARY,
-    };
+    tnecs.includes           = "tnecs.h";
+    tnecs.sources            = "tnecs.c";
+    tnecs.base_dir           = "tnecs";
+    tnecs.kind               = MACE_STATIC_LIBRARY;
     MACE_ADD_TARGET(tnecs);
-    Mace_Args args = Mace_Args_default;
     mace_target         = 0;
     mace_user_target    = 0;
     mace_default_target = 0;
@@ -637,10 +614,11 @@ void test_post_user() {
         perror("Error: forking issue. \n");
         exit(1);
     } else if (pid == 0) {
+        int fd;
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+        fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(&args);
@@ -658,15 +636,18 @@ void test_post_user() {
 }
 
 void test_separator() {
+    int pid;
+    int status;
+    Target tnecs = {0};
+    Target tnecs2 = {0};
+
     mace_pre_user(NULL);
     mace_set_separator(",");
     nourstest_true(strcmp(mace_separator, ",") == 0);
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .links              = "tnecs,baka,ta,mere",
-        .kind               = MACE_STATIC_LIBRARY,
-    };
+    tnecs.includes           = "tnecs.h";
+    tnecs.sources            = "tnecs.c";
+    tnecs.links              = "tnecs,baka,ta,mere";
+    tnecs.kind               = MACE_STATIC_LIBRARY;
     MACE_ADD_TARGET(tnecs);
 
     mace_Target_Parse_User(&targets[0]);
@@ -677,12 +658,10 @@ void test_separator() {
     nourstest_true(strcmp(targets[0]._argv_links[3], "-lmere") == 0);
 
     mace_set_separator(" ");
-    struct Target tnecs2 = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .links              = "tnecs baka ta mere",
-        .kind               = MACE_STATIC_LIBRARY,
-    };
+    tnecs.includes           = "tnecs.h";
+    tnecs.sources            = "tnecs.c";
+    tnecs.links              = "tnecs baka ta mere";
+    tnecs.kind               = MACE_STATIC_LIBRARY;
     MACE_ADD_TARGET(tnecs2);
 
     mace_Target_Parse_User(&targets[1]);
@@ -691,17 +670,17 @@ void test_separator() {
 
     mace_post_build(NULL);
 
-    int pid, status;
     /* mace exits as expected if separator is NULL */
     pid = fork();
     if (pid < 0) {
         perror("Error: forking issue. \n");
         exit(1);
     } else if (pid == 0) {
+        int fd;
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+        fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator(NULL);
@@ -717,10 +696,11 @@ void test_separator() {
         perror("Error: forking issue. \n");
         exit(1);
     } else if (pid == 0) {
+        int fd;
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+        fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator("Aaaa");
@@ -737,10 +717,11 @@ void test_separator() {
         perror("Error: forking issue. \n");
         exit(1);
     } else if (pid == 0) {
+        int fd;
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+        fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator("");
@@ -756,9 +737,10 @@ void test_separator() {
         perror("Error: forking issue. \n");
         exit(1);
     } else if (pid == 0) {
+        int fd;
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
+        fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator(" ");
@@ -775,9 +757,10 @@ void test_separator() {
         perror("Error: forking issue. \n");
         exit(1);
     } else if (pid == 0) {
+        int fd;
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
+        fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator(",");
@@ -788,6 +771,18 @@ void test_separator() {
     nourstest_true(WEXITSTATUS(status) == 0);
 }
 void test_parse_args() {
+    const char *command_2       = "mace all";
+    const char *command_3;
+    const char *command_4;
+    const char *command_5       = "mace -B";
+    const char *command_6       = "mace -Cmydir";
+    const char *command_7       = "mace -d";
+    const char *command_8       = "mace -fmymacefile.c";
+    const char *command_9       = "mace -j2";
+    const char *command_10      = "mace -n";
+    const char *command_11      = "mace -n";
+    const char *command_12;
+
     Mace_Args args;
     int len                 = 8;
     int argc                = 0;
@@ -797,7 +792,7 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_2     = "mace all";
+    command_12      = "mace allo -s -d -n";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_2, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -813,7 +808,7 @@ void test_parse_args() {
     argc = 0;
 
 #define TARGET "AAAAA"
-    const char *command_3     = "mace " TARGET;
+    command_3       = "mace " TARGET;
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_3, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -831,7 +826,7 @@ void test_parse_args() {
 #undef TARGET
 
 #define TARGET "baka"
-    const char *command_4     = "mace -B " TARGET ;
+    command_4       = "mace -B " TARGET;
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_4, NULL, false, mace_separator);
     args =  mace_parse_args(argc, argv);
@@ -848,7 +843,6 @@ void test_parse_args() {
     argc = 0;
 #undef TARGET
 
-    const char *command_5     = "mace -B";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_5, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -864,7 +858,6 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_6     = "mace -Cmydir";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_6, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -880,7 +873,6 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_7     = "mace -d";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_7, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -896,7 +888,6 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_8     = "mace -fmymacefile.c";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_8, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -912,7 +903,6 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_9     = "mace -j2";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_9, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -928,7 +918,6 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_10     = "mace -n";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_10, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -944,7 +933,6 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_11     = "mace -n";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_11, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -960,7 +948,6 @@ void test_parse_args() {
     mace_argv_free(argv, argc);
     argc = 0;
 
-    const char *command_12     = "mace allo -s -d -n";
     argv = calloc(len, sizeof(*argv));
     argv = mace_argv_flags(&len, &argc, argv, command_12, NULL, false, mace_separator);
     args = mace_parse_args(argc, argv);
@@ -979,65 +966,57 @@ void test_parse_args() {
 }
 
 void test_build_order() {
+    Target A = {0};
+    Target B = {0};
+    Target C = {0};
+    Target D = {0};
+    Target E = {0};
+    Target F = {0};
+    Target G = {0};
     /* cleanup so that mace doesn't build targets */
     mace_post_build(NULL);
     mace_pre_user(NULL);
     mace_set_separator(" ");
 
     /* mace computing build order as a function of linking dependencies */
-    struct Target A = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "B C D",
-        .kind               = MACE_EXECUTABLE,
-    };
+    A.includes           = "tnecs.h";
+    A.sources            = "tnecs.c";
+    A.base_dir           = "tnecs";
+    A.links              = "B C D";
+    A.kind               = MACE_EXECUTABLE;
 
-    struct Target B = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "D E",
-        .kind               = MACE_EXECUTABLE,
-    };
+    B.includes           = "tnecs.h";
+    B.sources            = "tnecs.c";
+    B.base_dir           = "tnecs";
+    B.links              = "D E";
+    B.kind               = MACE_EXECUTABLE;
 
-    struct Target C = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    C.includes           = "tnecs.h";
+    C.sources            = "tnecs.c";
+    C.base_dir           = "tnecs";
+    C.kind               = MACE_EXECUTABLE;
 
-    struct Target D = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "F G",
-        .kind               = MACE_EXECUTABLE,
-    };
+    D.includes           = "tnecs.h";
+    D.sources            = "tnecs.c";
+    D.base_dir           = "tnecs";
+    D.links              = "F G";
+    D.kind               = MACE_EXECUTABLE;
 
+    E.includes           = "tnecs.h";
+    E.sources            = "tnecs.c";
+    E.base_dir           = "tnecs";
+    E.links              = "G";
+    E.kind               = MACE_EXECUTABLE;
 
-    struct Target E = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "G",
-        .kind               = MACE_EXECUTABLE,
-    };
+    F.includes           = "tnecs.h";
+    F.sources            = "tnecs.c";
+    F.base_dir           = "tnecs";
+    F.kind               = MACE_EXECUTABLE;
 
-    struct Target F = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
-
-    struct Target G = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .kind               = MACE_EXECUTABLE,
-    };
+    G.includes           = "tnecs.h";
+    G.sources            = "tnecs.c";
+    G.base_dir           = "tnecs";
+    G.kind               = MACE_EXECUTABLE;
 
     MACE_ADD_TARGET(B);
     MACE_ADD_TARGET(C);
@@ -1107,9 +1086,12 @@ void test_build_order() {
 }
 
 void test_checksum() {
+    char *allo;
+    char *header_objpath;
+
     mace_pre_user(NULL);
     mace_set_obj_dir("obj");
-    char *allo = mace_checksum_filename("allo.c", MACE_CHECKSUM_MODE_NULL);
+    allo = mace_checksum_filename("allo.c", MACE_CHECKSUM_MODE_NULL);
     nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
     free(allo);
     allo = mace_checksum_filename("allo.h", MACE_CHECKSUM_MODE_NULL);
@@ -1119,8 +1101,8 @@ void test_checksum() {
     nourstest_true(strcmp(allo, "obj/allo.sha1") == 0);
     free(allo);
 
-    char *header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
-                                                  MACE_CHECKSUM_MODE_NULL);
+    header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
+                                            MACE_CHECKSUM_MODE_NULL);
     nourstest_true(strcmp(header_objpath, "obj/combat.sha1") == 0);
     free(header_objpath);
 
@@ -1137,15 +1119,18 @@ void test_checksum() {
 }
 
 void test_excludes() {
+    Target tnecs = {0};
+    FILE *fd;
+    char *rpath;
+    char *token;
+
     mace_pre_user(NULL);
-    char *rpath = calloc(PATH_MAX, sizeof(*rpath));
-    char *token = "tnecs.c";
+    rpath = calloc(PATH_MAX, sizeof(*rpath));
+    token = "tnecs.c";
     realpath(token, rpath);
-    FILE *fd = fopen(rpath, "w");
+    fd = fopen(rpath, "w");
     fclose(fd);
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .excludes           = "tnecs.c",
-    };
+    tnecs.excludes  = "tnecs.c";
 
     mace_Target_excludes(&tnecs);
     nourstest_true(tnecs._excludes_num == 1);
@@ -1158,8 +1143,10 @@ void test_excludes() {
 }
 
 void test_parse_d() {
+    int i;
+    struct Target target1   = {0};
+    struct Target target    = {0};
     mace_pre_user(NULL);
-    struct Target target1 = {0};
     MACE_ADD_TARGET(target1);
     targets[0]._checkcwd = false;
     mace_Target_Source_Add(&targets[0], "test1.c");
@@ -1171,9 +1158,7 @@ void test_parse_d() {
     nourstest_true(targets[0]._headers_len == 8);
     nourstest_true(targets[0]._headers_hash[0] == mace_hash("tnecs.h"));
 
-    struct Target target = {
-        .includes           = "tnecs.h",
-    };
+    target.includes           = "tnecs.h";
     assert(target_num == 1);
     MACE_ADD_TARGET(target);
     targets[1]._checkcwd = false;
@@ -1266,7 +1251,6 @@ void test_parse_d() {
 
 /* *INDENT-ON* */
     nourstest_true(targets[1]._deps_headers_num[0] == 72);
-    int i;
     for (i = 0; i < targets[1]._deps_headers_num[0]; i++) {
         nourstest_true(targets[1]._deps_headers[0][i] == i);
     }
@@ -1425,9 +1409,10 @@ void test_parse_d() {
 }
 
 void test_config_specific() {
-    struct Config debug = {
-        .flags   = "-g -O0"
-    };
+    Target tnecs    = {0};
+    Config debug    = {0};
+
+    debug.flags     = "-g -O0";
     mace_pre_user(NULL);
 
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
@@ -1439,28 +1424,32 @@ void test_config_specific() {
     MACE_ADD_CONFIG(debug);
     assert(config_num == 1);
 
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "H",
-        .kind               = MACE_EXECUTABLE,
-    };
+    tnecs.includes           = "tnecs.h";
+    tnecs.sources            = "tnecs.c";
+    tnecs.base_dir           = "tnecs";
+    tnecs.links              = "H";
+    tnecs.kind               = MACE_EXECUTABLE;
+
     MACE_ADD_TARGET(tnecs);
     nourstest_true(target_num == 1);
 
     mace_parse_config(&configs[0]);
     nourstest_true(config_num == 1);
+
+    mace_target_config("tnecs", "debug");
+    // TEST GO HERE
+    assert(0);
+    
     mace_post_build(NULL);
 }
 
 void test_config_global() {
-    struct Config debug = {
-        .flags = "-g -O0",
-    };
-    struct Config release = {
-        .flags = "-pie -O2",
-    };
+    Target tnecs    = {0};
+    Config debug    = {0};
+    Config release  = {0};
+
+    release.flags   = "-pie -O2";
+    debug.flags     = "-g -O0";
     mace_pre_user(NULL);
 
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
@@ -1476,13 +1465,12 @@ void test_config_global() {
     mace_user_config_set(mace_hash("release"), "release");
     assert(mace_user_config == 1);
 
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .includes           = "tnecs.h",
-        .sources            = "tnecs.c",
-        .base_dir           = "tnecs",
-        .links              = "H",
-        .kind               = MACE_EXECUTABLE,
-    };
+    tnecs.includes           = "tnecs.h";
+    tnecs.sources            = "tnecs.c";
+    tnecs.base_dir           = "tnecs";
+    tnecs.links              = "H";
+    tnecs.kind               = MACE_EXECUTABLE;
+
     MACE_ADD_TARGET(tnecs);
     nourstest_true(target_num == 1);
 
@@ -1493,6 +1481,9 @@ void test_config_global() {
 }
 
 void test_target_no_includes() {
+    Target tnecs    = {0};
+    Mace_Args args  = Mace_Args_default;
+
     mace_post_build(NULL);
     mace_pre_user(NULL);
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
@@ -1500,17 +1491,14 @@ void test_target_no_includes() {
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
-    Mace_Args args = Mace_Args_default;
     mace_default_target = 0;
     args.silent = true;
     mace_pre_user(&args);
 
     mace_set_separator(",");
-    struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
-        .sources            = "test.c",
-        .base_dir           = ".",
-        .kind               = MACE_EXECUTABLE,
-    };
+    tnecs.sources            = "test.c";
+    tnecs.base_dir           = ".";
+    tnecs.kind               = MACE_EXECUTABLE;
     MACE_ADD_TARGET(tnecs);
     mace_target = 0;
     nourstest_true(target_num == 1);
