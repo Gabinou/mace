@@ -41,11 +41,9 @@ Flags for `installer` to customize `mace`:
 - `-DZSH_COMPLETION=<path>` to set path for `mace` zsh tab completion. Defaults to `/usr/share/zsh/site-functions`.
 
 ### Common options
-1. Reserved target: 
-    - `<./builder or mace> all`
-2. Configs: `<./builder or mace> -g release`
-3. Compiler: `<./builder or mace> -c gcc`
-4. Macefile: `<./builder or mace> -f my_macefile.c`
+1. Configs: `<./builder or mace> -g release`
+2. Compiler: `<./builder or mace> -c gcc`
+3. Macefile: `<./builder or mace> -f my_macefile.c`
 
 ## Why?
 + Too many complex, slow build systems.
