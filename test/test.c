@@ -38,8 +38,8 @@ typedef struct s8 {
 b32 s8equal(s8 *s1, s8 *s2) {
     if (s1->len != s2->len)
         return (false);
-
-    for (int i = 0; i < s1->len; i++)
+    int i; 
+    for (i = 0; i < s1->len; i++)
         if (s1->data[i] != s2->data[i])
             return (false);
 
@@ -70,8 +70,8 @@ static void nourstest_run(char *name, void (*test)()) {
 #endif /*__NOURSTEST_H__ */
 
 #define BUILDDIR "build/"
-// TODO: test multiple commands in pre/post commands
-// with separator e.g. &&
+/* TODO: test multiple commands in pre/post commands */
+/* with separator e.g. && */
 void test_isFunc() {
     nourstest_true(mace_isSource("test.c"));
     nourstest_true(mace_isSource("doesnotexist.c"));
@@ -250,19 +250,20 @@ void test_target() {
     nourstest_true(targets[5]._hash == mace_hash("D"));
     nourstest_true(targets[6]._hash == mace_hash("F"));
 
-    // for (int i = 0; i < target_num; ++i) {
-    //     printf("%s ",  targets[build_order[i]]._name);
-    // }
-    // printf("\n");
+    /* for (int i = 0; i < target_num; ++i) {
+    **     printf("%s ",  targets[build_order[i]]._name);
+    ** }
+    ** printf("\n"); */
 
     mace_build_order();
     assert(build_order != NULL);
 
     /* Print build order names */
-    // for (int i = 0; i < target_num; ++i) {
-    //     printf("%s ",  targets[build_order[i]]._name);
-    // }
-    // printf("\n");
+    /* for (int i = 0; i < target_num; ++i) {
+    **     printf("%s ",  targets[build_order[i]]._name);
+    ** }
+    ** printf("\n");
+    */ 
 
     /* A should be compiled last, has the most dependencies */
     uint64_t A_hash = mace_hash("A");
@@ -360,11 +361,11 @@ void test_target() {
     mace_build_order();
     assert(build_order != NULL);
 
-    // /* Print build order names */
-    // for (int i = 0; i < target_num; ++i) {
-    //     printf("%s ",  targets[build_order[i]]._name);
-    // }
-    // printf("\n");
+    /* Print build order names */
+    /* for (int i = 0; i < target_num; ++i) {
+    **     printf("%s ",  targets[build_order[i]]._name);
+    ** }
+    ** printf("\n"); */
 
     /* A should be compiled last, has the most dependencies */
     uint64_t BB_hash = mace_hash("BB");
@@ -543,7 +544,6 @@ void test_argv() {
     nourstest_true(strcmp(CodenameFiresaga._argv_includes[15], "-Ithird_party/cJson")      == 0);
     nourstest_true(CodenameFiresaga._argv_flags == NULL);
 
-    // MACE_SET_COMPILER(gcc);
     mace_Target_argv_compile(&CodenameFiresaga);
     assert(CodenameFiresaga._argv != NULL);
     nourstest_true(CodenameFiresaga._arg_len == 32);
@@ -587,7 +587,6 @@ void test_argline() {
     s8 compare = s8_literal("putain de merdouille tabarouette ta mère-euuuh- enculedesmouches. ");
     s8 s8argline = s8_var(argline);
     nourstest_true(s8equal(&compare, &s8argline));
-    // printf("\nargline '%s' \n", argline);
     free(argline);
 }
 
@@ -596,7 +595,7 @@ void test_post_user() {
     int status  = 0;
     mace_target = 0;
 
-    // mace does not exit if nothing is wrong
+    /* mace does not exit if nothing is wrong */
     mace_pre_user(NULL);
     struct Target tnecs = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = "tnecs.h",
@@ -632,7 +631,7 @@ void test_post_user() {
     mace_post_build(&args);
     mace_post_build(NULL);
 
-    // mace exits as expected if CC is NULL
+    /* mace exits as expected if CC is NULL */
     pid = fork();
     if (pid < 0) {
         perror("Error: forking issue. \n");
@@ -640,7 +639,8 @@ void test_post_user() {
     } else if (pid == 0) {
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        /* open the file /dev/null */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(&args);
@@ -653,7 +653,6 @@ void test_post_user() {
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) != 0);
 
-    // MACE_SET_COMPILER(gcc);
     mace_post_build(NULL);
     mace_post_build(&args);
 }
@@ -693,7 +692,7 @@ void test_separator() {
     mace_post_build(NULL);
 
     int pid, status;
-    // mace exits as expected if separator is NULL
+    /* mace exits as expected if separator is NULL */
     pid = fork();
     if (pid < 0) {
         perror("Error: forking issue. \n");
@@ -701,7 +700,8 @@ void test_separator() {
     } else if (pid == 0) {
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        /* open the file /dev/null */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator(NULL);
@@ -711,7 +711,7 @@ void test_separator() {
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) != 0);
 
-    // mace exits as expected if separator is too long
+    /* mace exits as expected if separator is too long */
     pid = fork();
     if (pid < 0) {
         perror("Error: forking issue. \n");
@@ -719,7 +719,8 @@ void test_separator() {
     } else if (pid == 0) {
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        /* open the file /dev/null */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator("Aaaa");
@@ -729,7 +730,7 @@ void test_separator() {
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) != 0);
 
-    // mace exits as expected if separator is too short
+    /* mace exits as expected if separator is too short */
     pid = fork();
 
     if (pid < 0) {
@@ -738,7 +739,8 @@ void test_separator() {
     } else if (pid == 0) {
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        /* open the file /dev/null */
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator("");
@@ -748,7 +750,7 @@ void test_separator() {
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) != 0);
 
-    // No issues for " "
+    /* No issues for " " */
     pid = fork();
     if (pid < 0) {
         perror("Error: forking issue. \n");
@@ -756,7 +758,7 @@ void test_separator() {
     } else if (pid == 0) {
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator(" ");
@@ -766,7 +768,7 @@ void test_separator() {
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) == 0);
 
-    // No issues for ","
+    /* No issues for "," */
     pid = fork();
 
     if (pid < 0) {
@@ -775,7 +777,7 @@ void test_separator() {
     } else if (pid == 0) {
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  // open the file /dev/null
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_set_separator(",");
@@ -1063,7 +1065,7 @@ void test_build_order() {
 
     build_order_num = 0;
 
-    // set default_target to "D" check build_order
+    /* set default_target to "D" check build_order */
     mace_default_target = mace_hash_order(mace_hash("D"));
     mace_user_target    = MACE_TARGET_NULL;  /* order */
     mace_build_order();
@@ -1074,8 +1076,8 @@ void test_build_order() {
     nourstest_true(build_order[2] == mace_hash_order(mace_hash("D")));
     build_order_num = 0;
 
-    // set user_target to E check build_order
-    // user_target should override mace_default_target
+    /* set user_target to E check build_order */
+    /* user_target should override mace_default_target */
     mace_user_target    = mace_hash_order(mace_hash("E"));
     mace_default_target = mace_hash_order(mace_hash("D"));
     mace_build_order();
@@ -1085,8 +1087,8 @@ void test_build_order() {
     nourstest_true(build_order[1] == mace_hash_order(mace_hash("E")));
 
 
-    // set user_target to A check build_order
-    // user_target should override mace_default_target
+    /* set user_target to A check build_order */
+    /* user_target should override mace_default_target */
     mace_user_target    = mace_hash_order(mace_hash("A"));
     mace_default_target = mace_hash_order(mace_hash("D"));
     mace_build_order();
@@ -1157,7 +1159,6 @@ void test_excludes() {
 
 void test_parse_d() {
     mace_pre_user(NULL);
-    // printf("\n\n");
     struct Target target1 = {0};
     MACE_ADD_TARGET(target1);
     targets[0]._checkcwd = false;
@@ -1186,7 +1187,7 @@ void test_parse_d() {
     nourstest_true(targets[1]._deps_headers_num[0] == 72);
     nourstest_true(targets[1]._deps_headers_num[0] == 72);
     nourstest_true(targets[1]._headers_len == 128);
-// *INDENT-OFF*
+/* *INDENT-OFF* */
     nourstest_true(targets[1]._headers_hash[0] ==  mace_hash("/home/gabinours/Sync/Firesaga/include/unit.h"));
     nourstest_true(targets[1]._headers_hash[1] ==  mace_hash("/home/gabinours/Sync/Firesaga/include/types.h"));
     nourstest_true(targets[1]._headers_hash[2] ==  mace_hash("/home/gabinours/Sync/Firesaga/include/enums.h"));
@@ -1263,9 +1264,10 @@ void test_parse_d() {
     nourstest_true(strcmp(targets[1]._headers[0],"/home/gabinours/Sync/Firesaga/include/unit.h") == 0);
     nourstest_true(strcmp(targets[1]._headers[71],"/home/gabinours/Sync/Firesaga/names/units_struct_stats.h") == 0);
 
-// *INDENT-ON*
+/* *INDENT-ON* */
     nourstest_true(targets[1]._deps_headers_num[0] == 72);
-    for (int i = 0; i < targets[1]._deps_headers_num[0]; i++) {
+    int i;
+    for (i = 0; i < targets[1]._deps_headers_num[0]; i++) {
         nourstest_true(targets[1]._deps_headers[0][i] == i);
     }
 
@@ -1449,34 +1451,6 @@ void test_config_specific() {
 
     mace_parse_config(&configs[0]);
     nourstest_true(config_num == 1);
-    // nourstest_true(strcmp(configs[0]._flags[0], "-g") == 0);
-    // nourstest_true(strcmp(configs[0]._flags[1], "-O0") == 0);
-    // mace_Target_Parse_User(&target[0]);
-    // mace_Target_Parse_User(&target[0]);
-    // mace_Target_argv_compile(&targets[0]);
-    // assert(targets[0]._argv != NULL);
-    // nourstest_true(targets[0]._arg_len == 8);
-    // nourstest_true(targets[0]._argc == 5);
-    // nourstest_true(strcmp(targets[0]._argv[MACE_ARGV_CC], "gcc") == 0);
-    // nourstest_true(targets[0]._argv[MACE_ARGV_SOURCE] == NULL);
-    // nourstest_true(targets[0]._argv[MACE_ARGV_OBJECT] == NULL);
-    // nourstest_true(strcmp(targets[0]._argv[3],  "-Itnecs.h")  == 0);
-    // nourstest_true(strcmp(targets[0]._argv[4],  "-c")         == 0);
-
-    // mace_add_target(&tnecs, "baka");
-    // nourstest_true(target_num == 2);
-
-    // mace_Target_Parse_User(&targets[1]);
-    // mace_Target_argv_compile(&targets[1]);
-    // assert(targets[1]._argv != NULL);
-    // nourstest_true(targets[1]._arg_len == 8);
-    // nourstest_true(targets[1]._argc == 5);
-    // nourstest_true(strcmp(targets[1]._argv[MACE_ARGV_CC], "gcc") == 0);
-    // nourstest_true(targets[1]._argv[MACE_ARGV_SOURCE] == NULL);
-    // nourstest_true(targets[1]._argv[MACE_ARGV_OBJECT] == NULL);
-    // nourstest_true(strcmp(targets[1]._argv[3],  "-Itnecs.h")  == 0);
-    // nourstest_true(strcmp(targets[1]._argv[4],  "-c")         == 0);
-    // nourstest_true(targets[1]._argv[7] == NULL);
     mace_post_build(NULL);
 }
 
@@ -1514,41 +1488,7 @@ void test_config_global() {
 
     mace_parse_config(&configs[0]);
     nourstest_true(config_num == 2);
-    // nourstest_true(configs[0]._targets_len == 1);
     assert(configs[0]._flags[0] != NULL);
-    // nourstest_true(strcmp(configs[0]._flags[0], "-g -O0") == 0);
-    // mace_parse_config(&configs[1]);
-    // assert(configs[1]._flags[0] != NULL);
-    // nourstest_true(strcmp(configs[1]._flags[0], "-pie -O2") == 0);
-
-    // mace_Target_Parse_User(&targets[0]);
-    // mace_Target_argv_compile(&targets[0]);
-    // assert(targets[0]._argv != NULL);
-    // nourstest_true(targets[0]._arg_len == 8);
-    // nourstest_true(targets[0]._argc == 5);
-    // nourstest_true(strcmp(targets[0]._argv[MACE_ARGV_CC], "gcc") == 0);
-    // nourstest_true(targets[0]._argv[MACE_ARGV_SOURCE] == NULL);
-    // nourstest_true(targets[0]._argv[MACE_ARGV_OBJECT] == NULL);
-    // nourstest_true(strcmp(targets[0]._argv[3],  "-Itnecs.h")  == 0);
-    // nourstest_true(strcmp(targets[0]._argv[4],  "-c")         == 0);
-
-    // nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
-    // mace_add_target(&tnecs, "baka");
-    // nourstest_true(target_num == 2);
-    // nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
-
-    // mace_Target_Parse_User(&targets[1]);
-    // mace_Target_argv_compile(&targets[1]);
-    // nourstest_true(strcmp(configs[mace_user_config].flags,  "-pie -O2")        == 0);
-    // assert(targets[1]._argv != NULL);
-    // nourstest_true(targets[1]._arg_len == 8);
-    // nourstest_true(targets[1]._argc == 5);
-    // nourstest_true(strcmp(targets[1]._argv[MACE_ARGV_CC], "gcc") == 0);
-    // nourstest_true(targets[1]._argv[MACE_ARGV_SOURCE] == NULL);
-    // nourstest_true(targets[1]._argv[MACE_ARGV_OBJECT] == NULL);
-    // nourstest_true(strcmp(targets[1]._argv[3],  "-Itnecs.h")  == 0);
-    // nourstest_true(strcmp(targets[1]._argv[4],  "-c")         == 0);
-
     mace_post_build(NULL);
 }
 
@@ -1594,9 +1534,10 @@ void test_target_no_includes() {
     silent = false;
 }
 
-// TODO: flags disappearing after 128 flags
-//      Flags get printed
-//      Flags DON'T get executed
+/* TODO: flags disappearing after 128 flags
+**      Flags get printed
+**      Flags DON'T get executed 
+*/
 
 int mace(int argc, char *argv[]) {
     printf("Testing mace\n");
