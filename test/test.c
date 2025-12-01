@@ -38,7 +38,7 @@ typedef struct s8 {
 b32 s8equal(s8 *s1, s8 *s2) {
     if (s1->len != s2->len)
         return (false);
-    int i; 
+    int i;
     for (i = 0; i < s1->len; i++)
         if (s1->data[i] != s2->data[i])
             return (false);
@@ -146,7 +146,7 @@ void test_target() {
         .sources            = "tnecs.c",
         .base_dir           = "tnecs",
         .links              = "SDL2 SDL2_image SDL2_ttf m GLEW cJSON nmath "
-                              "physfs tinymt tnecs nstr parg",
+        "physfs tinymt tnecs nstr parg",
         .kind               = MACE_EXECUTABLE,
     };
     MACE_ADD_TARGET(firesaga);
@@ -263,7 +263,7 @@ void test_target() {
     **     printf("%s ",  targets[build_order[i]]._name);
     ** }
     ** printf("\n");
-    */ 
+    */
 
     /* A should be compiled last, has the most dependencies */
     uint64_t A_hash = mace_hash("A");
@@ -509,11 +509,11 @@ void test_argv() {
 
     struct Target CodenameFiresaga = { /* Unitialized values guaranteed to be 0 / NULL */
         .includes           = ". include include/bars include/menu include/popup "
-                              "include/systems names names/popup names/menu "
-                              "second_party/nstr second_party/noursmath second_party/tnecs "
-                              "third_party/physfs third_party/tinymt third_party/stb "
-                              "third_party/cJson",
-        .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/", 
+        "include/systems names names/popup names/menu "
+        "second_party/nstr second_party/noursmath second_party/tnecs "
+        "third_party/physfs third_party/tinymt third_party/stb "
+        "third_party/cJson",
+        .sources            = "src/ src/bars/ src/menu/ src/popup/ src/systems/ src/game/",
         .links              = "tnecs",
         .kind               = MACE_EXECUTABLE,
     };
@@ -640,7 +640,7 @@ void test_post_user() {
         cc = NULL;
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
-        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  
+        int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
         mace_post_user(&args);
@@ -1536,7 +1536,7 @@ void test_target_no_includes() {
 
 /* TODO: flags disappearing after 128 flags
 **      Flags get printed
-**      Flags DON'T get executed 
+**      Flags DON'T get executed
 */
 
 int mace(int argc, char *argv[]) {
@@ -1566,5 +1566,5 @@ int mace(int argc, char *argv[]) {
     test_self_dependency();
     printf("\n");
     printf("Tests done\n");
-    return(0);
+    return (0);
 }

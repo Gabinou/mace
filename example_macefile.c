@@ -11,7 +11,7 @@
     #define AR "tcc -ar"
 #endif
 
-// Configs to share flags, compiler, archiver 
+// Configs to share flags, compiler, archiver
 // between targets.
 struct Config debug         = {
     .flags = "-g3 -rdynamic -O0"
@@ -22,8 +22,8 @@ struct Target A     = {
     .sources  = "src src/unit",
     .links    = "C B",
     .flags    = "-fno-strict-overflow -fno-strict-aliasing "
-                "-fwrapv -fno-delete-null-pointer-checks "
-                "-std=iso9899:1999",
+    "-fwrapv -fno-delete-null-pointer-checks "
+    "-std=iso9899:1999",
     .cmd_pre  = "astyle --recursive src/* include/*",
     .kind     = MACE_EXECUTABLE,
 };
@@ -70,5 +70,5 @@ int mace(int argc, char *argv[]) {
     /* - Target configs - */
     MACE_TARGET_CONFIG(A, debug);
 
-    return(0);
+    return (0);
 }

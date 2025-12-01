@@ -17,7 +17,7 @@
 **  Two step build (single-header build):
 **      1. Bootstrap: `gcc macefile.c -o builder`
 **      2. Build: `./builder`
-** 
+**
 **  One step build (with mace convenience executable)
 **     -1. Bootstrap: `gcc installer_macefile.c -o installer`
 **      0. Install `mace`: `./installer`
@@ -168,14 +168,14 @@ typedef struct Target {
     const char *excludes;   /* files */
     const char *base_dir;   /* dir  */
 
-    /* Links are targets or libraries. 
+    /* Links are targets or libraries.
     ** If target, its built before self. */
     const char *links;      /* libraries or targets */
-    
+
     /* Linker flags are passed to the linker.
     ** Prepended "-Wl,", passed to compiler     */
-    const char *link_flags; 
-    
+    const char *link_flags;
+
     /* Dependencies are targets,
     ** built before self. */
     const char *dependencies;   /* targets */
@@ -212,7 +212,7 @@ typedef struct Target {
     *--------------------------------------------------*/
 
     /*----------------- PRIVATE MEMBERS ---------------*/
-    /* config order set from name user 
+    /* config order set from name user
     ** inputs in MACE_TARGET_CONFIG */
     int      _config; /* [order]            */
     /* target name                          */
@@ -258,13 +258,13 @@ typedef struct Target {
     /* include objects with number to prevent */
     /* collisions! */
     /* objects, in argv form        */
-    u64      *_argv_objects_hash; 
+    u64      *_argv_objects_hash;
     /* num of args in argv_sources  */
-    int       _argc_objects_hash; 
+    int       _argc_objects_hash;
     /* sources, in argv form        */
-    char    **_argv_objects;     
+    char    **_argv_objects;
     /* sources num                  */
-    int      *_argv_objects_cnt; 
+    int      *_argv_objects_cnt;
     /* Note: Includes objects with number to
     ** prevent collisions.          */
     u64      *_objects_hash_nocoll;
@@ -280,13 +280,13 @@ typedef struct Target {
     /* --- Dependencies ---  */
     /* -- Target dependencies --  */
     /* target or libs hashes               */
-    u64     *_deps_links;       
+    u64     *_deps_links;
     /* target or libs hashes               */
-    size_t   _deps_links_num;   
+    size_t   _deps_links_num;
     /* target or libs hashes               */
-    size_t   _deps_links_len;   
+    size_t   _deps_links_len;
     /* dependency count, for build order   */
-    size_t   _d_cnt;            
+    size_t   _d_cnt;
 
     /* -- Object dependencies --  */
     u64     *_headers_checksum_hash;
@@ -348,9 +348,9 @@ typedef struct Config {
     int      _order;
 
     u64      _target_order;
-    
+
     char   **_flags;
-    
+
     /* Number of flags                      */
     int      _flag_num;
 } Config;
@@ -420,15 +420,15 @@ enum MACE_CHECKSUM_MODE {
 static void mace_build(void);
 static void mace_pre_build(void);
 
-static void mace_pre_user(     Mace_Args *args);
-static void mace_post_user(    Mace_Args *args);
-static void mace_post_build(   Mace_Args *args);
+static void mace_pre_user(Mace_Args *args);
+static void mace_post_user(Mace_Args *args);
+static void mace_post_build(Mace_Args *args);
 
 /* --- mace_args --- */
 static Mace_Args mace_parse_args(int     argc,
                                  char   *argv[]);
 static Mace_Args mace_parse_env(void);
-static Mace_Args mace_combine_args_env(Mace_Args args, 
+static Mace_Args mace_combine_args_env(Mace_Args args,
                                        Mace_Args env);
 
 /* --- mace_utils --- */
@@ -453,11 +453,11 @@ static char **mace_argv_flags(int            *len,
                               b32             path,
                               const char     *separator);
 /* --- mace_setters --- */
-static char *mace_set_obj_dir(      char *obj);
-static void  mace_set_compiler(     char *cc);
-static void  mace_set_archiver(     char *ar);
-static char *mace_set_build_dir(    char *build);
-static void  mace_set_cc_depflag(   char *depflag);
+static char *mace_set_obj_dir(char *obj);
+static void  mace_set_compiler(char *cc);
+static void  mace_set_archiver(char *ar);
+static char *mace_set_build_dir(char *build);
+static void  mace_set_cc_depflag(char *depflag);
 
 /* --- mace add --- */
 static void mace_add_target(Target *target, char *name);
@@ -468,30 +468,30 @@ static void mace_target_config(char *ntarget,
                                char *nconfig);
 
 /* -- Config struct OOP -- */
-static void mace_Config_Free(    Config *config);
+static void mace_Config_Free(Config *config);
 
 /* -- Target struct OOP -- */
 /* - Free - */
-static void mace_Target_Free(             Target *target);
-static void mace_Target_Free_argv(        Target *target);
-static void mace_Target_Free_notargv(     Target *target);
-static void mace_Target_Free_excludes(    Target *target);
+static void mace_Target_Free(Target *target);
+static void mace_Target_Free_argv(Target *target);
+static void mace_Target_Free_notargv(Target *target);
+static void mace_Target_Free_excludes(Target *target);
 static void mace_Target_Free_deps_headers(Target *target);
 
 /* - Grow - */
-static void mace_Target_Grow_Headers(     Target *target);
+static void mace_Target_Grow_Headers(Target *target);
 static void mace_Target_Grow_deps_headers(Target *target,
                                           int obj_hash_id);
 
 /* - hash - */
-static int  Target_hasObjectHash(           Target *target,
-                                            u64 hash);
-static void Target_Object_Hash_Add(         Target *target,
-                                            u64 hash);
-static int  Target_hasObjectHash_nocoll(    Target *target,
-                                            u64 hash);
-static void Target_Object_Hash_Add_nocoll(  Target *target,
-                                            u64 hash);
+static int  Target_hasObjectHash(Target *target,
+                                 u64 hash);
+static void Target_Object_Hash_Add(Target *target,
+                                   u64 hash);
+static int  Target_hasObjectHash_nocoll(Target *target,
+                                        u64 hash);
+static void Target_Object_Hash_Add_nocoll(Target *target,
+                                          u64 hash);
 
 /* - obj_deps - */
 static char *mace_Target_Read_d(Target *target,
@@ -508,23 +508,23 @@ static int  mace_Target_header_order(Target *target,
 static void mace_Target_Parse_Objdeps(Target *target);
 
 /* - target dependencies - */
-static b32 mace_Target_hasDep(      Target *target,
-                                    u64 hash);
-static void mace_Target_Deps_Add(   Target *target,
-                                    u64 hash);
-static void mace_Target_Deps_Hash(  Target *target);
-static void mace_Target_Deps_Grow(  Target *target);
+static b32 mace_Target_hasDep(Target *target,
+                              u64 hash);
+static void mace_Target_Deps_Add(Target *target,
+                                 u64 hash);
+static void mace_Target_Deps_Hash(Target *target);
+static void mace_Target_Deps_Grow(Target *target);
 
 /* - Adding Files - */
-static b32  mace_Target_Source_Add( Target *target,
-                                    char *token);
-static b32  mace_Target_Object_Add( Target *target,
-                                    char *token);
-static u64  mace_Target_Header_Add( Target *target,
-                                    char *header);
-static void mace_Target_Objdep_Add( Target *target,
-                                    int header_order,
-                                    int obj_hash_id);
+static b32  mace_Target_Source_Add(Target *target,
+                                   char *token);
+static b32  mace_Target_Object_Add(Target *target,
+                                   char *token);
+static u64  mace_Target_Header_Add(Target *target,
+                                   char *header);
+static void mace_Target_Objdep_Add(Target *target,
+                                   int header_order,
+                                   int obj_hash_id);
 static void mace_Target_Header_Add_Objpath(Target *target,
                                            char *header);
 
@@ -532,7 +532,7 @@ static void mace_Target_Header_Add_Objpath(Target *target,
 static b32 mace_Source_Checksum(Target *target,
                                 char *s,
                                 char *o);
-static void mace_Headers_Checksums(       Target *target);
+static void mace_Headers_Checksums(Target *target);
 static void mace_Headers_Checksums_Checks(Target *target);
 
 /* - argv - */
@@ -541,8 +541,8 @@ static void mace_argv_add_config(Target *target,
                                  int *argc,
                                  int *arg_len);
 
-static void mace_Target_argv_grow(   Target *target);
-static void mace_Target_Parse_User(  Target *target);
+static void mace_Target_argv_grow(Target *target);
+static void mace_Target_Parse_User(Target *target);
 static void mace_Target_argv_compile(Target *target);
 static void mace_Target_Parse_Source(Target *target,
                                      char *path,
@@ -560,8 +560,8 @@ static void mace_Target_Recompiles_Add(Target *target,
                                        b32 add);
 
 /* - compilation - */
-static void mace_Target_compile(          Target *target);
-static void mace_Target_precompile(       Target *target);
+static void mace_Target_compile(Target *target);
+static void mace_Target_precompile(Target *target);
 static void mace_Target_compile_allatonce(Target *target);
 
 /* --- mace_glob --- */
@@ -577,25 +577,25 @@ static void  mace_exec_print(char *const arguments[],
 
 /* --- mace_build --- */
 /* -- linking -- */
-static void mace_link_executable(      Target *target);
-static void mace_link_static_library(  Target *target);
-static void mace_link_dynamic_library( Target *target);
+static void mace_link_executable(Target *target);
+static void mace_link_static_library(Target *target);
+static void mace_link_dynamic_library(Target *target);
 
 typedef void (*mace_link_t)(Target *);
 mace_link_t mace_link[MACE_TARGET_KIND_NUM - 1] = {mace_link_executable,
-    mace_link_static_library,
-    mace_link_dynamic_library
-};
+                                                   mace_link_static_library,
+                                                   mace_link_dynamic_library
+                                                  };
 
 /* -- compiling object files -> .o -- */
-static void mace_compile_glob(  Target      *target,
-                                char        *globsrc,
-                                const char  *flags);
-static void mace_build_target(  Target      *target);
-static void mace_run_commands(  const char  *commands, 
-                                const char  *preorpost,
-                                const char  *target_name);
-static void mace_print_message( const char  *message);
+static void mace_compile_glob(Target      *target,
+                              char        *globsrc,
+                              const char  *flags);
+static void mace_build_target(Target      *target);
+static void mace_run_commands(const char  *commands,
+                              const char  *preorpost,
+                              const char  *target_name);
+static void mace_print_message(const char  *message);
 
 /* -- build_order -- */
 static b32 mace_in_build_order(size_t    order,
@@ -619,9 +619,9 @@ static void mace_build_order_recursive(Target target,
                                        size_t *o_cnt);
 
 /* --- mace_is --- */
-static int mace_isDir(      const char *path);
-static int mace_isSource(   const char *path);
-static int mace_isWildcard( const char *str);
+static int mace_isDir(const char *path);
+static int mace_isSource(const char *path);
+static int mace_isWildcard(const char *str);
 
 /* --- mace_filesystem --- */
 static void  mace_mkdir(const char *path);
@@ -636,7 +636,7 @@ static void  mace_pqueue_put(pid_t pid);
 static pid_t mace_pqueue_pop(void);
 
 /* --- mace utils --- */
-static void mace_chdir(const char * path);
+static void mace_chdir(const char *path);
 
 /******************* GLOBALS ********************/
 #define false 0
@@ -645,9 +645,9 @@ static void mace_chdir(const char * path);
 static b32 silent     = false;
 static b32 verbose    = false;
 /* Pre-compile, don't compile */
-static b32 dry_run    = false; 
+static b32 dry_run    = false;
 /* Don't check object dependencies */
-static b32 build_all  = false; 
+static b32 build_all  = false;
 
 /* --- Processes --- */
 /* 1. Compile objects in parallel. */
@@ -660,61 +660,61 @@ static int      plen    = -1;
 static char *mace_separator             = " ";
 static char *mace_command_separator     = "&&";
 
-    /* -- Compiler -- */
-    static char *cc         = "gcc";
-    static char *ar         = "ar";
-    /* flag to create .d file */
-    static char *cc_depflag = "-MM";
+/* -- Compiler -- */
+static char *cc         = "gcc";
+static char *ar         = "ar";
+/* flag to create .d file */
+static char *cc_depflag = "-MM";
 
-    /* -- current working directory -- */
-    static char cwd[MACE_CWD_BUFFERSIZE];
+/* -- current working directory -- */
+static char cwd[MACE_CWD_BUFFERSIZE];
 
-    /* -- hashes -- */
-    static u64 mace_default_target_hash = 0;
-    static u64 mace_default_config_hash = 0;
+/* -- hashes -- */
+static u64 mace_default_target_hash = 0;
+static u64 mace_default_config_hash = 0;
 
-    /* Default target (may be set by user) [order] */
-    static int mace_default_target = MACE_TARGET_DEFAULT; 
-    /* Target input by user */
-    static int mace_user_target    = MACE_TARGET_NULL;
-    /* Target to compile */
-    static int mace_target         = MACE_TARGET_DEFAULT;
+/* Default target (may be set by user) [order] */
+static int mace_default_target = MACE_TARGET_DEFAULT;
+/* Target input by user */
+static int mace_user_target    = MACE_TARGET_NULL;
+/* Target to compile */
+static int mace_target         = MACE_TARGET_DEFAULT;
 
-    /* Default config (may be set by user) [order] */
-    static int mace_default_config = MACE_CONFIG_DEFAULT;
-    /* Config input by user */
-    static int mace_user_config    = MACE_CONFIG_NULL;
-    /* Config to use */
-    static int mace_config         = MACE_CONFIG_DEFAULT;
+/* Default config (may be set by user) [order] */
+static int mace_default_config = MACE_CONFIG_DEFAULT;
+/* Config input by user */
+static int mace_user_config    = MACE_CONFIG_NULL;
+/* Config to use */
+static int mace_config         = MACE_CONFIG_DEFAULT;
 
-    /* -- build order for user target -- */
-    static int *build_order     = NULL;
-    static int  build_order_num = 0;
+/* -- build order for user target -- */
+static int *build_order     = NULL;
+static int  build_order_num = 0;
 
-    /* -- list of targets added by user -- */
-    /* [order] as added    */
-    static Target   *targets     = NULL;
-    static size_t    target_num  = 0;
-    static size_t    target_len  = 0;
+/* -- list of targets added by user -- */
+/* [order] as added    */
+static Target   *targets     = NULL;
+static size_t    target_num  = 0;
+static size_t    target_len  = 0;
 
-    /* -- list of configs added by user -- */
-    /* [order] as added    */
-    static Config   *configs     = NULL;
-    static size_t    config_num  = 0;
-    static size_t    config_len  = 0;
+/* -- list of configs added by user -- */
+/* [order] as added    */
+static Config   *configs     = NULL;
+static size_t    config_num  = 0;
+static size_t    config_len  = 0;
 
-    /* -- buffer to write object -- */
-    static char     *object      = NULL;
-    static size_t    object_len  = 0;
+/* -- buffer to write object -- */
+static char     *object      = NULL;
+static size_t    object_len  = 0;
 
-    /* -- directories -- */
-    /* intermediary files  */
-    static char     *obj_dir     = NULL;
-    /* targets */
-    static char     *build_dir   = NULL;
+/* -- directories -- */
+/* intermediary files  */
+static char     *obj_dir     = NULL;
+/* targets */
+static char     *build_dir   = NULL;
 
-    /* -- mace_globals control -- */
-    static void mace_object_grow(void);
+/* -- mace_globals control -- */
+static void mace_object_grow(void);
 
 /*************** SHA1DC DECLARATION ***************/
 
@@ -3308,8 +3308,8 @@ struct parg_state parg_state_default = {
 };
 
 /*  Automatic usage/help printing */
-void mace_parg_usage(   const char              *name,
-                        const struct parg_opt   *longopts) {
+void mace_parg_usage(const char              *name,
+                     const struct parg_opt   *longopts) {
     if (name        == NULL) {
         assert(0);
         return;
@@ -3318,8 +3318,8 @@ void mace_parg_usage(   const char              *name,
         assert(0);
         return;
     }
-    b32 is_mace =   (name[0] == 'm') && (name[1] == 'a') &&
-                    (name[2] == 'c') && (name[3] == 'e');
+    b32 is_mace = (name[0] == 'm') && (name[1] == 'a') &&
+                  (name[2] == 'c') && (name[3] == 'e');
     if (is_mace) {
         printf("\nmace convenience executable\n");
     } else {
@@ -3362,7 +3362,7 @@ void reverse(char *v[], int i, int j) {
 
 /* Check if state is at end of argv */
 int is_argv_end(const struct parg_state *ps, int argc,
-                char *const argv[]) {
+                    char *const argv[]) {
     return ps->optind >= argc || argv[ps->optind] == NULL;
 }
 
@@ -3734,18 +3734,18 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
     } while(0)
 
 #define MACE_MEMCHECK(var) do {\
-    if (var == NULL) {\
-        fprintf(stderr, "Out of memory\n");\
-        assert(0);\
-        exit(1);\
-    }\
+        if (var == NULL) {\
+            fprintf(stderr, "Out of memory\n");\
+            assert(0);\
+            exit(1);\
+        }\
     } while(0)
 
 #define MACE_FREE(var) do {\
-    if (var != NULL) {\
-        free(var);\
-        var = NULL;\
-    }\
+        if (var != NULL) {\
+            free(var);\
+            var = NULL;\
+        }\
     } while(0)
 
 /***************** MACE_ADD_CONFIG *****************/
@@ -3840,7 +3840,7 @@ void mace_default_config_order(void) {
 void mace_user_config_set(u64 hash, char *name) {
     if (hash == 0)
         return;
-    
+
     int i;
     for (i = 0; i < config_num; i++) {
         if (hash == configs[i]._hash) {
@@ -3885,7 +3885,7 @@ void mace_config_resolve(Target *target) {
         return;
     }
 
-    if ((target->_config >= MACE_CONFIG_DEFAULT) && 
+    if ((target->_config >= MACE_CONFIG_DEFAULT) &&
         (target->_config < config_num)) {
         /* Using target config */
         mace_config = target->_config;
@@ -3898,10 +3898,11 @@ void mace_config_resolve(Target *target) {
 
 /*  Set mace_user_target from input hash. */
 void mace_user_target_set(u64 hash, char *name) {
-    if (hash == 0)
+    if (hash == 0) {
         return;
+    }
 
-        int i;
+    int i;
     for (i = 0; i < target_num; i++) {
         if (hash == targets[i]._hash) {
             mace_user_target = i;
@@ -4019,7 +4020,7 @@ void mace_set_separator(char *sep) {
 /********************* argv *********************/
 /*  Free all arrays in argv array of pointers. */
 void mace_argv_free(char **argv, int argc) {
-        int i;
+    int i;
     for (i = 0; i < argc; i++) {
         MACE_FREE(argv[i]);
     }
@@ -4030,17 +4031,17 @@ void mace_argv_free(char **argv, int argc) {
 /*      - Split user_str using separator  */
 /*      - Copy each token into a new buffer,  */
 /*        put pointer in argv  */
-char **mace_argv_flags( int         *len,   int *argc,
-                        char       **argv,  const char *user_str,
-                        const char  *flag,  b32 path, 
-                        const char  *separator) {
+char **mace_argv_flags(int         *len,   int *argc,
+                       char       **argv,  const char *user_str,
+                       const char  *flag,  b32 path,
+                       const char  *separator) {
     if ((len == NULL) || (*len) <= 0) {
         assert(0);
-        return(NULL);
+        return (NULL);
     }
     if (argc == NULL) {
         assert(0);
-        return(NULL);
+        return (NULL);
     }
 
     size_t flag_len = (flag == NULL) ? 0 : strlen(flag);
@@ -4168,7 +4169,7 @@ void mace_Target_Parse_User(Target *target) {
         len = 8;
         target->_argc_link_flags = 0;
         target->_argv_link_flags = calloc(len, sizeof(*target->_argv_link_flags));
-        target->_argv_link_flags = mace_argv_flags(&len, 
+        target->_argv_link_flags = mace_argv_flags(&len,
                                                    &target->_argc_link_flags,
                                                    target->_argv_link_flags,
                                                    target->link_flags,
@@ -4266,9 +4267,9 @@ void mace_Target_sources_grow(Target *target) {
     }
     /* -- Realloc sources -- */
     int previous_len  = target->_len_sources;
-    target->_argv_sources = mace_argv_grow( target->_argv_sources, 
-                                            &target->_argc_sources,
-                                            &target->_len_sources);
+    target->_argv_sources = mace_argv_grow(target->_argv_sources,
+                                           &target->_argc_sources,
+                                           &target->_len_sources);
     int new_len  = target->_len_sources;
 
     /* -- Alloc object dependencies -- */
@@ -4293,7 +4294,7 @@ void mace_Target_sources_grow(Target *target) {
         bytesize = target->_len_sources * sizeof(*target->_deps_headers_num);
         target->_deps_headers_num = realloc(target->_deps_headers_num, bytesize);
         memset(target->_deps_headers_num + target->_len_sources / 2, 0, bytesize / 2);
-        
+
         bytesize = target->_len_sources * sizeof(*target->_deps_headers_len);
         target->_deps_headers_len = realloc(target->_deps_headers_len, bytesize);
         memset(target->_deps_headers_num + target->_len_sources / 2, 0, bytesize / 2);
@@ -4337,8 +4338,8 @@ void mace_Target_argv_allatonce(Target *target) {
 
     /* -- argv sources -- */
     if ((target->_argc_sources > 0) && (target->_argv_sources != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_sources; i++) {
+        int i;
+        for (i = 0; i < target->_argc_sources; i++) {
             mace_Target_argv_grow(target);
             target->_argv[target->_argc++] = target->_argv_sources[i];
         }
@@ -4346,8 +4347,8 @@ void mace_Target_argv_allatonce(Target *target) {
 
     /* -- argv includes -- */
     if ((target->_argc_includes > 0) && (target->_argv_includes != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_includes; i++) {
+        int i;
+        for (i = 0; i < target->_argc_includes; i++) {
             mace_Target_argv_grow(target);
             target->_argv[target->_argc++] = target->_argv_includes[i];
         }
@@ -4392,8 +4393,8 @@ void mace_Target_argv_compile(Target *target) {
     target->_argc = MACE_ARGV_OTHER;
     /* -- argv user flags -- */
     if ((target->_argc_flags > 0) && (target->_argv_flags != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_flags; i++) {
+        int i;
+        for (i = 0; i < target->_argc_flags; i++) {
             mace_Target_argv_grow(target);
             target->_argv[target->_argc++] = target->_argv_flags[i];
         }
@@ -4401,8 +4402,8 @@ void mace_Target_argv_compile(Target *target) {
 
     /* -- argv link_flags -- */
     if ((target->_argc_link_flags > 0) && (target->_argv_link_flags != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_link_flags; i++) {
+        int i;
+        for (i = 0; i < target->_argc_link_flags; i++) {
             mace_Target_argv_grow(target);
             target->_argv[target->_argc++] = target->_argv_link_flags[i];
         }
@@ -4410,8 +4411,8 @@ void mace_Target_argv_compile(Target *target) {
 
     /* -- argv includes -- */
     if ((target->_argc_includes > 0) && (target->_argv_includes != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_includes; i++) {
+        int i;
+        for (i = 0; i < target->_argc_includes; i++) {
             mace_Target_argv_grow(target);
             target->_argv[target->_argc++] = target->_argv_includes[i];
         }
@@ -4440,10 +4441,11 @@ void mace_argv_add_config(Target *target,
                           char ** *argv,
                           int *argc,
                           int *arg_len) {
-    if (config_num <= 0)
+    if (config_num <= 0) {
         return;
+    }
 
-        int i;
+    int i;
     for (i = 0; i < configs[mace_config]._flag_num; ++i) {
         *argv       = mace_argv_grow(*argv, argc, arg_len);
         size_t len  = strlen(configs[mace_config]._flags[i]) + 1;
@@ -4458,7 +4460,7 @@ void mace_argv_add_config(Target *target,
 pid_t mace_pqueue_pop(void) {
     if (pnum <= 0) {
         assert(0);
-        return(0);
+        return (0);
     }
 
     return (pqueue[--pnum]);
@@ -4503,7 +4505,7 @@ int mace_globerr(const char *path, int eerrno) {
 /***************** mace_exec ******************/
 /*  Print command to be run in forked process. */
 void mace_exec_print(char *const arguments[], size_t argnum) {
-        int i;
+    int i;
     for (i = 0; i < argnum; i++) {
         VSprintf("%s ", arguments[i]);
     }
@@ -4514,7 +4516,7 @@ void mace_exec_print(char *const arguments[], size_t argnum) {
 /*         single line for execvp. */
 char *mace_args2line(char *const arguments[]) {
     int i   = 0;
-    int num = 0; 
+    int num = 0;
     int len = 128;
 
     char *argline = calloc(len, sizeof(*argline));
@@ -4597,7 +4599,7 @@ void mace_wait_pid(int pid) {
                 exit(WEXITSTATUS(status));
             }
         } else {
-            fprintf(stderr,"is baka? %d\n", WEXITSTATUS(status));
+            fprintf(stderr, "is baka? %d\n", WEXITSTATUS(status));
             fprintf(stderr, "Fork didn't terminate normally. %d\n", WEXITSTATUS(status));
             exit(WEXITSTATUS(status));
         }
@@ -4642,8 +4644,8 @@ void mace_link_dynamic_library(Target *target) {
 
     /* --- Adding objects --- */
     if ((argc_objects > 0) && (argv_objects != NULL)) {
-            int i;
-    for (i = 0; i < argc_objects; i++) {
+        int i;
+        for (i = 0; i < argc_objects; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = argv_objects[i] + strlen("-o");
         }
@@ -4651,8 +4653,8 @@ void mace_link_dynamic_library(Target *target) {
 
     /* -- argv links -- */
     if ((target->_argc_links > 0) && (target->_argv_links != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_links; i++) {
+        int i;
+        for (i = 0; i < target->_argc_links; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = target->_argv_links[i];
         }
@@ -4660,8 +4662,8 @@ void mace_link_dynamic_library(Target *target) {
 
     /* -- argv link_flags -- */
     if ((target->_argc_link_flags > 0) && (target->_argv_link_flags != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_link_flags; i++) {
+        int i;
+        for (i = 0; i < target->_argc_link_flags; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = target->_argv_link_flags[i];
         }
@@ -4669,8 +4671,8 @@ void mace_link_dynamic_library(Target *target) {
 
     /* -- argv flags -- */
     if ((target->_argc_flags > 0) && (target->_argv_flags != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_flags; i++) {
+        int i;
+        for (i = 0; i < target->_argc_flags; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = target->_argv_flags[i];
         }
@@ -4691,7 +4693,7 @@ void mace_link_dynamic_library(Target *target) {
     MACE_FREE(argv[cfPICflag]);
     MACE_FREE(argv[csharedflag]);
     MACE_FREE(argv[libc]);
-        int i;
+    int i;
     for (i = config_startc; i < config_endc; i++) {
         MACE_FREE(argv[i]);
     }
@@ -4737,8 +4739,8 @@ void mace_link_static_library(Target *target) {
 
     /* --- Adding objects --- */
     if ((argc_objects > 0) && (argv_objects != NULL)) {
-            int i;
-    for (i = 0; i < argc_objects; i++) {
+        int i;
+        for (i = 0; i < argc_objects; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = argv_objects[i] + strlen("-o");
         }
@@ -4746,8 +4748,8 @@ void mace_link_static_library(Target *target) {
 
     /* -- argv links -- */
     if ((target->_argc_links > 0) && (target->_argv_links != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_links; i++) {
+        int i;
+        for (i = 0; i < target->_argc_links; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = target->_argv_links[i];
         }
@@ -4760,7 +4762,7 @@ void mace_link_static_library(Target *target) {
         mace_wait_pid(pid);
     }
     MACE_FREE(buffer);
-        int i;
+    int i;
     for (i = 0; i < argc_ar; ++i) {
         MACE_FREE(argv[i]);
     }
@@ -4796,8 +4798,8 @@ void mace_link_executable(Target *target) {
 
     /* --- Adding objects --- */
     if ((argc_objects > 0) && (argv_objects != NULL)) {
-            int i;
-    for (i = 0; i < argc_objects; i++) {
+        int i;
+        for (i = 0; i < argc_objects; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = argv_objects[i] + strlen("-o");
         }
@@ -4805,8 +4807,8 @@ void mace_link_executable(Target *target) {
 
     /* -- argv user flags -- */
     if ((argc_flags > 0) && (argv_flags != NULL)) {
-            int i;
-    for (i = 0; i < argc_flags; i++) {
+        int i;
+        for (i = 0; i < argc_flags; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = argv_flags[i];
         }
@@ -4814,8 +4816,8 @@ void mace_link_executable(Target *target) {
 
     /* -- argv links -- */
     if ((argc_links > 0) && (argv_links != NULL)) {
-            int i;
-    for (i = 0; i < argc_links; i++) {
+        int i;
+        for (i = 0; i < argc_links; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = argv_links[i];
         }
@@ -4823,8 +4825,8 @@ void mace_link_executable(Target *target) {
 
     /* -- argv link_flags -- */
     if ((target->_argc_link_flags > 0) && (target->_argv_link_flags != NULL)) {
-            int i;
-    for (i = 0; i < target->_argc_link_flags; i++) {
+        int i;
+        for (i = 0; i < target->_argc_link_flags; i++) {
             argv = mace_argv_grow(argv, &argc, &arg_len);
             argv[argc++] = target->_argv_link_flags[i];
         }
@@ -4854,7 +4856,7 @@ void mace_link_executable(Target *target) {
 
     MACE_FREE(argv[oflag_i]);
     MACE_FREE(argv[ldirflag_i]);
-        int i;
+    int i;
     for (i = config_startc; i < config_endc; i++) {
         MACE_FREE(argv[i]);
     }
@@ -5035,10 +5037,11 @@ void Target_Object_Hash_Add_nocoll(Target *target,
 
 /*  Check if hash is in _objects_hash_nocoll. */
 int Target_hasObjectHash_nocoll(Target *target, u64 hash) {
-    if (target->_objects_hash_nocoll == NULL)
+    if (target->_objects_hash_nocoll == NULL) {
         return (-1);
+    }
 
-        int i;
+    int i;
     for (i = 0; i < target->_objects_hash_nocoll_num; i++) {
         if (hash == target->_objects_hash_nocoll[i])
             return (i);
@@ -5070,7 +5073,7 @@ int Target_hasObjectHash(Target *target, u64 hash) {
     if (target->_argv_objects_hash == NULL)
         return (-1);
 
-        int i;
+    int i;
     for (i = 0; i < target->_argc_objects_hash; i++) {
         if (hash == target->_argv_objects_hash[i])
             return (i);
@@ -5180,7 +5183,7 @@ void mace_Headers_Checksums(Target *target) {
     u8 hash_current[SHA1_LEN];
     u8 hash_previous[SHA1_LEN];
 
-        int i;
+    int i;
     for (i = 0; i < target->_headers_num; i++) {
         /* - Compute current checksum - */
         memset(hash_previous, 0, SHA1_LEN);
@@ -5290,7 +5293,7 @@ b32 mace_Target_Source_Add(Target *target, char *token) {
 
     /* - Check if file is excluded - */
     u64 rpath_hash = mace_hash(rpath);
-        int i;
+    int i;
     for (i = 0; i < target->_excludes_num; i++) {
         if (target->_excludes[i] == rpath_hash) {
             MACE_FREE(rpath);
@@ -5317,16 +5320,16 @@ void mace_Target_Parse_Source(Target *target,
         b32 exists  = mace_Target_Object_Add(target, object);
         size_t i = target->_argc_sources - 1;
         b32 changed_src  = mace_Source_Checksum(target, target->_argv_sources[i],
-                                                 target->_argv_objects[i]);
+                                                target->_argv_objects[i]);
         mace_Target_Recompiles_Add(target, !excluded && (changed_src || !exists));
     }
 }
 
 /*  Globbed files for sources and parse objects. */
 void mace_compile_glob(Target *target, char *globsrc,
-                           const char *flags) {
+                       const char *flags) {
     glob_t globbed = mace_glob_sources(globsrc);
-        int i;
+    int i;
     for (i = 0; i < globbed.gl_pathc; i++) {
         assert(mace_isSource(globbed.gl_pathv[i]));
         char *pos = strrchr(globbed.gl_pathv[i], '/');
@@ -5339,7 +5342,7 @@ void mace_compile_glob(Target *target, char *globsrc,
 
 /******************** mace_is *********************/
 int mace_isTarget(u64 hash) {
-        int i;
+    int i;
     for (i = 0; i < target_num; i++) {
         if (targets[i]._hash == hash)
             return (true);
@@ -5378,7 +5381,7 @@ void mace_mkdir(const char *path) {
 char *mace_executable_path(const char *target_name) {
     if (target_name == NULL) {
         assert(0);
-        return(NULL);
+        return (NULL);
     }
     size_t bld_len = strlen(build_dir);
     size_t tar_len = strlen(target_name);
@@ -5398,7 +5401,7 @@ char *mace_executable_path(const char *target_name) {
 /*  Create path to library to compile. */
 char *mace_library_path(char *target_name, int kind) {
     if (target_name == NULL) {
-        return(NULL);
+        return (NULL);
     }
     size_t bld_len = strlen(build_dir);
     size_t tar_len = strlen(target_name);
@@ -5492,9 +5495,9 @@ void mace_chdir(const char *path) {
 /*      - Split tokens between spaces i.e. " " */
 /*      - Reconstitute argv, argc */
 /*      - Actually run command */
-void mace_run_commands( const char *commands,
-                        const char *preorpost,
-                        const char *target) {
+void mace_run_commands(const char *commands,
+                       const char *preorpost,
+                       const char *target) {
     if (commands == NULL)
         return;
 
@@ -5511,8 +5514,8 @@ void mace_run_commands( const char *commands,
     char *token = strtok(buffer, mace_command_separator);
 
     do {
-            int i;
-    for (i = 0; i < argc; i++) {
+        int i;
+        for (i = 0; i < argc; i++) {
             MACE_FREE(argv[i]);
         }
 
@@ -5530,8 +5533,8 @@ void mace_run_commands( const char *commands,
 
     /* FREE */
     if (argv != NULL) {
-            int i;
-    for (i = 0; i < argc; ++i) {
+        int i;
+        for (i = 0; i < argc; ++i) {
             MACE_FREE(argv[i]);
         }
     }
@@ -5550,7 +5553,7 @@ void mace_prebuild_target(Target *target) {
     }
 
     if (target->kind == MACE_PHONY) {
-        return;   
+        return;
     }
 
     Sprintf("Pre-build target '%s'\n", target->_name);
@@ -5573,7 +5576,7 @@ void mace_prebuild_target(Target *target) {
     mace_Target_Free_notargv(target);
 
     if (target->sources == NULL) {
-        return;   
+        return;
     }
     /* -- Copy sources into modifiable buffer -- */
     char *buffer = mace_str_buffer(target->sources);
@@ -5658,9 +5661,9 @@ b32 mace_in_build_order(size_t  order, int *b_order,
     b32 out = false;
     if (b_order == NULL) {
         assert(0);
-        return(out);
+        return (out);
     }
-        int i;
+    int i;
     for (i = 0; i < num; i++) {
         if (b_order[i] == order) {
             out = true;
@@ -5675,7 +5678,7 @@ b32 mace_in_build_order(size_t  order, int *b_order,
 /*          or -1 if not found */
 int mace_hash_order(u64 hash) {
     int order = -1;
-        int i;
+    int i;
     for (i = 0; i < target_num; i++) {
         if (hash == targets[i]._hash) {
             order = i;
@@ -5696,7 +5699,7 @@ void mace_build_order_add(size_t order) {
     assert(build_order_num < target_num);
     if (mace_in_build_order(order, build_order, build_order_num)) {
         fprintf(stderr, "Target ID is already in build_order."
-                        "Exiting.\n");
+                "Exiting.\n");
         exit(1);
     }
     build_order[build_order_num++] = order;
@@ -5721,8 +5724,8 @@ void mace_build_order_recursive(Target target,
     /* Target has no dependencies, add target to build order */
     if (target._deps_links == NULL) {
         mace_build_order_add(order);
-        assert(mace_in_build_order( order, build_order,
-                                    build_order_num));
+        assert(mace_in_build_order(order, build_order,
+                                   build_order_num));
         return;
     }
 
@@ -5771,7 +5774,7 @@ b32 mace_circular_deps(Target *targs, size_t len) {
     /* -- Circular dependency conditions -- */
     /*   1- Target i has j dependency       */
     /*   2- Target j has i dependency       */
-        int i;
+    int i;
     for (i = 0; i < target_num; i++) {
         u64 hash_i = targs[i]._hash;
         /* 1- going through target i's dependencies */
@@ -6007,7 +6010,7 @@ void mace_Target_Free_argv(Target *target) {
     mace_argv_free(target->_argv_objects, target->_argc_sources);
     target->_argv_objects   = NULL;
     target->_argc_sources   = 0;
-    
+
     MACE_FREE(target->_argv_objects_cnt);
     MACE_FREE(target->_argv_objects_hash);
     if ((target->_argv != NULL) && (target->_argc > 0))  {
@@ -6260,8 +6263,8 @@ char *mace_Target_Read_d(Target *target, int source_i) {
     int obj_hash_id;
     size_t obj_len  = strlen(obj_file_flag);
     assert((obj_len + 5) > oflagl);
-    char  *obj_file = calloc(   obj_len - oflagl + 5,
-                                sizeof(*obj_file));
+    char  *obj_file = calloc(obj_len - oflagl + 5,
+                             sizeof(*obj_file));
     MACE_MEMCHECK(obj_file);
     strncpy(obj_file, obj_file_flag + oflagl, obj_len - oflagl);
     char buffer[MACE_OBJDEP_BUFFER];
@@ -6345,7 +6348,7 @@ void mace_Target_Parse_Objdep(Target *target, int source_i) {
         /* Skip: no need to write .ho file */
         return;
     }
-    if (target->_deps_headers_num[source_i] <= 0) { 
+    if (target->_deps_headers_num[source_i] <= 0) {
         /* Skip: no headers */
         return;
     }
@@ -6358,10 +6361,10 @@ void mace_Target_Parse_Objdep(Target *target, int source_i) {
     obj_file[ext + 3] = '\0';
 
     FILE *fho = fopen(obj_file, "wb");
-    assert( target->_deps_headers[source_i] != NULL);    
-    fwrite( target->_deps_headers[source_i], 
-            sizeof(**target->_deps_headers),
-            target->_deps_headers_num[source_i], fho);
+    assert(target->_deps_headers[source_i] != NULL);
+    fwrite(target->_deps_headers[source_i],
+           sizeof(**target->_deps_headers),
+           target->_deps_headers_num[source_i], fho);
     fclose(fho);
 
     MACE_FREE(obj_file);
@@ -6399,7 +6402,7 @@ void mace_Target_Read_ho(Target *target, int source_i) {
     obj_file[ext + 3] = '\0';
     FILE *fho = fopen(obj_file, "rb");
     if (fho == NULL) {
-        /* .ho file does not exist: no dependencies */ 
+        /* .ho file does not exist: no dependencies */
         return;
     }
 
@@ -6506,7 +6509,7 @@ void mace_post_user(Mace_Args *args) {
         fprintf(stderr, "Circular dependency in linked library detected. Exiting\n");
         exit(1);
     }
-    
+
     if (targets == NULL) {
         return;
     }
@@ -6523,13 +6526,13 @@ void mace_post_user(Mace_Args *args) {
     mace_default_config_order();
 
     /* 6. Check which target should be compiled */
-    mace_user_target_set(   args->user_target_hash,
-                            args->user_target);
+    mace_user_target_set(args->user_target_hash,
+                         args->user_target);
     mace_target_resolve();
 
     /* 7. Check which config should be compiled */
-    mace_user_config_set(   args->user_config_hash,
-                            args->user_config);
+    mace_user_config_set(args->user_config_hash,
+                         args->user_config);
     assert(mace_target < target_num);
     mace_config_resolve(&targets[mace_target]);
     Config *config = &configs[mace_config];
@@ -6674,7 +6677,7 @@ char *mace_checksum_filename(char *file, int mode) {
     /* Files should be .c or .h */
     if (obj_dir == NULL) {
         assert(0);
-        return(NULL);
+        return (NULL);
     }
     /* last dot in path      */
     char *dot        = strrchr(file, '.');
@@ -6693,7 +6696,8 @@ char *mace_checksum_filename(char *file, int mode) {
     size_t obj_dir_len  = strlen(obj_dir);
 
     /* Alloc new file */
-    size_t checksum_len  = (file_len + MACE_SEPARATOR_STR_LEN + MACE_CHECKSUM_EXTENSION_STR_LEN) + obj_dir_len + 1;
+    size_t checksum_len  = (file_len + MACE_SEPARATOR_STR_LEN + MACE_CHECKSUM_EXTENSION_STR_LEN) +
+                           obj_dir_len + 1;
     if (mode == MACE_CHECKSUM_MODE_SRC) {
         checksum_len += MACE_SRC_FOLDER_STR_LEN;
     } else if (mode == MACE_CHECKSUM_MODE_INCLUDE) {
@@ -6821,39 +6825,39 @@ Mace_Args Mace_Args_default = {
 /*  Compare user flag input arguments */
 /*         to enviroment variables */
 Mace_Args mace_combine_args_env(Mace_Args user, Mace_Args env) {
-        Mace_Args out;
-        /* Args Hierarchy: User > Env > Defaults.
-        **  - Use user values only if non-default. */
+    Mace_Args out;
+    /* Args Hierarchy: User > Env > Defaults.
+    **  - Use user values only if non-default. */
 
-        b32 _user_target       = (user.user_target      != Mace_Args_default.user_target);
-        b32 _macefile          = (user.macefile         != Mace_Args_default.macefile);
-        b32 _user_config       = (user.user_config      != Mace_Args_default.user_config);
-        b32 _dir               = (user.dir              != Mace_Args_default.dir);
-        b32 _cc                = (user.cc               != Mace_Args_default.cc);
-        b32 _ar                = (user.ar               != Mace_Args_default.cc);
-        b32 _user_target_hash  = (user.user_target_hash != Mace_Args_default.user_target_hash);
-        b32 _user_config_hash  = (user.user_config_hash != Mace_Args_default.user_config_hash);
-        b32 _jobs              = (user.jobs             >= 1);
-        b32 _debug             = (user.debug            != Mace_Args_default.debug);
-        b32 _silent            = (user.silent           != Mace_Args_default.silent);
-        b32 _dry_run           = (user.dry_run          != Mace_Args_default.dry_run);
-        b32 _build_all         = (user.build_all        != Mace_Args_default.build_all);
+    b32 _user_target       = (user.user_target      != Mace_Args_default.user_target);
+    b32 _macefile          = (user.macefile         != Mace_Args_default.macefile);
+    b32 _user_config       = (user.user_config      != Mace_Args_default.user_config);
+    b32 _dir               = (user.dir              != Mace_Args_default.dir);
+    b32 _cc                = (user.cc               != Mace_Args_default.cc);
+    b32 _ar                = (user.ar               != Mace_Args_default.cc);
+    b32 _user_target_hash  = (user.user_target_hash != Mace_Args_default.user_target_hash);
+    b32 _user_config_hash  = (user.user_config_hash != Mace_Args_default.user_config_hash);
+    b32 _jobs              = (user.jobs             >= 1);
+    b32 _debug             = (user.debug            != Mace_Args_default.debug);
+    b32 _silent            = (user.silent           != Mace_Args_default.silent);
+    b32 _dry_run           = (user.dry_run          != Mace_Args_default.dry_run);
+    b32 _build_all         = (user.build_all        != Mace_Args_default.build_all);
 
-        out.user_target      = _user_target      ? user.user_target      : env.user_target;
-        out.macefile         = _macefile         ? user.macefile         : env.macefile;
-        out.user_config      = _user_config      ? user.user_config      : env.user_config;
-        out.dir              = _dir              ? user.dir              : env.dir;
-        out.cc               = _cc               ? user.cc               : env.cc;
-        out.ar               = _ar               ? user.ar               : env.ar;
-        out.user_target_hash = _user_target_hash ? user.user_target_hash : env.user_target_hash;
-        out.user_config_hash = _user_config_hash ? user.user_config_hash : env.user_config_hash;
-        out.jobs             = _jobs             ? user.jobs             : env.jobs;
-        out.debug            = _debug            ? user.debug            : env.debug;
-        out.silent           = _silent           ? user.silent           : env.silent;
-        out.dry_run          = _dry_run          ? user.dry_run          : env.dry_run;
-        out.build_all        = _build_all        ? user.build_all        : env.build_all;
-        return (out);
-    }
+    out.user_target      = _user_target      ? user.user_target      : env.user_target;
+    out.macefile         = _macefile         ? user.macefile         : env.macefile;
+    out.user_config      = _user_config      ? user.user_config      : env.user_config;
+    out.dir              = _dir              ? user.dir              : env.dir;
+    out.cc               = _cc               ? user.cc               : env.cc;
+    out.ar               = _ar               ? user.ar               : env.ar;
+    out.user_target_hash = _user_target_hash ? user.user_target_hash : env.user_target_hash;
+    out.user_config_hash = _user_config_hash ? user.user_config_hash : env.user_config_hash;
+    out.jobs             = _jobs             ? user.jobs             : env.jobs;
+    out.debug            = _debug            ? user.debug            : env.debug;
+    out.silent           = _silent           ? user.silent           : env.silent;
+    out.dry_run          = _dry_run          ? user.dry_run          : env.dry_run;
+    out.build_all        = _build_all        ? user.build_all        : env.build_all;
+    return (out);
+}
 
 /*  Parse MACEFLAGS environment variable */
 Mace_Args mace_parse_env(void) {
@@ -6890,9 +6894,9 @@ Mace_Args mace_parse_args(int argc, char *argv[]) {
         return (out_args);
     }
 
-    while ((c = parg_getopt_long(&ps, argc, argv, 
-                                "a:Bc:C:df:g:hj:no:sv",
-                                longopts, &longindex)) != -1) {
+    while ((c = parg_getopt_long(&ps, argc, argv,
+                                 "a:Bc:C:df:g:hj:no:sv",
+                                 longopts, &longindex)) != -1) {
         switch (c) {
             case 1:
                 len = strlen(ps.optarg);
@@ -6980,7 +6984,7 @@ Mace_Args mace_parse_args(int argc, char *argv[]) {
 
 void Mace_Args_Free(Mace_Args *args) {
     /* Skip if NULL */
-    if (args == NULL){
+    if (args == NULL) {
         return;
     }
 
@@ -7007,7 +7011,7 @@ int main(int argc, char *argv[]) {
     Mace_Args args_env  = mace_parse_env();
     args = mace_combine_args_env(args, args_env);
 
-    /* --- Pre-user ops --- */ 
+    /* --- Pre-user ops --- */
     /* Get cwd, alloc memory, set defaults. */
     mace_pre_user(&args);
 
@@ -7019,11 +7023,11 @@ int main(int argc, char *argv[]) {
     /* Checks, allocs, default target. */
     mace_post_user(&args);
 
-    /* --- Pre-build --- */ 
+    /* --- Pre-build --- */
     /* Check which objects need recompilation */
     mace_pre_build();
 
-    /* --- Build --- */ 
+    /* --- Build --- */
     /* Perform compilation with build_order */
     mace_build();
 
@@ -7031,7 +7035,7 @@ int main(int argc, char *argv[]) {
     /* Free everything */
     mace_post_build(&args);
 
-    return(0);
+    return (0);
 }
 #endif /* MACE_OVERRIDE_MAIN */
 
