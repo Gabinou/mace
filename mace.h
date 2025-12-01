@@ -3950,8 +3950,8 @@ u64 mace_hash(const char *str) {
     * years ago in comp.lang.c. Another version of this algorithm (now favored by bernstein)
     * uses xor: hash(i) = hash(i - 1) * 33 ^ str[i]; the magic of number 33
     * (why it works better than many other constants, prime or not) has never been adequately explained.
-    * [1] https:/*stackoverflow.com/questions/7666509/hash-function-for-string
-    * [2] http:/*www.cse.yorku.ca/~oz/hash.html */
+    * [1] https://stackoverflow.com/questions/7666509/hash-function-for-string
+    * [2] http://www.cse.yorku.ca/~oz/hash.html */
     u64 hash = 5381;
     i32 str_char;
     while ((str_char = *str++))
@@ -7007,7 +7007,7 @@ int main(int argc, char *argv[]) {
     Mace_Args args_env  = mace_parse_env();
     args = mace_combine_args_env(args, args_env);
 
-    /* --- Pre-user ops --- 
+    /* --- Pre-user ops --- */ 
     /* Get cwd, alloc memory, set defaults. */
     mace_pre_user(&args);
 
