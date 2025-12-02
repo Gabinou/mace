@@ -3903,7 +3903,8 @@ void mace_user_target_set(u64 hash, char *name) {
 }
 
 /*  Set default config for target. */
-void mace_target_config(char *target_name, char *config_name) {
+void mace_target_config(char *target_name, 
+                        char *config_name) {
     u64 target_hash = mace_hash(target_name);
     u64 config_hash = mace_hash(config_name);
     int config_order;
@@ -3916,11 +3917,12 @@ void mace_target_config(char *target_name, char *config_name) {
             break;
         }
     }
+
     if (target_order < 0)
         return;
 
     config_order = -1;
-    for (i = 0; i < target_num; i++) {
+    for (i = 0; i < config_num; i++) {
         if (config_hash == configs[i]._hash) {
             config_order = i;
             break;
@@ -6494,11 +6496,12 @@ void mace_Target_Parse_Objdep(Target *target, int source_i) {
     }
     if (target->_deps_headers_num[source_i] <= 0) {
         /* Skip: no headers */
+        MACE_FREE(obj_file);
         return;
     }
 
     /* Write _deps_header to .ho file */
-    dot  = strrchr(obj_file,  '.'); /* last dot in path */
+    dot = strrchr(obj_file,  '.'); /* last dot in path */
     ext = dot - obj_file;
 
     memcpy(obj_file + ext + 1, "ho", 2);

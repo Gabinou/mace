@@ -141,14 +141,11 @@ void test_target() {
     Target firesaga = {0};
 
     /* A should be compiled last, has the most dependencies */
-    uint64_t A_hash = mace_hash("A");
-    int A_order     = mace_hash_order(A_hash);
+    uint64_t A_hash;
+    int A_order;
+    uint64_t BB_hash;
+    int BB_order;
 
-    uint64_t BB_hash = mace_hash("BB");
-    int BB_order     = mace_hash_order(BB_hash);
-
-    assert(A_order >= 0);
-    assert(BB_order >= 0);
     mace_pre_user(NULL);
     nourstest_true(target_num == 0);
 
@@ -238,6 +235,11 @@ void test_target() {
     MACE_ADD_TARGET(G);
     MACE_ADD_TARGET(D);
     MACE_ADD_TARGET(F);
+    
+    A_hash  = mace_hash("A");
+    A_order = mace_hash_order(A_hash);
+    assert(A_order  > 0);
+
     nourstest_true(target_num == 7);
     nourstest_true(strcmp(targets[0]._name, "B") == 0);
     nourstest_true(strcmp(targets[1]._name, "C") == 0);
@@ -323,6 +325,12 @@ void test_target() {
     MACE_ADD_TARGET(FF);
     MACE_ADD_TARGET(AA);
     MACE_ADD_TARGET(DD);
+
+    BB_hash     = mace_hash("BB");
+    BB_order    = mace_hash_order(BB_hash);
+
+    assert(BB_order >= 0);
+
     nourstest_true(target_num == 7);
     nourstest_true(strcmp(targets[0]._name, "BB") == 0);
     nourstest_true(strcmp(targets[1]._name, "EE") == 0);
@@ -394,6 +402,7 @@ void test_circular() {
     D.includes           = "tnecs.h";
     D.sources            = "tnecs.c";
     D.base_dir           = "tnecs";
+    D.links              = "F";
     D.kind               = MACE_EXECUTABLE;
 
     E.includes           = "tnecs.h";
@@ -658,14 +667,15 @@ void test_separator() {
     nourstest_true(strcmp(targets[0]._argv_links[3], "-lmere") == 0);
 
     mace_set_separator(" ");
-    tnecs.includes           = "tnecs.h";
-    tnecs.sources            = "tnecs.c";
-    tnecs.links              = "tnecs baka ta mere";
-    tnecs.kind               = MACE_STATIC_LIBRARY;
+    tnecs2.includes           = "tnecs.h";
+    tnecs2.sources            = "tnecs.c";
+    tnecs2.links              = "tnecs baka ta mere";
+    tnecs2.kind               = MACE_STATIC_LIBRARY;
     MACE_ADD_TARGET(tnecs2);
 
     mace_Target_Parse_User(&targets[1]);
     nourstest_true(targets[1]._argc_links == 4);
+    assert(targets[1]._argv_links != NULL);
     nourstest_true(strcmp(targets[1]._argv_links[0], "-ltnecs") == 0);
 
     mace_post_build(NULL);
@@ -1411,8 +1421,10 @@ void test_parse_d() {
 void test_config_specific() {
     Target tnecs    = {0};
     Config debug    = {0};
+    Config notdebug    = {0};
 
-    debug.flags     = "-g -O0";
+    debug.flags         = "-g -O0";
+    notdebug.flags      = "-O0";
     mace_pre_user(NULL);
 
     mace_set_obj_dir(MACE_TEST_OBJ_DIR);
@@ -1421,8 +1433,11 @@ void test_config_specific() {
     mace_mkdir(build_dir);
 
     mace_set_separator(",");
+    MACE_ADD_CONFIG(notdebug);
+    nourstest_true(configs[0]._hash == mace_hash("notdebug"));
     MACE_ADD_CONFIG(debug);
-    assert(config_num == 1);
+    nourstest_true(configs[1]._hash == mace_hash("debug"));
+    assert(config_num == 2);
 
     tnecs.includes           = "tnecs.h";
     tnecs.sources            = "tnecs.c";
@@ -1434,11 +1449,11 @@ void test_config_specific() {
     nourstest_true(target_num == 1);
 
     mace_parse_config(&configs[0]);
-    nourstest_true(config_num == 1);
+    nourstest_true(config_num == 2);
 
+    nourstest_true(targets[0]._config == 0);
     mace_target_config("tnecs", "debug");
-    // TEST GO HERE
-    assert(0);
+    nourstest_true(targets[0]._config == 1);
     
     mace_post_build(NULL);
 }
