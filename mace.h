@@ -6766,7 +6766,6 @@ void mace_post_build(Mace_Args *args) {
 void mace_Target_Deps_Grow(Target *target) {
     if (target->_deps_links_len <= target->_deps_links_num) {
         size_t bytesize;
-
         target->_deps_links_len *= 2;
         bytesize = target->_deps_links_len * sizeof(*target->_deps_links);
         target->_deps_links = realloc(target->_deps_links, bytesize);
@@ -6782,7 +6781,8 @@ void mace_Target_Deps_Add(Target *target, u64 target_hash) {
 
 void mace_Target_Deps_Hash(Target *target) {
     /* --- Preliminaries --- */
-    if ((target->links == NULL) && (target->dependencies == NULL))
+    if ((target->links          == NULL) &&
+        (target->dependencies   == NULL))
         return;
 
     /* --- Alloc space for deps --- */
@@ -6926,6 +6926,7 @@ void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
     size_t size;
     int foundcollision;
     FILE *fd;
+
     if (file == NULL) {
         assert(0);
         return;
@@ -7068,11 +7069,11 @@ Mace_Args mace_parse_env(void) {
 /*  Parse builder/mace convenience */
 /*         executable input args using parg */
 Mace_Args mace_parse_args(int argc, char *argv[]) {
+    int c;
+    int longindex;
+    size_t len;
     Mace_Args out_args      = Mace_Args_default;
     struct parg_state ps    = parg_state_default;
-    int longindex;
-    int c;
-    size_t len;
 
     if (argc <= 1) {
         return (out_args);

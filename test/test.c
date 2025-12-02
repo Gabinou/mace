@@ -46,7 +46,7 @@ b32 s8equal(s8 *s1, s8 *s2) {
 
 static int test_num = 0, fail_num = 0;
 
-static void nourstest_results() {
+static void nourstest_results(void) {
     char message[5] = "FAIL\0";
     if (fail_num == 0)
         memcpy(message, "PASS", 5);
@@ -57,7 +57,7 @@ static void nourstest_results() {
             printf("\n %s:%d error #%d", __FILE__, __LINE__, ++fail_num); \
     } while (0)
 
-static void nourstest_run(char *name, void (*test)()) {
+static void nourstest_run(char *name, void (*test)(void)) {
     const int ts = test_num, fs = fail_num;
     clock_t start = clock();
     printf("\t%-14s", name), test();
@@ -70,7 +70,7 @@ static void nourstest_run(char *name, void (*test)()) {
 #define BUILDDIR "build/"
 /* TODO: test multiple commands in pre/post commands */
 /* with separator e.g. && */
-void test_isFunc() {
+void test_isFunc(void) {
     nourstest_true(mace_isSource("test.c"));
     nourstest_true(mace_isSource("doesnotexist.c"));
     nourstest_true(!mace_isDir("test.c"));
@@ -80,7 +80,7 @@ void test_isFunc() {
     nourstest_true(!mace_isWildcard("src/"));
 }
 
-void test_globbing() {
+void test_globbing(void) {
     glob_t globbed;
     globbed = mace_glob_sources(MACE_ROOT"*.c");
     nourstest_true(globbed.gl_pathc == 3);
@@ -95,7 +95,7 @@ void test_globbing() {
     globfree(&globbed);
 }
 
-void test_object() {
+void test_object(void) {
     char buffer[MACE_TEST_BUFFER_SIZE] = {0};
     size_t cwd_len   = strlen(cwd);
     size_t obj_len   = strlen(MACE_TEST_OBJ_DIR);
@@ -122,7 +122,7 @@ void test_object() {
     nourstest_true(strcmp(object, buffer) == 0);
 }
 
-void test_target() {
+void test_target(void) {
     Target A = {0};
     Target B = {0};
     Target C = {0};
@@ -370,7 +370,7 @@ void test_target() {
     mace_post_build(NULL);
 }
 
-void test_circular() {
+void test_circular(void) {
     Target A = {0};
     Target B = {0};
     Target C = {0};
@@ -436,7 +436,7 @@ void test_circular() {
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
-void test_self_dependency() {
+void test_self_dependency(void) {
     Target H = {0};
     mace_pre_user(NULL);
     H.includes           = "tnecs.h";
@@ -452,7 +452,7 @@ void test_self_dependency() {
     target_num = 0; /* cleanup so that mace doesn't build targets */
 }
 
-void test_argv() {
+void test_argv(void) {
     const char *includes    = "A B C D";
     const char *links       = "ta mere putain de merde";
     const char *sources     = "a.c bd.c efg.c hijk.c lmnop.c";
@@ -558,7 +558,7 @@ void test_argv() {
     mace_post_build(NULL);
 }
 
-void test_argline() {
+void test_argline(void) {
     s8 s8argline    = {0};
     char *const argv[] = {
         "putain",
@@ -577,7 +577,7 @@ void test_argline() {
     free(argline);
 }
 
-void test_post_user() {
+void test_post_user(void) {
     pid_t pid   = 0;
     int status  = 0;
     Target tnecs = {0};
@@ -644,7 +644,7 @@ void test_post_user() {
     mace_post_build(&args);
 }
 
-void test_separator() {
+void test_separator(void) {
     int pid;
     int status;
     Target tnecs = {0};
@@ -780,7 +780,7 @@ void test_separator() {
     nourstest_true(waitpid(pid, &status, 0) > 0);
     nourstest_true(WEXITSTATUS(status) == 0);
 }
-void test_parse_args() {
+void test_parse_args(void) {
     const char *command_2       = "mace all";
     const char *command_3;
     const char *command_4;
@@ -975,7 +975,7 @@ void test_parse_args() {
     argc = 0;
 }
 
-void test_build_order() {
+void test_build_order(void) {
     Target A = {0};
     Target B = {0};
     Target C = {0};
@@ -1095,7 +1095,7 @@ void test_build_order() {
     mace_user_target    = MACE_TARGET_NULL;  /* order */
 }
 
-void test_checksum() {
+void test_checksum(void) {
     char *allo;
     char *header_objpath;
 
@@ -1128,7 +1128,7 @@ void test_checksum() {
     mace_post_build(NULL);
 }
 
-void test_excludes() {
+void test_excludes(void) {
     Target tnecs = {0};
     FILE *fd;
     char *rpath;
@@ -1152,7 +1152,7 @@ void test_excludes() {
     mace_post_build(NULL);
 }
 
-void test_parse_d() {
+void test_parse_d(void) {
     int i;
     struct Target target1   = {0};
     struct Target target    = {0};
@@ -1418,7 +1418,7 @@ void test_parse_d() {
     mace_post_build(NULL);
 }
 
-void test_config_specific() {
+void test_config_specific(void) {
     Target tnecs    = {0};
     Config debug    = {0};
     Config notdebug    = {0};
@@ -1458,7 +1458,7 @@ void test_config_specific() {
     mace_post_build(NULL);
 }
 
-void test_config_global() {
+void test_config_global(void) {
     Target tnecs    = {0};
     Config debug    = {0};
     Config release  = {0};
@@ -1495,7 +1495,7 @@ void test_config_global() {
     mace_post_build(NULL);
 }
 
-void test_target_no_includes() {
+void test_target_no_includes(void) {
     Target tnecs    = {0};
     Mace_Args args  = Mace_Args_default;
 
