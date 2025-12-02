@@ -27,16 +27,20 @@
 
 #define _XOPEN_SOURCE 500 /* Include POSIX 1995 */
 #define SHA1DC_NO_STANDARD_INCLUDES
-#include <stdio.h>
+
+/* -- libc -- */
 #include <errno.h>
+#include <stdio.h>
 #include <assert.h>
-#include <stdlib.h>
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
+
+/* -- POSIX -- */
+#include <ftw.h>
+#include <glob.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <glob.h>
-#include <ftw.h>
 
 /*----------------------------------------------*/
 /*                  PUBLIC API                  */
