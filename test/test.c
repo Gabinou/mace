@@ -141,9 +141,9 @@ void test_target() {
     Target firesaga = {0};
 
     /* A should be compiled last, has the most dependencies */
-    uint64_t A_hash;
+    u64 A_hash;
     int A_order;
-    uint64_t BB_hash;
+    u64 BB_hash;
     int BB_order;
 
     mace_pre_user(NULL);
