@@ -10,6 +10,7 @@ Specificity, reduced scope, everything in service of *simplicity*.
 - C syntax build file.
 - Simple API.
 - Single header: `mace.h`.
+    - Fully C89 compliant
 - `mace` convenience executable with `make`-like usage, flags.
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
 - Tab completion (`zsh` only), see `_mace.zsh`
