@@ -235,7 +235,7 @@ void test_target(void) {
     MACE_ADD_TARGET(G);
     MACE_ADD_TARGET(D);
     MACE_ADD_TARGET(F);
-    
+
     A_hash  = mace_hash("A");
     A_order = mace_hash_order(A_hash);
     assert(A_order  > 0);
@@ -1454,7 +1454,7 @@ void test_config_specific(void) {
     nourstest_true(targets[0]._config == 0);
     mace_target_config("tnecs", "debug");
     nourstest_true(targets[0]._config == 1);
-    
+
     mace_post_build(NULL);
 }
 
@@ -1477,7 +1477,7 @@ void test_config_global(void) {
     MACE_ADD_CONFIG(release);
     assert(config_num == 2);
 
-    mace_user_config_set(mace_hash("release"), "release");
+    mace_user_config_set(mace_hash("release"));
     assert(mace_user_config == 1);
 
     tnecs.includes           = "tnecs.h";
