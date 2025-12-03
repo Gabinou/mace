@@ -61,8 +61,9 @@ extern int mace(int argc, char *argv[]);
 **   5- Set separator       -> MACE_SET_SEPARATOR
 **   6- Set default target  -> MACE_SET_DEFAULT_TARGET
 **   7- Add configs         -> MACE_ADD_CONFIG
+**   8- Set default config  -> MACE_SET_DEFAULT_CONFIG
 **      - First added config is default
-**   8- Set target config   -> MACE_TARGET_CONFIG
+**   9- Set target config   -> MACE_TARGET_CONFIG
 */
 /*----------------------------------------------*/
 /*                   EXAMPLE                     /
@@ -104,6 +105,10 @@ struct Target;
 #define MACE_SET_DEFAULT_TARGET(target) \
     mace_set_default_target(STRINGIFY(target))
 
+/* Default config is first one if not set */
+#define MACE_SET_DEFAULT_CONFIG(target) \
+    mace_set_default_config(STRINGIFY(target))
+
 /* -- Compiler -- */
 /* Compiler setting priority:
 **      a- input argument (with -c,--cc)
@@ -120,7 +125,7 @@ struct Target;
 
 /* - build_dir - */
 /* Folder for targets: binaries, libraries. */
-#define  MACE_SET_BUILD_DIR(dir) \
+#define MACE_SET_BUILD_DIR(dir) \
     mace_set_build_dir(STRINGIFY(dir))
 
 /* -- Separator -- */
