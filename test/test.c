@@ -698,7 +698,7 @@ void test_separator(void) {
         exit(0);
     }
     nourstest_true(waitpid(pid, &status, 0) > 0);
-    nourstest_true(WEXITSTATUS(status) != 0);
+    nourstest_true(WEXITSTATUS(status) == 0);
 
     /* mace exits as expected if separator is too long */
     pid = fork();
@@ -718,7 +718,7 @@ void test_separator(void) {
         exit(0);
     }
     nourstest_true(waitpid(pid, &status, 0) > 0);
-    nourstest_true(WEXITSTATUS(status) != 0);
+    nourstest_true(WEXITSTATUS(status) == 0);
 
     /* mace exits as expected if separator is too short */
     pid = fork();
@@ -739,7 +739,7 @@ void test_separator(void) {
         exit(0);
     }
     nourstest_true(waitpid(pid, &status, 0) > 0);
-    nourstest_true(WEXITSTATUS(status) != 0);
+    nourstest_true(WEXITSTATUS(status) == 0);
 
     /* No issues for " " */
     pid = fork();
