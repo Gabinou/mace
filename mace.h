@@ -85,22 +85,23 @@ typedef signed int          i32;
 typedef unsigned int        u32; /* 42u */
 typedef signed long         i64; /* 42ll */
 typedef unsigned long       u64; /* 42ull */
-typedef i32 b32;
+typedef i32                 b32;
+
+/* -- Macro utils -- */
+#define STRINGIFY(x) _STRINGIFY(x)
+#define _STRINGIFY(x) #x
 
 /* -- Targets -- */
 struct Target;
 
-/* Note: stringifies variable name for hashing */
-#define STRINGIFY(x) _STRINGIFY(x)
-#define _STRINGIFY(x) #x
-
-#define MACE_ADD_TARGET(target) mace_add_target(&target, STRINGIFY(target))
+#define MACE_ADD_TARGET(target) \
+    mace_add_target(&target, STRINGIFY(target))
 
 /* When default target set by user, mace builds
 ** only default target and its dependencies.
 ** If no default target is set,
 ** mace builds first target. */
-#define MACE_SET_DEFAULT_TARGET(target) mace_set_default_target(#target)
+#define MACE_SET_DEFAULT_TARGET(target) \ mace_set_default_target(STRINGIFY(target))
 
 /* -- Compiler -- */
 /* Compiler setting priority:
@@ -108,48 +109,51 @@ struct Target;
 **      b- config
 **      c- macefile       (with MACE_SET_COMPILER)
 */
-#define MACE_SET_COMPILER(compiler) _MACE_SET_COMPILER(compiler)
-#define _MACE_SET_COMPILER(compiler) mace_set_compiler(#compiler)
+#define MACE_SET_COMPILER(compiler) \
+    mace_set_compiler(STRINGIFY(compiler))
 
 /* -- Directories -- */
 /* - obj_dir - */
 /* Folder for intermediary files: .o, .d .sha1, etc. */
-#define  MACE_SET_OBJ_DIR(dir) _MACE_SET_OBJ_DIR(dir)
-#define _MACE_SET_OBJ_DIR(dir)  mace_set_obj_dir(#dir)
+#define MACE_SET_OBJ_DIR(dir) \
+    mace_set_obj_dir(STRINGIFY(dir))
 
 /* - build_dir - */
 /* Folder for targets: binaries, libraries. */
-#define  MACE_SET_BUILD_DIR(dir) _MACE_SET_BUILD_DIR(dir)
-#define _MACE_SET_BUILD_DIR(dir)  mace_set_build_dir(#dir)
+#define  MACE_SET_BUILD_DIR(dir) \
+    mace_set_build_dir(STRINGIFY(dir))
 
 /* -- Separator -- */
 /* Separator for files/folders in target */
 /* member variables. Default is " ". */
-#define  MACE_SET_SEPARATOR(sep) _MACE_SET_SEPARATOR(sep)
-#define _MACE_SET_SEPARATOR(sep)  mace_set_separator(#sep)
+#define  MACE_SET_SEPARATOR(sep) \
+    mace_set_separator(STRINGIFY(sep))
 
 /* -- Configs -- */
 struct Config;
+
 /* Note: stringifies variable name for hashing */
-#define MACE_ADD_CONFIG(config) mace_add_config(&config, #config)
+#define MACE_ADD_CONFIG(config) \
+    mace_add_config(&config, STRINGIFY(config))
 
 /* Set default config for target. */
-#define MACE_TARGET_CONFIG(target, config) mace_target_config(#target, #config)
+#define MACE_TARGET_CONFIG(target, config) \
+    mace_target_config(STRINGIFY(target), STRINGIFY(config))
 
 /* -- Archiver -- */
 /* Archiver setting priority: */
 /*      a- input argument (with -a,--ar) */
 /*      b- config */
 /*      c- macefile       (with MACE_SET_ARCHIVER) */
-#define MACE_SET_ARCHIVER(archiver) _MACE_SET_ARCHIVER(archiver)
-#define _MACE_SET_ARCHIVER(archiver) mace_set_archiver(#archiver)
+#define MACE_SET_ARCHIVER(archiver) \
+    mace_set_archiver(STRINGIFY(archiver))
 
 /* -- cc_depflag -- */
 /* Set cc_depflag: compiler flag to */
 /* build .d dependency files. */
 /* Ex: gcc -MM ... */
-#define MACE_SET_CC_DEPFLAG(cc_depflag) _MACE_SET_CC_DEPFLAG(cc_depflag)
-#define _MACE_SET_CC_DEPFLAG(cc_depflag) mace_set_cc_depflag(#cc_depflag)
+#define MACE_SET_CC_DEPFLAG(cc_depflag) \
+    mace_set_cc_depflag(STRINGIFY(cc_depflag))
 
 /* -- Target kinds -- */
 enum MACE_TARGET_KIND { /* for target.kind */
@@ -3763,7 +3767,6 @@ void mace_add_target(Target *target, char *name) {
     u64 hash = mace_hash(name);
     targets[target_num]          = *target;
     targets[target_num]._name    = name;
-
     targets[target_num]._hash    = hash;
     targets[target_num]._order   = target_num;
     targets[target_num]._checkcwd = true;

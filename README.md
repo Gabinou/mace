@@ -72,7 +72,7 @@ Flags for `installer` to customize `mace`:
 1. `cd` into test folder
 2. Compile test:
 ```bash
-gcc --std=iso9899:1990 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fwrapv -fno-delete-null-pointer-checks -g test.c -o test -I..
+gcc --std=iso9899:1990 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fwrapv -fno-delete-null-pointer-checks -g test.c -o test -I.. -Wall -Wpedantic
 ```
 3. Run tests `./test`
 
