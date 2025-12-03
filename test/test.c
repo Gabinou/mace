@@ -651,7 +651,7 @@ void test_separator(void) {
     Target tnecs2 = {0};
 
     mace_pre_user(NULL);
-    mace_set_separator(",");
+    mace_set_separator(',');
     nourstest_true(strcmp(mace_separator, ",") == 0);
     tnecs.includes           = "tnecs.h";
     tnecs.sources            = "tnecs.c";
@@ -666,7 +666,7 @@ void test_separator(void) {
     nourstest_true(strcmp(targets[0]._argv_links[2], "-lta") == 0);
     nourstest_true(strcmp(targets[0]._argv_links[3], "-lmere") == 0);
 
-    mace_set_separator(" ");
+    mace_set_separator(' ');
     tnecs2.includes           = "tnecs.h";
     tnecs2.sources            = "tnecs.c";
     tnecs2.links              = "tnecs baka ta mere";
@@ -693,7 +693,7 @@ void test_separator(void) {
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
-        mace_set_separator(NULL);
+        mace_set_separator(0);
         close(fd);
         exit(0);
     }
@@ -713,7 +713,7 @@ void test_separator(void) {
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
-        mace_set_separator("Aaaa");
+        mace_set_separator('a');
         close(fd);
         exit(0);
     }
@@ -734,7 +734,7 @@ void test_separator(void) {
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
-        mace_set_separator("");
+        mace_set_separator(1);
         close(fd);
         exit(0);
     }
@@ -753,7 +753,7 @@ void test_separator(void) {
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
-        mace_set_separator(" ");
+        mace_set_separator(' ');
         close(fd);
         exit(0);
     }
@@ -773,7 +773,7 @@ void test_separator(void) {
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
         dup2(fd, fileno(stdout));
-        mace_set_separator(",");
+        mace_set_separator(',');
         close(fd);
         exit(0);
     }
@@ -986,7 +986,7 @@ void test_build_order(void) {
     /* cleanup so that mace doesn't build targets */
     mace_post_build(NULL);
     mace_pre_user(NULL);
-    mace_set_separator(" ");
+    mace_set_separator(' ');
 
     /* mace computing build order as a function of linking dependencies */
     A.includes           = "tnecs.h";
@@ -1432,7 +1432,7 @@ void test_config_specific(void) {
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
-    mace_set_separator(",");
+    mace_set_separator(',');
     MACE_ADD_CONFIG(notdebug);
     nourstest_true(configs[0]._hash == mace_hash("notdebug"));
     MACE_ADD_CONFIG(debug);
@@ -1472,7 +1472,7 @@ void test_config_global(void) {
     mace_mkdir(obj_dir);
     mace_mkdir(build_dir);
 
-    mace_set_separator(",");
+    mace_set_separator(',');
     MACE_ADD_CONFIG(debug);
     MACE_ADD_CONFIG(release);
     assert(config_num == 2);
@@ -1510,7 +1510,7 @@ void test_target_no_includes(void) {
     args.silent = true;
     mace_pre_user(&args);
 
-    mace_set_separator(",");
+    mace_set_separator(',');
     tnecs.sources            = "test.c";
     tnecs.base_dir           = ".";
     tnecs.kind               = MACE_EXECUTABLE;

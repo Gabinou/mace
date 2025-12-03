@@ -123,10 +123,7 @@ struct Target;
     mace_set_build_dir(STRINGIFY(dir))
 
 /* -- Separator -- */
-/* Separator for files/folders in target
-** member variables. Default is " ". */
-#define  MACE_SET_SEPARATOR(sep) \
-    mace_set_separator(STRINGIFY(sep))
+void mace_set_separator(char sep);
 
 /* -- Configs -- */
 struct Config;
@@ -608,8 +605,7 @@ static void mace_print_message(const char  *message);
 static b32 mace_in_build_order(size_t    order,
                                int      *build_order,
                                int       num);
-static void mace_user_target_set(u64     hash,
-                                 char   *name);
+static void mace_user_target_set(u64     hash);
 static void mace_user_config_set(u64     hash);
 static void mace_config_resolve(Target  *target);
 static void mace_target_resolve(void);
@@ -663,7 +659,7 @@ static int      pnum    =  0;
 static int      plen    = -1;
 
 /* -- separator -- */
-static char *mace_separator             = " ";
+static char mace_separator[2]           = " \0";
 static char *mace_command_separator     = "&&";
 
 /* -- Compiler -- */
@@ -3846,8 +3842,7 @@ void mace_user_config_set(u64 hash) {
         }
     }
     
-    fprintf(stderr, "User config '%lu' not found. Exiting\n", hash);
-    exit(1);
+    fprintf(stderr, "Warning: User config '%lu' not found\n", hash);
 }
 
 /*  Decide if user target or default */
@@ -3857,7 +3852,8 @@ void mace_target_resolve(void) {
     /*  - user      target */
     /*  - default   target */
 
-    if ((mace_user_target > MACE_TARGET_NULL) && (mace_user_target < target_num)) {
+    if ((mace_user_target > MACE_TARGET_NULL) &&
+        (mace_user_target < target_num)) {
         /* Using user target */
         mace_target = mace_user_target;
         return;
@@ -3894,7 +3890,7 @@ void mace_config_resolve(Target *target) {
 }
 
 /*  Set mace_user_target from input hash. */
-void mace_user_target_set(u64 hash, char *name) {
+void mace_user_target_set(u64 hash) {
     int i;
     if (hash == 0) {
         return;
@@ -3907,8 +3903,7 @@ void mace_user_target_set(u64 hash, char *name) {
         }
     }
 
-    fprintf(stderr, "User target '%s' not found. Exiting.\n", name);
-    exit(1);
+    fprintf(stderr, "Warning: User target '%lu' not found.\n", hash);
 }
 
 /*  Set default config for target. */
@@ -4005,17 +4000,12 @@ void mace_set_compiler(char *compiler) {
     }
 }
 
-/*  Only place were mace_separator is set. */
-void mace_set_separator(char *sep) {
-    if (sep == NULL) {
-        fprintf(stderr, "Separator should not be NULL.\n");
+void mace_set_separator(char sep) {
+    if ((sep != ' ') && (sep != ',')) {
+        printf("Separator should be ',' or ' '");
         exit(1);
-    }
-    if (strlen(sep) != 1) {
-        fprintf(stderr, "Separator should have length one.\n");
-        exit(1);
-    }
-    mace_separator = sep;
+    } 
+    mace_separator[0] = sep;
 }
 
 /********************* argv *********************/
@@ -6694,8 +6684,7 @@ void mace_post_user(Mace_Args *args) {
     mace_default_config_order();
 
     /* 6. Check which target should be compiled */
-    mace_user_target_set(args->user_target_hash,
-                         args->user_target);
+    mace_user_target_set(args->user_target_hash);
     mace_target_resolve();
 
     /* 7. Check which config should be compiled */
