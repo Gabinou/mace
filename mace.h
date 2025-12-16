@@ -3712,6 +3712,7 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
         }\
     } while(0)
 
+/* Rename to early return? */
 #define MACE_CHECK(cond) do {\
         if (!(cond)) {\
             return;\
@@ -3773,8 +3774,7 @@ void mace_add_target(Target *target, char *name) {
 /*  Set target built by default when */
 /*         running mace without target */
 void mace_set_default_target(char *name) {
-    if (name == NULL)
-        return;
+    MACE_CHECK(name);
 
     mace_default_target_hash = mace_hash(name);
 }
@@ -3784,8 +3784,8 @@ void mace_set_default_target(char *name) {
 void mace_default_target_order(void) {
     int i;
 
-    if (mace_default_target_hash == 0ul)
-        return;
+    MACE_CHECK(mace_default_target_hash != 0ul);
+
     for (i = 0; i < target_num; i++) {
         if (mace_default_target_hash == targets[i]._hash) {
             mace_default_target = i;
@@ -3799,8 +3799,7 @@ void mace_default_target_order(void) {
 
 /*  Set config used to build targets by default */
 void mace_set_default_config(char *name) {
-    if (name == NULL)
-        return;
+    MACE_CHECK(name);
 
     mace_default_config_hash = mace_hash(name);
 }
@@ -3810,8 +3809,7 @@ void mace_set_default_config(char *name) {
 void mace_default_config_order(void) {
     int i;
 
-    if (mace_default_config_hash == 0ul)
-        return;
+    MACE_CHECK(mace_default_config_hash != 0ul);
 
     for (i = 0; i < config_num; i++) {
         if (mace_default_config_hash == configs[i]._hash) {
@@ -3827,8 +3825,8 @@ void mace_default_config_order(void) {
 /*  Find user config from its hash. */
 void mace_user_config_set(u64 hash) {
     int i;
-    if (hash == 0ul)
-        return;
+
+    MACE_CHECK(hash != 0ul);
 
     for (i = 0; i < config_num; i++) {
         if (hash == configs[i]._hash) {
@@ -3887,9 +3885,8 @@ void mace_config_resolve(Target *target) {
 /*  Set mace_user_target from input hash. */
 void mace_user_target_set(u64 hash) {
     int i;
-    if (hash == 0ul) {
-        return;
-    }
+
+    MACE_CHECK(hash != 0ul);
 
     for (i = 0; i < target_num; i++) {
         if (hash == targets[i]._hash) {
@@ -3917,8 +3914,7 @@ void mace_target_config(char *target_name,
         }
     }
 
-    if (target_order < 0)
-        return;
+    MACE_CHECK(target_order >= 0);
 
     config_order = -1;
     for (i = 0; i < config_num; i++) {
@@ -3928,8 +3924,7 @@ void mace_target_config(char *target_name,
         }
     }
 
-    if (config_order < 0)
-        return;
+    MACE_CHECK(config_order > 0);
 
     targets[target_order]._config = config_order;
 }
@@ -4457,10 +4452,7 @@ void mace_argv_add_config(Target *target, char ** *argv,
 /***************** mace_pqueue ******************/
 
 pid_t mace_pqueue_pop(void) {
-    if (pnum <= 0) {
-        assert(0);
-        return (0);
-    }
+    MACE_ASSERT_RET(pnum > 0, 0);
 
     return (pqueue[--pnum]);
 }
@@ -4932,14 +4924,8 @@ void mace_Target_precompile(Target *target) {
     int argc = 0;
 
     /* Compute latest object dependencies .d file */
-    if (target == NULL) {
-        assert(0);
-        return;
-    }
-    if (target->_argv == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(target);
+    MACE_ASSERT(target->_argv);
 
     target->_argv[MACE_ARGV_CC]     = cc;
     mace_Target_argv_grow(target);
@@ -5012,14 +4998,8 @@ void mace_Target_precompile(Target *target) {
 void mace_Target_compile(Target *target) {
     int argc = 0;
 
-    if (target == NULL) {
-        assert(0);
-        return;
-    }
-    if (target->_argv == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(target);
+    MACE_ASSERT(target->_argv);
 
     target->_argv[MACE_ARGV_CC] = cc;
 
@@ -5091,9 +5071,8 @@ void Target_Object_Hash_Add_nocoll(Target *target,
 /*  Check if hash is in _objects_hash_nocoll. */
 int Target_hasObjectHash_nocoll(Target *target, u64 hash) {
     int i;
-    if (target->_objects_hash_nocoll == NULL) {
-        return (-1);
-    }
+
+    MACE_CHECK_RET(target->_objects_hash_nocoll, -1);
 
     for (i = 0; i < target->_objects_hash_nocoll_num; i++) {
         if (hash == target->_objects_hash_nocoll[i])
@@ -5105,18 +5084,10 @@ int Target_hasObjectHash_nocoll(Target *target, u64 hash) {
 
 /*  Add object hash to target. */
 void Target_Object_Hash_Add(Target *target, u64 hash) {
-    if (target   == NULL) {
-        assert(0);
-        return;
-    }
-    if (target->_argv_objects_hash   == NULL) {
-        assert(0);
-        return;
-    }
-    if (target->_argv_objects_cnt   == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(target);
+    MACE_ASSERT(target->_argv_objects_hash);
+    MACE_ASSERT(target->_argv_objects_cnt);
+
     target->_argv_objects_hash[target->_argc_objects_hash] = hash;
     target->_argv_objects_cnt[target->_argc_objects_hash++] = 0;
 }
@@ -5125,8 +5096,7 @@ void Target_Object_Hash_Add(Target *target, u64 hash) {
 int Target_hasObjectHash(Target *target, u64 hash) {
     int i;
 
-    if (target->_argv_objects_hash == NULL)
-        return (-1);
+    MACE_CHECK_RET(target->_argv_objects_hash, -1);
 
     for (i = 0; i < target->_argc_objects_hash; i++) {
         if (hash == target->_argv_objects_hash[i])
@@ -5154,8 +5124,7 @@ b32 mace_Target_Object_Add(Target *target, char *token) {
     size_t   token_len;
 
     /* token is object path */
-    if (token == NULL)
-        return (false);
+    MACE_CHECK_RET(token, false);
 
     hash = mace_hash(token);
     hash_id = Target_hasObjectHash(target, hash);
@@ -5178,6 +5147,7 @@ b32 mace_Target_Object_Add(Target *target, char *token) {
     if (hash_id > 0)
         total_len++;
     arg = calloc(total_len, sizeof(*arg));
+    MACE_MEMCHECK(arg);
     strncpy(arg, flag, flag_len);
     strncpy(arg + flag_len, token, token_len);
 
@@ -5206,14 +5176,8 @@ void mace_Headers_Checksums_Checks(Target *target) {
     int i;
     int j;
 
-    if (target == NULL) {
-        assert(0);
-        return;
-    }
-    if (target->_hdrs_changed == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(target != NULL);
+    MACE_ASSERT(target->_hdrs_changed != NULL);
 
     if (build_all) {
         size_t bytesize = target->_argc_sources * sizeof(*target->_recompiles);
@@ -5474,10 +5438,8 @@ char *mace_executable_path(const char *target_name) {
     size_t   bld_len    = 0;
     size_t   tar_len    = 0;
 
-    if (target_name == NULL) {
-        assert(0);
-        return (NULL);
-    }
+    MACE_ASSERT_RET(target_name != NULL, NULL);
+
     bld_len = strlen(build_dir);
     tar_len = strlen(target_name);
 
@@ -5665,10 +5627,7 @@ void mace_prebuild_target(Target *target) {
     char *token;
     char *buffer;
 
-    if (target == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(target != NULL);
 
     if (target->kind == MACE_PHONY) {
         return;
@@ -5781,10 +5740,8 @@ b32 mace_in_build_order(size_t  order, int *b_order,
     int i;
     b32 out = false;
 
-    if (b_order == NULL) {
-        assert(0);
-        return (out);
-    }
+    MACE_ASSERT_RET(b_order != NULL, out);
+
     for (i = 0; i < num; i++) {
         if (b_order[i] == order) {
             out = true;
@@ -5952,6 +5909,7 @@ void mace_parse_config(Config *config) {
     char    *token;
 
     mace_Config_Free(config);
+    
     if (config->flags == NULL) {
         fprintf(stderr, "Config has no flags.\n");
         exit(1);
@@ -6070,8 +6028,7 @@ void mace_build(void) {
 void mace_Config_Free(Config *config) {
     int i;
     
-    if (config == NULL)
-        return;
+    MACE_CHECK(config != NULL);
 
     if (config->_flags != NULL) {
         for (i = 0; i < config->_flag_num; i++) {
@@ -6082,10 +6039,8 @@ void mace_Config_Free(Config *config) {
 }
 
 void mace_Target_Free(Target *target) {
-    if (target == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(target != NULL);
+
     mace_Target_Free_argv(target);
     mace_Target_Free_notargv(target);
     mace_Target_Free_excludes(target);
