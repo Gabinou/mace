@@ -158,11 +158,11 @@ struct Config;
     mace_set_cc_depflag(STRINGIFY(cc_depflag))
 
 /* --- Constants --- */
-#ifndef MACE_BUILD_DIR
-#define MACE_BUILD_DIR "build"
+#ifndef MACE_DEFAULT_BUILD_DIR
+#define MACE_DEFAULT_BUILD_DIR "build"
 #endif
-#ifndef MACE_OBJ_DIR
-#define MACE_OBJ_DIR "obj"
+#ifndef MACE_DEFAULT_OBJ_DIR
+#define MACE_DEFAULT_OBJ_DIR "obj"
 #endif
 
 enum MACE_TARGET_KIND { /* for target.kind */
@@ -685,8 +685,8 @@ static char *cc_depflag = "-MM";
 static char cwd[MACE_CWD_BUFFERSIZE];
 
 /* -- hashes -- */
-static u64 mace_default_target_hash = 0;
-static u64 mace_default_config_hash = 0;
+static u64 mace_default_target_hash = 0ul;
+static u64 mace_default_config_hash = 0ul;
 
 /* Default target (may be set by user) [order] */
 static int mace_default_target = MACE_TARGET_DEFAULT;
@@ -3322,50 +3322,6 @@ struct parg_state parg_state_default = {
     /* .nextchar =  */ NULL
 };
 
-/*  Automatic usage/help printing */
-void mace_parg_usage(const char              *name,
-                     const struct parg_opt   *longopts) {
-    int i;
-    b32 is_mace;
-
-    if (name        == NULL) {
-        assert(0);
-        return;
-    }
-    if (longopts    == NULL) {
-        assert(0);
-        return;
-    }
-    is_mace = (name[0] == 'm') && (name[1] == 'a') &&
-              (name[2] == 'c') && (name[3] == 'e');
-    if (is_mace) {
-        printf("\nmace convenience executable\n");
-    } else {
-        printf("\nmace builder executable: %s\n", name);
-    }
-    printf("Usage: %s [TARGET] [OPTIONS]\n", name);
-    for (i = 0; longopts[i].doc; ++i) {
-        if ((i >= 11) && !is_mace) {
-            break;
-        }
-        if (longopts[i].val)
-            printf(" -%c", longopts[i].val);
-
-        if (longopts[i].name)
-            printf(",  --%-15s", longopts[i].name);
-
-        if (longopts[i].arg) {
-            printf("[=%s]", longopts[i].arg);
-            printf("%*c", (int)(MACE_USAGE_MIDCOLW - 3 - strlen(longopts[i].arg)), ' ');
-        } else if (longopts[i].val || longopts[i].name)
-            printf("%*c", MACE_USAGE_MIDCOLW, ' ');
-
-        if (longopts[i].doc)
-            printf("%s", longopts[i].doc);
-        printf("\n");
-    }
-}
-
 /*  Invert a string from i to j */
 void reverse(char *v[], int i, int j) {
     while (j - i > 1) {
@@ -3749,6 +3705,32 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
         }\
     } while(0)
 
+#define MACE_ASSERT(cond) do {\
+        if (!(cond)) {\
+            assert(0);\
+            return;\
+        }\
+    } while(0)
+
+#define MACE_CHECK(cond) do {\
+        if (!(cond)) {\
+            return;\
+        }\
+    } while(0)
+
+#define MACE_ASSERT_RET(cond, ret) do {\
+        if (!(cond)) {\
+            assert(0);\
+            return(ret);\
+        }\
+    } while(0)
+
+#define MACE_CHECK_RET(cond, ret) do {\
+        if (!(cond)) {\
+            return(ret);\
+        }\
+    } while(0)
+
 /***************** MACE_ADD_CONFIG *****************/
 /*  Add config to list of configs. */
 void mace_add_config(Config *config, char *name) {
@@ -3802,7 +3784,7 @@ void mace_set_default_target(char *name) {
 void mace_default_target_order(void) {
     int i;
 
-    if (mace_default_target_hash == 0)
+    if (mace_default_target_hash == 0ul)
         return;
     for (i = 0; i < target_num; i++) {
         if (mace_default_target_hash == targets[i]._hash) {
@@ -3828,7 +3810,7 @@ void mace_set_default_config(char *name) {
 void mace_default_config_order(void) {
     int i;
 
-    if (mace_default_config_hash == 0)
+    if (mace_default_config_hash == 0ul)
         return;
 
     for (i = 0; i < config_num; i++) {
@@ -3845,7 +3827,7 @@ void mace_default_config_order(void) {
 /*  Find user config from its hash. */
 void mace_user_config_set(u64 hash) {
     int i;
-    if (hash == 0)
+    if (hash == 0ul)
         return;
 
     for (i = 0; i < config_num; i++) {
@@ -3905,7 +3887,7 @@ void mace_config_resolve(Target *target) {
 /*  Set mace_user_target from input hash. */
 void mace_user_target_set(u64 hash) {
     int i;
-    if (hash == 0) {
+    if (hash == 0ul) {
         return;
     }
 
@@ -3962,10 +3944,10 @@ u64 mace_hash(const char *str) {
     * (why it works better than many other constants, prime or not) has never been adequately explained.
     * [1] https://stackoverflow.com/questions/7666509/hash-function-for-string
     * [2] http://www.cse.yorku.ca/~oz/hash.html */
-    u64 hash = 5381;
+    u64 hash = 5381ul;
     i32 str_char;
     while ((str_char = *str++))
-        hash = ((hash << 5) + hash) + str_char; /* hash * 33 + c */
+        hash = ((hash << 5ul) + hash) + str_char; /* hash * 33 + c */
     return (hash);
 }
 
@@ -4048,14 +4030,8 @@ char **mace_argv_flags(int         *len,   int *argc,
     char    *token;
     char    *buffer;
 
-    if ((len == NULL) || (*len) <= 0) {
-        assert(0);
-        return (NULL);
-    }
-    if (argc == NULL) {
-        assert(0);
-        return (NULL);
-    }
+    MACE_CHECK_RET(((len != NULL) && (*len) >= 0), NULL);
+    MACE_CHECK_RET(argc != NULL, NULL);
 
     flag_len = (flag == NULL) ? 0 : strlen(flag);
 
@@ -4114,9 +4090,7 @@ void mace_Target_excludes(Target *target) {
     char *buffer;
     char *token;
 
-    if (target->excludes == NULL) {
-        return;
-    }
+    MACE_CHECK(target->excludes != NULL);
     mace_Target_Free_excludes(target);
 
     target->_excludes_num = 0;
@@ -4384,10 +4358,7 @@ void mace_Target_argv_allatonce(Target *target) {
     /* -- argv -L flag for build_dir -- */
     target->_argc_tail =    target->_argc;
     mace_Target_argv_grow(target);
-    if (build_dir == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(build_dir != NULL);
     build_dir_len = strlen(build_dir);
     ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
     MACE_MEMCHECK(ldirflag);
@@ -5600,8 +5571,11 @@ void mace_object_path(char *source) {
 }
 /*  Copy input str into calloc'ed buffer */
 char *mace_str_buffer(const char *strlit) {
-    size_t  litlen  = strlen(strlit);
-    char   *buffer  = calloc(litlen + 1, sizeof(*buffer));
+    size_t  litlen;
+    char   *buffer;
+    MACE_ASSERT_RET(strlit != NULL, NULL);
+    litlen = strlen(strlit);
+    buffer = calloc(litlen + 1, sizeof(*buffer));
     MACE_MEMCHECK(buffer);
     strncpy(buffer, strlit, litlen);
     return (buffer);
@@ -6109,6 +6083,7 @@ void mace_Config_Free(Config *config) {
 
 void mace_Target_Free(Target *target) {
     if (target == NULL) {
+        assert(0);
         return;
     }
     mace_Target_Free_argv(target);
@@ -6120,9 +6095,7 @@ void mace_Target_Free(Target *target) {
 void mace_Target_Free_deps_headers(Target *target) {
     int i;
 
-    if (target == NULL) {
-        return;
-    }
+    MACE_ASSERT(target != NULL);
 
     if (target->_headers != NULL) {
         for (i = 0; i < target->_headers_num; i++) {
@@ -6155,25 +6128,20 @@ void mace_Target_Free_deps_headers(Target *target) {
 }
 
 void mace_Target_Free_excludes(Target *target) {
-    if (target == NULL) {
-        return;
-    }
+    MACE_ASSERT(target != NULL);
 
     MACE_FREE(target->_excludes);
 }
 
 void mace_Target_Free_notargv(Target *target) {
-    if (target == NULL) {
-        return;
-    }
+    MACE_ASSERT(target != NULL);
+
     MACE_FREE(target->_deps_links);
     MACE_FREE(target->_recompiles);
 }
 
 void mace_Target_Free_argv(Target *target) {
-    if (target == NULL) {
-        return;
-    }
+    MACE_ASSERT(target != NULL);
 
     mace_argv_free(target->_argv_includes, target->_argc_includes);
     target->_argv_includes  = NULL;
@@ -6688,8 +6656,8 @@ void mace_pre_user(Mace_Args *args) {
     build_order = calloc(target_len, sizeof(*build_order));
 
     /* --- 5. Default output folders --- */
-    mace_set_build_dir(MACE_BUILD_DIR);
-    mace_set_obj_dir(MACE_OBJ_DIR);
+    mace_set_build_dir(MACE_DEFAULT_BUILD_DIR);
+    mace_set_obj_dir(MACE_DEFAULT_OBJ_DIR);
 }
 
 /*  Prepare for build after user added */
@@ -6919,10 +6887,8 @@ char *mace_checksum_filename(char *file, int mode) {
     size_t   checksum_len;
 
     /* Files should be .c or .h */
-    if (obj_dir == NULL) {
-        assert(0);
-        return (NULL);
-    }
+    MACE_ASSERT_RET(obj_dir != NULL, NULL);
+
     /* last dot in path      */
     dot        = strrchr(file, '.');
     /* last slash in path    */
@@ -6993,10 +6959,7 @@ void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
     size_t   size;
     SHA1_CTX ctx2;
 
-    if (file == NULL) {
-        assert(0);
-        return;
-    }
+    MACE_ASSERT(file != NULL);
 
     /* - open file - */
     fd = fopen(file, "rb");
@@ -7245,6 +7208,45 @@ void Mace_Args_Free(Mace_Args *args) {
     MACE_FREE(args->dir);
     MACE_FREE(args->cc);
     MACE_FREE(args->ar);
+}
+
+/*  Automatic usage/help printing */
+void mace_parg_usage(const char              *name,
+                     const struct parg_opt   *longopts) {
+    int i;
+    b32 is_mace;
+
+    MACE_ASSERT(name        != NULL);
+    MACE_ASSERT(longopts    != NULL);
+
+    is_mace = (name[0] == 'm') && (name[1] == 'a') &&
+              (name[2] == 'c') && (name[3] == 'e');
+    if (is_mace) {
+        printf("\nmace convenience executable\n");
+    } else {
+        printf("\nmace builder executable: %s\n", name);
+    }
+    printf("Usage: %s [TARGET] [OPTIONS]\n", name);
+    for (i = 0; longopts[i].doc; ++i) {
+        if ((i >= 11) && !is_mace) {
+            break;
+        }
+        if (longopts[i].val)
+            printf(" -%c", longopts[i].val);
+
+        if (longopts[i].name)
+            printf(",  --%-15s", longopts[i].name);
+
+        if (longopts[i].arg) {
+            printf("[=%s]", longopts[i].arg);
+            printf("%*c", (int)(MACE_USAGE_MIDCOLW - 3 - strlen(longopts[i].arg)), ' ');
+        } else if (longopts[i].val || longopts[i].name)
+            printf("%*c", MACE_USAGE_MIDCOLW, ' ');
+
+        if (longopts[i].doc)
+            printf("%s", longopts[i].doc);
+        printf("\n");
+    }
 }
 
 /******************* main *******************/
