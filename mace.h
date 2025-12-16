@@ -157,7 +157,14 @@ struct Config;
 #define MACE_SET_CC_DEPFLAG(cc_depflag) \
     mace_set_cc_depflag(STRINGIFY(cc_depflag))
 
-/* -- Target kinds -- */
+/* --- Constants --- */
+#ifndef MACE_BUILD_DIR
+#define MACE_BUILD_DIR "build"
+#endif
+#ifndef MACE_OBJ_DIR
+#define MACE_OBJ_DIR "obj"
+#endif
+
 enum MACE_TARGET_KIND { /* for target.kind */
     MACE_TARGET_NULL        = 0,
     MACE_EXECUTABLE,
@@ -6056,10 +6063,10 @@ void mace_build_order(void) {
 void mace_pre_build(void) {
     int z;
 
-    /* --- Make output directories. --- */
+    /* --- Make output directories --- */
     mace_make_dirs();
 
-    /* --- Build order using targets links and deps lists. --- */
+    /* --- Build order from target links, deps --- */
     mace_build_order();
 
     /* Actually prebuild all targets */
@@ -6101,6 +6108,9 @@ void mace_Config_Free(Config *config) {
 }
 
 void mace_Target_Free(Target *target) {
+    if (target == NULL) {
+        return;
+    }
     mace_Target_Free_argv(target);
     mace_Target_Free_notargv(target);
     mace_Target_Free_excludes(target);
@@ -6109,6 +6119,11 @@ void mace_Target_Free(Target *target) {
 
 void mace_Target_Free_deps_headers(Target *target) {
     int i;
+
+    if (target == NULL) {
+        return;
+    }
+
     if (target->_headers != NULL) {
         for (i = 0; i < target->_headers_num; i++) {
             MACE_FREE(target->_headers[i]);
@@ -6140,15 +6155,26 @@ void mace_Target_Free_deps_headers(Target *target) {
 }
 
 void mace_Target_Free_excludes(Target *target) {
+    if (target == NULL) {
+        return;
+    }
+
     MACE_FREE(target->_excludes);
 }
 
 void mace_Target_Free_notargv(Target *target) {
+    if (target == NULL) {
+        return;
+    }
     MACE_FREE(target->_deps_links);
     MACE_FREE(target->_recompiles);
 }
 
 void mace_Target_Free_argv(Target *target) {
+    if (target == NULL) {
+        return;
+    }
+
     mace_argv_free(target->_argv_includes, target->_argc_includes);
     target->_argv_includes  = NULL;
     target->_argc_includes  = 0;
@@ -6632,7 +6658,15 @@ void mace_Target_Parse_Objdeps(Target *target) {
 void mace_pre_user(Mace_Args *args) {
     mace_post_build(NULL);
 
-    /* --- 1. Set switches --- */
+    /* --- 1. Initialize variables --- */    
+    target_num      = 0;
+    config_num      = 0;
+    build_order_num = 0;
+    target_len      = MACE_DEFAULT_TARGET_LEN;
+    config_len      = MACE_DEFAULT_TARGET_LEN;
+    object_len      = MACE_DEFAULT_OBJECT_LEN;
+
+    /* --- 2. Set switches --- */
     if (args != NULL) {
         silent         = args->silent;
         dry_run        = args->dry_run;
@@ -6640,35 +6674,30 @@ void mace_pre_user(Mace_Args *args) {
         build_all      = args->build_all;
     }
 
-    /* --- 2. Record cwd --- */
+    /* --- 3. Record cwd --- */
     if (getcwd(cwd, MACE_CWD_BUFFERSIZE) == NULL) {
         fprintf(stderr, "getcwd() error %d: '%s'\n",
                 errno, strerror(errno));
         exit(1);
     }
 
-    /* --- 3. Memory allocation --- */
-    target_len      = MACE_DEFAULT_TARGET_LEN;
-    config_len      = MACE_DEFAULT_TARGET_LEN;
-    object_len      = MACE_DEFAULT_OBJECT_LEN;
-    build_order_num = 0;
-
+    /* --- 4. Memory allocation --- */
     object      = calloc(object_len, sizeof(*object));
     targets     = calloc(target_len, sizeof(*targets));
     configs     = calloc(config_len, sizeof(*configs));
     build_order = calloc(target_len, sizeof(*build_order));
 
-    /* --- 4. Default output folders --- */
-    mace_set_build_dir("build");
-    mace_set_obj_dir("obj");
+    /* --- 5. Default output folders --- */
+    mace_set_build_dir(MACE_BUILD_DIR);
+    mace_set_obj_dir(MACE_OBJ_DIR);
 }
 
 /*  Prepare for build after user added */
 /*         targets, configs, etc. */
 void mace_post_user(Mace_Args *args) {
     /*   1- Moves to user set dir if not NULL. */
-    /*   2- Checks that at least one target exists, */
-    /*   3- Checks that there are no circular dependency. */
+    /*   2- Checks that > 1 target exists */
+    /*   3- Check that no circular dependency. */
     /*   4- Parse configs to set flags. */
     /*   5- Computes user_target order with priority: */
     /*      a- input argument */
@@ -6767,10 +6796,10 @@ void mace_post_user(Mace_Args *args) {
     }
 }
 
-/*  Free everything, cause all targets were built. */
 void mace_post_build(Mace_Args *args) {
     int i;
 
+    /* --- 1. Free everything --- */
     Mace_Args_Free(args);
     for (i = 0; i < target_num; i++) {
         mace_Target_Free(&targets[i]);
@@ -6787,10 +6816,14 @@ void mace_post_build(Mace_Args *args) {
     MACE_FREE(build_dir);
     MACE_FREE(build_order);
 
+    /* --- 2. Reset variables --- */
+    /* Prevents double frees if called again */
     target_num      = 0;
     config_num      = 0;
-    object_len      = 0;
     build_order_num = 0;
+    target_len      = MACE_DEFAULT_TARGET_LEN;
+    config_len      = MACE_DEFAULT_TARGET_LEN;
+    object_len      = MACE_DEFAULT_OBJECT_LEN;
 }
 
 /*  Realloc _deps_links to bigger */
