@@ -5316,8 +5316,7 @@ b32 mace_Target_Source_Add(Target *target, char *token) {
     u64      rpath_hash;
     char    *rpath;
 
-    if (token == NULL)
-        return (true);
+    MACE_CHECK_RET(token != NULL, true);
 
     mace_Target_sources_grow(target);
 
@@ -5404,27 +5403,33 @@ int mace_isTarget(u64 hash) {
 }
 
 int mace_isWildcard(const char *str) {
+    MACE_ASSERT_RET(str, 0);
     return ((strchr(str, '*') != NULL));
 }
 
 int mace_isSource(const char *path) {
-    size_t len  = strlen(path);
+    size_t len;
+    int out;
+    MACE_ASSERT_RET(path, 0);
+    len     = strlen(path);
     /* C source extension: .c */
-    int out     = path[len - 1]       == 'c';
-    out        &= path[len - 2]       == '.';
+    out      = path[len - 1]       == 'c';
+    out     &= path[len - 2]       == '.';
     return (out);
 }
 
 int mace_isDir(const char *path) {
     struct stat statbuf = {0};
-    if (stat(path, &statbuf) != 0)
-        return 0;
+    MACE_ASSERT_RET(path, 0);
+    MACE_CHECK_RET(stat(path, &statbuf) == 0, 0);
+
     return S_ISDIR(statbuf.st_mode);
 }
 
 /***************** mace_filesystem *******************/
 void mace_mkdir(const char *path) {
     struct stat st = {0};
+    MACE_ASSERT(path);
     if (stat(path, &st) == -1) {
         mkdir(path, 0777);
         chmod(path, 0777);
@@ -5461,9 +5466,7 @@ char *mace_library_path(char *target_name, int kind) {
     size_t   tar_len    = 0;
     size_t   full_len   = 0;
 
-    if (target_name == NULL) {
-        return (NULL);
-    }
+    MACE_ASSERT_RET(target_name, NULL);
 
     bld_len = strlen(build_dir);
     tar_len = strlen(target_name);
@@ -5544,12 +5547,10 @@ char *mace_str_buffer(const char *strlit) {
 }
 
 void mace_print_message(const char *message) {
-    if (message == NULL) {
-        return;
-    }
+    MACE_CHECK(message);
+    MACE_CHECK(silent);
 
-    if (!silent)
-        printf("%s\n", message);
+    printf("%s\n", message);
 }
 
 void mace_chdir(const char *path) {
