@@ -3722,13 +3722,13 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
 #define MACE_ASSERT_RET(cond, ret) do {\
         if (!(cond)) {\
             assert(0);\
-            return(ret);\
+            return (ret);\
         }\
     } while(0)
 
 #define MACE_CHECK_RET(cond, ret) do {\
         if (!(cond)) {\
-            return(ret);\
+            return (ret);\
         }\
     } while(0)
 
@@ -5843,8 +5843,7 @@ void mace_build_order_recursive(Target target,
 b32 mace_Target_hasDep(Target *target, u64 target_hash) {
     int i;
 
-    if (target->_deps_links == NULL)
-        return (false);
+    MACE_CHECK_RET(target->_deps_links != NULL, false);
 
     for (i = 0; i < target->_deps_links_num; i++) {
         if (target->_deps_links[i] == target_hash)
@@ -7061,9 +7060,7 @@ Mace_Args mace_parse_args(int argc, char *argv[]) {
     Mace_Args out_args      = Mace_Args_default;
     struct parg_state ps    = parg_state_default;
 
-    if (argc <= 1) {
-        return (out_args);
-    }
+    MACE_CHECK_RET(argc > 1, out_args);
 
     while ((c = parg_getopt_long(&ps, argc, argv,
                                  "a:Bc:C:df:g:hj:no:sv",
