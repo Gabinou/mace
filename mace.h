@@ -3719,30 +3719,18 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
         }\
     } while(0)
 
-#define MACE_ASSERT(cond) do {\
+/* Early return, 
+**  1. if cond fails (pseudo-assert)
+**  2. with output or not
+**      if ret is MACE_VOID     -> return;
+**  3. with assert or not
+**      if ass is MACE_nASSERT  -> don't assert */
+#define MACE_VOID
+#define MACE_nASSERT(a) do {} while(0)
+#define MACE_EARLY_RET(cond, ret, ass) do {\
         if (!(cond)) {\
-            assert(0);\
-            return;\
-        }\
-    } while(0)
-
-/* Rename to early return? */
-#define MACE_CHECK(cond) do {\
-        if (!(cond)) {\
-            return;\
-        }\
-    } while(0)
-
-#define MACE_ASSERT_RET(cond, ret) do {\
-        if (!(cond)) {\
-            assert(0);\
-            return (ret);\
-        }\
-    } while(0)
-
-#define MACE_CHECK_RET(cond, ret) do {\
-        if (!(cond)) {\
-            return (ret);\
+            ass(0);\
+            return ret;\
         }\
     } while(0)
 
@@ -3786,7 +3774,7 @@ void mace_add_target(Target *target, char *name) {
 /*  Set target built by default when */
 /*         running mace without target */
 void mace_set_default_target(char *name) {
-    MACE_CHECK(name);
+    MACE_EARLY_RET(name, MACE_VOID, MACE_nASSERT);
 
     mace_default_target_hash = mace_hash(name);
 }
@@ -3794,17 +3782,19 @@ void mace_set_default_target(char *name) {
 /*  Compute default target order from hash. */
 /*         Called post-user.  */
 void mace_default_target_order(void) {
-    MACE_CHECK(mace_default_target_hash != 0ul);
+    MACE_EARLY_RET(mace_default_target_hash != 0ul, MACE_VOID, MACE_nASSERT);
 
     mace_default_target = mace_target_order(mace_default_target_hash);
 
-    fprintf(stderr, "Default target not found. Exiting\n");
-    exit(1);
+    if (mace_default_target < 0) {
+        fprintf(stderr, "Default target not found. Exiting\n");
+        exit(1);
+    }
 }
 
 /*  Set config used to build targets by default */
 void mace_set_default_config(char *name) {
-    MACE_CHECK(name);
+    MACE_EARLY_RET(name, MACE_VOID, MACE_nASSERT);
 
     mace_default_config_hash = mace_hash(name);
 }
@@ -3812,7 +3802,7 @@ void mace_set_default_config(char *name) {
 /*  Compute default target order from hash. */
 /*         Called post-user. */
 void mace_default_config_order(void) {
-    MACE_CHECK(mace_default_config_hash != 0ul);
+    MACE_EARLY_RET(mace_default_config_hash != 0ul, MACE_VOID, MACE_nASSERT);
     mace_default_config = mace_config_order(mace_default_config_hash);
 
     if (mace_default_config < 0) {
@@ -3823,7 +3813,7 @@ void mace_default_config_order(void) {
 
 /*  Find user config from its hash. */
 void mace_user_config_set(u64 hash) {
-    MACE_CHECK(hash != 0ul);
+    MACE_EARLY_RET(hash != 0ul, MACE_VOID, MACE_nASSERT);
     mace_user_config = mace_config_order(hash);
     if (mace_user_config < 0) {
         fprintf(stderr, "Warning: User config '%lu' not found\n", hash);
@@ -3876,7 +3866,7 @@ void mace_config_resolve(Target *target) {
 
 /*  Set mace_user_target from input hash. */
 void mace_user_target_set(u64 hash) {
-    MACE_CHECK(hash != 0ul);
+    MACE_EARLY_RET(hash != 0ul, MACE_VOID, MACE_nASSERT);
 
     mace_user_target = mace_target_order(hash);
     
@@ -3892,8 +3882,8 @@ void mace_target_config(char *target_name,
     int config_order = mace_config_order(config_hash);
     int target_order = mace_target_order(target_hash);
 
-    MACE_CHECK(target_order >= 0);
-    MACE_CHECK(config_order >= 0);
+    MACE_EARLY_RET(target_order >= 0, MACE_VOID, MACE_nASSERT);
+    MACE_EARLY_RET(config_order >= 0, MACE_VOID, MACE_nASSERT);
 
     targets[target_order]._config = config_order;
 }
@@ -3994,8 +3984,8 @@ char **mace_argv_flags(int         *len,   int *argc,
     char    *token;
     char    *buffer;
 
-    MACE_CHECK_RET(((len != NULL) && (*len) >= 0), NULL);
-    MACE_CHECK_RET(argc != NULL, NULL);
+    MACE_EARLY_RET(((len != NULL) && (*len) >= 0), NULL, MACE_nASSERT);
+    MACE_EARLY_RET(argc != NULL, NULL, MACE_nASSERT);
 
     flag_len = (flag == NULL) ? 0 : strlen(flag);
 
@@ -4054,7 +4044,7 @@ void mace_Target_excludes(Target *target) {
     char *buffer;
     char *token;
 
-    MACE_CHECK(target->excludes != NULL);
+    MACE_EARLY_RET(target->excludes != NULL, MACE_VOID, MACE_nASSERT);
     mace_Target_Free_excludes(target);
 
     target->_excludes_num = 0;
@@ -4322,7 +4312,7 @@ void mace_Target_argv_allatonce(Target *target) {
     /* -- argv -L flag for build_dir -- */
     target->_argc_tail =    target->_argc;
     mace_Target_argv_grow(target);
-    MACE_ASSERT(build_dir != NULL);
+    MACE_EARLY_RET(build_dir != NULL, MACE_VOID, assert);
     build_dir_len = strlen(build_dir);
     ldirflag = calloc(3 + build_dir_len, sizeof(*ldirflag));
     MACE_MEMCHECK(ldirflag);
@@ -4421,7 +4411,7 @@ void mace_argv_add_config(Target *target, char ** *argv,
 /***************** mace_pqueue ******************/
 
 pid_t mace_pqueue_pop(void) {
-    MACE_ASSERT_RET(pnum > 0, 0);
+    MACE_EARLY_RET(pnum > 0, 0, assert);
 
     return (pqueue[--pnum]);
 }
@@ -4893,8 +4883,8 @@ void mace_Target_precompile(Target *target) {
     int argc = 0;
 
     /* Compute latest object dependencies .d file */
-    MACE_ASSERT(target);
-    MACE_ASSERT(target->_argv);
+    MACE_EARLY_RET(target, MACE_VOID, assert);
+    MACE_EARLY_RET(target->_argv, MACE_VOID, assert);
 
     target->_argv[MACE_ARGV_CC]     = cc;
     mace_Target_argv_grow(target);
@@ -4967,8 +4957,8 @@ void mace_Target_precompile(Target *target) {
 void mace_Target_compile(Target *target) {
     int argc = 0;
 
-    MACE_ASSERT(target);
-    MACE_ASSERT(target->_argv);
+    MACE_EARLY_RET(target, MACE_VOID, assert);
+    MACE_EARLY_RET(target->_argv, MACE_VOID, assert);
 
     target->_argv[MACE_ARGV_CC] = cc;
 
@@ -5041,7 +5031,7 @@ void Target_Object_Hash_Add_nocoll(Target *target,
 int Target_hasObjectHash_nocoll(Target *target, u64 hash) {
     int i;
 
-    MACE_CHECK_RET(target->_objects_hash_nocoll, -1);
+    MACE_EARLY_RET(target->_objects_hash_nocoll, -1, MACE_nASSERT);
 
     for (i = 0; i < target->_objects_hash_nocoll_num; i++) {
         if (hash == target->_objects_hash_nocoll[i])
@@ -5053,9 +5043,9 @@ int Target_hasObjectHash_nocoll(Target *target, u64 hash) {
 
 /*  Add object hash to target. */
 void Target_Object_Hash_Add(Target *target, u64 hash) {
-    MACE_ASSERT(target);
-    MACE_ASSERT(target->_argv_objects_hash);
-    MACE_ASSERT(target->_argv_objects_cnt);
+    MACE_EARLY_RET(target, MACE_VOID, assert);
+    MACE_EARLY_RET(target->_argv_objects_hash, MACE_VOID, assert);
+    MACE_EARLY_RET(target->_argv_objects_cnt, MACE_VOID, assert);
 
     target->_argv_objects_hash[target->_argc_objects_hash] = hash;
     target->_argv_objects_cnt[target->_argc_objects_hash++] = 0;
@@ -5065,7 +5055,7 @@ void Target_Object_Hash_Add(Target *target, u64 hash) {
 int Target_hasObjectHash(Target *target, u64 hash) {
     int i;
 
-    MACE_CHECK_RET(target->_argv_objects_hash, -1);
+    MACE_EARLY_RET(target->_argv_objects_hash, -1, MACE_nASSERT);
 
     for (i = 0; i < target->_argc_objects_hash; i++) {
         if (hash == target->_argv_objects_hash[i])
@@ -5093,7 +5083,7 @@ b32 mace_Target_Object_Add(Target *target, char *token) {
     size_t   token_len;
 
     /* token is object path */
-    MACE_CHECK_RET(token, false);
+    MACE_EARLY_RET(token, false, MACE_nASSERT);
 
     hash = mace_hash(token);
     hash_id = Target_hasObjectHash(target, hash);
@@ -5145,8 +5135,8 @@ void mace_Headers_Checksums_Checks(Target *target) {
     int i;
     int j;
 
-    MACE_ASSERT(target != NULL);
-    MACE_ASSERT(target->_hdrs_changed != NULL);
+    MACE_EARLY_RET(target != NULL, MACE_VOID, assert);
+    MACE_EARLY_RET(target->_hdrs_changed != NULL, MACE_VOID, assert);
 
     if (build_all) {
         size_t bytesize = target->_argc_sources * sizeof(*target->_recompiles);
@@ -5248,7 +5238,7 @@ b32 mace_Target_Source_Add(Target *target, char *token) {
     u64      rpath_hash;
     char    *rpath;
 
-    MACE_CHECK_RET(token != NULL, true);
+    MACE_EARLY_RET(token != NULL, true, MACE_nASSERT);
 
     mace_Target_sources_grow(target);
 
@@ -5325,14 +5315,14 @@ void mace_compile_glob(Target *target, char *globsrc,
 
 /******************** mace_is *********************/
 int mace_isWildcard(const char *str) {
-    MACE_ASSERT_RET(str, 0);
+    MACE_EARLY_RET(str, 0, assert);
     return ((strchr(str, '*') != NULL));
 }
 
 int mace_isSource(const char *path) {
     size_t len;
     int out;
-    MACE_ASSERT_RET(path, 0);
+    MACE_EARLY_RET(path, 0, assert);
     len     = strlen(path);
     /* C source extension: .c */
     out      = path[len - 1]       == 'c';
@@ -5342,8 +5332,8 @@ int mace_isSource(const char *path) {
 
 int mace_isDir(const char *path) {
     struct stat statbuf = {0};
-    MACE_ASSERT_RET(path, 0);
-    MACE_CHECK_RET(stat(path, &statbuf) == 0, 0);
+    MACE_EARLY_RET(path, 0, assert);
+    MACE_EARLY_RET(stat(path, &statbuf) == 0, 0, MACE_nASSERT);
 
     return S_ISDIR(statbuf.st_mode);
 }
@@ -5351,7 +5341,8 @@ int mace_isDir(const char *path) {
 /***************** mace_filesystem *******************/
 void mace_mkdir(const char *path) {
     struct stat st = {0};
-    MACE_ASSERT(path);
+    MACE_EARLY_RET(path, MACE_VOID, assert);
+
     if (stat(path, &st) == -1) {
         mkdir(path, 0777);
         chmod(path, 0777);
@@ -5365,7 +5356,7 @@ char *mace_executable_path(const char *target_name) {
     size_t   bld_len    = 0;
     size_t   tar_len    = 0;
 
-    MACE_ASSERT_RET(target_name != NULL, NULL);
+    MACE_EARLY_RET(target_name != NULL, NULL, assert);
 
     bld_len = strlen(build_dir);
     tar_len = strlen(target_name);
@@ -5388,7 +5379,7 @@ char *mace_library_path(char *target_name, int kind) {
     size_t   tar_len    = 0;
     size_t   full_len   = 0;
 
-    MACE_ASSERT_RET(target_name, NULL);
+    MACE_EARLY_RET(target_name, NULL, assert);
 
     bld_len = strlen(build_dir);
     tar_len = strlen(target_name);
@@ -5460,7 +5451,7 @@ void mace_object_path(char *source) {
 char *mace_str_buffer(const char *strlit) {
     size_t  litlen;
     char   *buffer;
-    MACE_ASSERT_RET(strlit != NULL, NULL);
+    MACE_EARLY_RET(strlit != NULL, NULL, assert);
     litlen = strlen(strlit);
     buffer = calloc(litlen + 1, sizeof(*buffer));
     MACE_MEMCHECK(buffer);
@@ -5469,8 +5460,8 @@ char *mace_str_buffer(const char *strlit) {
 }
 
 void mace_print_message(const char *message) {
-    MACE_CHECK(message);
-    MACE_CHECK(silent);
+    MACE_EARLY_RET(message, MACE_VOID, MACE_nASSERT);
+    MACE_EARLY_RET(silent, MACE_VOID, MACE_nASSERT);
 
     printf("%s\n", message);
 }
@@ -5550,7 +5541,7 @@ void mace_prebuild_target(Target *target) {
     char *token;
     char *buffer;
 
-    MACE_ASSERT(target != NULL);
+    MACE_EARLY_RET(target != NULL, MACE_VOID, assert);
 
     if (target->kind == MACE_PHONY) {
         return;
@@ -5663,7 +5654,7 @@ b32 mace_in_build_order(size_t  order, int *b_order,
     int i;
     b32 out = false;
 
-    MACE_ASSERT_RET(b_order != NULL, out);
+    MACE_EARLY_RET(b_order != NULL, out, assert);
 
     for (i = 0; i < num; i++) {
         if (b_order[i] == order) {
@@ -5766,7 +5757,7 @@ void mace_build_order_recursive(Target target,
 b32 mace_Target_hasDep(Target *target, u64 target_hash) {
     int i;
 
-    MACE_CHECK_RET(target->_deps_links != NULL, false);
+    MACE_EARLY_RET(target->_deps_links != NULL, false, MACE_nASSERT);
 
     for (i = 0; i < target->_deps_links_num; i++) {
         if (target->_deps_links[i] == target_hash)
@@ -5951,7 +5942,7 @@ void mace_build(void) {
 void mace_Config_Free(Config *config) {
     int i;
     
-    MACE_CHECK(config != NULL);
+    MACE_EARLY_RET(config != NULL, MACE_VOID, MACE_nASSERT);
 
     if (config->_flags != NULL) {
         for (i = 0; i < config->_flag_num; i++) {
@@ -5962,7 +5953,7 @@ void mace_Config_Free(Config *config) {
 }
 
 void mace_Target_Free(Target *target) {
-    MACE_ASSERT(target != NULL);
+    MACE_EARLY_RET(target != NULL, MACE_VOID, assert);
 
     mace_Target_Free_argv(target);
     mace_Target_Free_notargv(target);
@@ -5973,7 +5964,7 @@ void mace_Target_Free(Target *target) {
 void mace_Target_Free_deps_headers(Target *target) {
     int i;
 
-    MACE_ASSERT(target != NULL);
+    MACE_EARLY_RET(target != NULL, MACE_VOID, assert);
 
     if (target->_headers != NULL) {
         for (i = 0; i < target->_headers_num; i++) {
@@ -6006,20 +5997,20 @@ void mace_Target_Free_deps_headers(Target *target) {
 }
 
 void mace_Target_Free_excludes(Target *target) {
-    MACE_ASSERT(target != NULL);
+    MACE_EARLY_RET(target != NULL, MACE_VOID, assert);
 
     MACE_FREE(target->_excludes);
 }
 
 void mace_Target_Free_notargv(Target *target) {
-    MACE_ASSERT(target != NULL);
+    MACE_EARLY_RET(target != NULL, MACE_VOID, assert);
 
     MACE_FREE(target->_deps_links);
     MACE_FREE(target->_recompiles);
 }
 
 void mace_Target_Free_argv(Target *target) {
-    MACE_ASSERT(target != NULL);
+    MACE_EARLY_RET(target != NULL, MACE_VOID, assert);
 
     mace_argv_free(target->_argv_includes, target->_argc_includes);
     target->_argv_includes  = NULL;
@@ -6765,7 +6756,7 @@ char *mace_checksum_filename(char *file, int mode) {
     size_t   checksum_len;
 
     /* Files should be .c or .h */
-    MACE_ASSERT_RET(obj_dir != NULL, NULL);
+    MACE_EARLY_RET(obj_dir != NULL, NULL, assert);
 
     /* last dot in path      */
     dot        = strrchr(file, '.');
@@ -6824,8 +6815,8 @@ char *mace_checksum_filename(char *file, int mode) {
 
 static void mace_timestamp( char *file, 
                             struct stat *attr) {
-    MACE_ASSERT(file != NULL);
-    MACE_ASSERT(attr != NULL);
+    MACE_EARLY_RET(file != NULL, MACE_VOID, assert);
+    MACE_EARLY_RET(attr != NULL, MACE_VOID, assert);
     stat(file, attr);
 }
 
@@ -6857,7 +6848,7 @@ b32 mace_file_changed(
     FILE *fd = fopen(checksum_path, "r");
 
     /* --- Did file exist? --- */ 
-    MACE_CHECK_RET(fd != NULL, 1);
+    MACE_EARLY_RET(fd != NULL, 1, MACE_nASSERT);
 
     /* --- Reading previous checksum --- */ 
     fseek(fd, 0, SEEK_SET);
@@ -6887,7 +6878,7 @@ void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
     size_t   size;
     SHA1_CTX ctx2;
 
-    MACE_ASSERT(file != NULL);
+    MACE_EARLY_RET(file != NULL, MACE_VOID, assert);
 
     /* - open file - */
     fd = fopen(file, "rb");
@@ -7033,7 +7024,7 @@ Mace_Args mace_parse_args(int argc, char *argv[]) {
     Mace_Args out_args      = Mace_Args_default;
     struct parg_state ps    = parg_state_default;
 
-    MACE_CHECK_RET(argc > 1, out_args);
+    MACE_EARLY_RET(argc > 1, out_args, MACE_nASSERT);
 
     while ((c = parg_getopt_long(&ps, argc, argv,
                                  "a:Bc:C:df:g:hj:no:sv",
@@ -7125,7 +7116,7 @@ Mace_Args mace_parse_args(int argc, char *argv[]) {
 
 void Mace_Args_Free(Mace_Args *args) {
     /* Skip if NULL */
-    MACE_CHECK(args != NULL);
+    MACE_EARLY_RET(args != NULL, MACE_VOID, MACE_nASSERT);
 
     MACE_FREE(args->macefile);
     MACE_FREE(args->user_target);
@@ -7140,8 +7131,8 @@ void mace_parg_usage(const char              *name,
     int i;
     b32 is_mace;
 
-    MACE_ASSERT(name        != NULL);
-    MACE_ASSERT(longopts    != NULL);
+    MACE_EARLY_RET(name        != NULL, MACE_VOID, assert);
+    MACE_EARLY_RET(longopts    != NULL, MACE_VOID, assert);
 
     is_mace = (name[0] == 'm') && (name[1] == 'a') &&
               (name[2] == 'c') && (name[3] == 'e');
