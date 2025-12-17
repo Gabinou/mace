@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <limits.h>
+#include <time.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -404,6 +405,7 @@ enum MACE {
     MACE_MAX_ITERATIONS         = 1024,
     MACE_DEFAULT_OBJECT_LEN     =   16,
     MACE_CWD_BUFFERSIZE         =  256,
+    /* Note: SHA1_LEN is a magic number in sha1dc */
     SHA1_LEN                    =   20, /* [bytes] */
     MACE_OBJDEP_BUFFER          = 4096
 };
@@ -436,6 +438,9 @@ enum MACE_CHECKSUM_MODE {
 static void mace_build(void);
 static void mace_pre_build(void);
 
+static int mace_target_order(u64 hash);
+static int mace_config_order(u64 hash);
+
 static void mace_pre_user(Mace_Args *args);
 static void mace_post_user(Mace_Args *args);
 static void mace_post_build(Mace_Args *args);
@@ -450,12 +455,21 @@ static Mace_Args mace_combine_args_env(Mace_Args args,
 /* --- mace_utils --- */
 static char  *mace_str_buffer(const char *const strlit);
 
-/* --- mace_checksum --- */
+/* --- mace_sha1dc --- */
 static void mace_sha1dc(char *file,
                         u8 hash2[SHA1_LEN]);
-static b32  mace_sha1dc_cmp(u8 hash1[SHA1_LEN],
-                            u8 hash2[SHA1_LEN]);
-static char *mace_checksum_filename(char *file, int mode);
+static b32  mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
+                            const u8 hash2[SHA1_LEN]);
+static void mace_timestamp(char *file, 
+                            struct stat *attr);
+static b32  mace_timestamp_cmp( const struct stat *attr1,
+                                const struct stat *attr2);
+/* TODO: method independent API */
+static b32 mace_file_changed(const char *checksum_path,
+                             const u8 hash_current[SHA1_LEN],
+                                   u8 hash_previous[SHA1_LEN]);
+static void mace_checksum_w(const char *checksum_path,
+                            const u8 hash_current[SHA1_LEN]);
 
 /* --- mace_hashing --- */
 static u64 mace_hash(const char *str);
@@ -3735,10 +3749,9 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
 /***************** MACE_ADD_CONFIG *****************/
 /*  Add config to list of configs. */
 void mace_add_config(Config *config, char *name) {
-    u64 hash = mace_hash(name);
     configs[config_num]        = *config;
     configs[config_num]._name  = name;
-    configs[config_num]._hash  = hash;
+    configs[config_num]._hash  = mace_hash(name);
     configs[config_num]._order = target_num;
     if (++config_num >= config_len) {
         size_t bytesize;
@@ -3751,10 +3764,9 @@ void mace_add_config(Config *config, char *name) {
 /**************** MACE_ADD_TARGET ***************/
 /*  Add target to list of targets. */
 void mace_add_target(Target *target, char *name) {
-    u64 hash = mace_hash(name);
     targets[target_num]          = *target;
     targets[target_num]._name    = name;
-    targets[target_num]._hash    = hash;
+    targets[target_num]._hash    = mace_hash(name);
     targets[target_num]._order   = target_num;
     targets[target_num]._checkcwd = true;
     mace_Target_Deps_Hash(&targets[target_num]);
@@ -3782,16 +3794,9 @@ void mace_set_default_target(char *name) {
 /*  Compute default target order from hash. */
 /*         Called post-user.  */
 void mace_default_target_order(void) {
-    int i;
-
     MACE_CHECK(mace_default_target_hash != 0ul);
 
-    for (i = 0; i < target_num; i++) {
-        if (mace_default_target_hash == targets[i]._hash) {
-            mace_default_target = i;
-            return;
-        }
-    }
+    mace_default_target = mace_target_order(mace_default_target_hash);
 
     fprintf(stderr, "Default target not found. Exiting\n");
     exit(1);
@@ -3807,35 +3812,22 @@ void mace_set_default_config(char *name) {
 /*  Compute default target order from hash. */
 /*         Called post-user. */
 void mace_default_config_order(void) {
-    int i;
-
     MACE_CHECK(mace_default_config_hash != 0ul);
+    mace_default_config = mace_config_order(mace_default_config_hash);
 
-    for (i = 0; i < config_num; i++) {
-        if (mace_default_config_hash == configs[i]._hash) {
-            mace_default_config = i;
-            return;
-        }
+    if (mace_default_config < 0) {
+        fprintf(stderr, "Default config not found. Exiting\n");
+        exit(1);
     }
-
-    fprintf(stderr, "Default config not found. Exiting\n");
-    exit(1);
 }
 
 /*  Find user config from its hash. */
 void mace_user_config_set(u64 hash) {
-    int i;
-
     MACE_CHECK(hash != 0ul);
-
-    for (i = 0; i < config_num; i++) {
-        if (hash == configs[i]._hash) {
-            mace_user_config = i;
-            return;
-        }
+    mace_user_config = mace_config_order(hash);
+    if (mace_user_config < 0) {
+        fprintf(stderr, "Warning: User config '%lu' not found\n", hash);
     }
-
-    fprintf(stderr, "Warning: User config '%lu' not found\n", hash);
 }
 
 /*  Decide if user target or default */
@@ -3884,18 +3876,12 @@ void mace_config_resolve(Target *target) {
 
 /*  Set mace_user_target from input hash. */
 void mace_user_target_set(u64 hash) {
-    int i;
-
     MACE_CHECK(hash != 0ul);
 
-    for (i = 0; i < target_num; i++) {
-        if (hash == targets[i]._hash) {
-            mace_user_target = i;
-            return;
-        }
-    }
-
-    fprintf(stderr, "Warning: User target '%lu' not found.\n", hash);
+    mace_user_target = mace_target_order(hash);
+    
+    if (mace_user_target < 0)
+        fprintf(stderr, "Warning: User target '%lu' not found.\n", hash);
 }
 
 /*  Set default config for target. */
@@ -3903,28 +3889,11 @@ void mace_target_config(char *target_name,
                         char *config_name) {
     u64 target_hash = mace_hash(target_name);
     u64 config_hash = mace_hash(config_name);
-    int config_order;
-    int target_order = -1;
-    int i;
-
-    for (i = 0; i < target_num; i++) {
-        if (target_hash == targets[i]._hash) {
-            target_order = i;
-            break;
-        }
-    }
+    int config_order = mace_config_order(config_hash);
+    int target_order = mace_target_order(target_hash);
 
     MACE_CHECK(target_order >= 0);
-
-    config_order = -1;
-    for (i = 0; i < config_num; i++) {
-        if (config_hash == configs[i]._hash) {
-            config_order = i;
-            break;
-        }
-    }
-
-    MACE_CHECK(config_order > 0);
+    MACE_CHECK(config_order >= 0);
 
     targets[target_order]._config = config_order;
 }
@@ -5216,7 +5185,6 @@ void mace_Headers_Checksums(Target *target) {
 
     for (i = 0; i < target->_headers_num; i++) {
         b32 changed = true; /* set to false only if checksum file exists, changed */
-        FILE *fd;
         char *checksum_path;
         char *header_path;
 
@@ -5226,31 +5194,13 @@ void mace_Headers_Checksums(Target *target) {
         header_path = target->_headers[i];
         mace_sha1dc(header_path, hash_current);
 
-        /* - Check if previous checksum exists - */
-        fd = fopen(checksum_path, "r");
-        if (fd != NULL) {
-            size_t size;
-            fseek(fd, 0, SEEK_SET);
-            size = fread(hash_previous, 1, SHA1_LEN, fd);
-            if (size != SHA1_LEN) {
-                fprintf(stderr, "Could not read checksum from '%s'. Deleting. \n", checksum_path);
-                fclose(fd);
-                remove(checksum_path);
-                exit(1);
-            }
-            changed = !mace_sha1dc_cmp(hash_previous, hash_current);
-            fclose(fd);
-        }
+        /* - Check if file changed - */
+        changed = mace_file_changed(checksum_path, hash_current, hash_previous);
 
-        /* - Write checksum file, if changed or didn't exist - */
+        /* - Write checksum file, if changed - */
         if (changed) {
-            fd = fopen(checksum_path, "w");
-            if (fd == NULL) {
-                fprintf(stderr, "Could not open file %s\n", checksum_path);
-                exit(1);
-            }
-            fwrite(hash_current, 1, SHA1_LEN, fd);
-            fclose(fd);
+            mace_checksum_w(checksum_path,
+                            hash_current);
         }
         target->_hdrs_changed[i] = changed;
     }
@@ -5261,45 +5211,27 @@ void mace_Headers_Checksums(Target *target) {
 }
 
 /*  Compute checksums for all sources. */
-b32 mace_Source_Checksum(Target *target, char *source_path,
-                         char *obj_path) {
+b32 mace_Source_Checksum(   Target  *target,
+                            char    *source_path,
+                            char    *obj_path) {
     /* --- SOURCE CHECKSUM --- */
     /* - Compute current checksum - */
     u8      hash_current[SHA1_LEN]  = {0};
     u8      hash_previous[SHA1_LEN] = {0};
     b32     changed = true; 
     char    *checksum_path;
-    FILE    *fd;
 
     mace_sha1dc(source_path, hash_current);
 
     /* - Read existing checksum file - */
     mace_chdir(cwd);
     checksum_path = mace_checksum_filename(obj_path, MACE_CHECKSUM_MODE_SRC);
-    fd = fopen(checksum_path, "r");
-    if (fd != NULL) {
-        size_t size;
-        fseek(fd, 0, SEEK_SET);
-        size = fread(hash_previous, 1, SHA1_LEN, fd);
-        if (size != SHA1_LEN) {
-            fprintf(stderr, "Could not read checksum from '%s'. Deleting. \n", checksum_path);
-            fclose(fd);
-            remove(checksum_path);
-            exit(1);
-        }
-        changed = !mace_sha1dc_cmp(hash_previous, hash_current);
-        fclose(fd);
-    }
+    changed = mace_file_changed(checksum_path, hash_current, hash_previous);
 
     /* - Write checksum file, if changed or didn't exist - */
     if (changed) {
-        fd = fopen(checksum_path, "w");
-        if (fd == NULL) {
-            fprintf(stderr, "Could not open file %s\n", checksum_path);
-            exit(1);
-        }
-        fwrite(hash_current, 1, SHA1_LEN, fd);
-        fclose(fd);
+        mace_checksum_w(checksum_path,
+                        hash_current);
     }
     MACE_FREE(checksum_path);
 
@@ -5392,16 +5324,6 @@ void mace_compile_glob(Target *target, char *globsrc,
 }
 
 /******************** mace_is *********************/
-int mace_isTarget(u64 hash) {
-    int i;
-
-    for (i = 0; i < target_num; i++) {
-        if (targets[i]._hash == hash)
-            return (true);
-    }
-    return (false);
-}
-
 int mace_isWildcard(const char *str) {
     MACE_ASSERT_RET(str, 0);
     return ((strchr(str, '*') != NULL));
@@ -5755,22 +5677,22 @@ b32 mace_in_build_order(size_t  order, int *b_order,
 /*  Get target order from input hash */
 /*  @return Target order (as added by user), */
 /*          or -1 if not found */
-int mace_hash_order(u64 hash) {
+int mace_target_order(u64 hash) {
     int i;
-    int order = -1;
-
     for (i = 0; i < target_num; i++) {
-        if (hash == targets[i]._hash) {
-            order = i;
-            break;
-        }
+        if (hash == targets[i]._hash)
+            return (i);
     }
-    return (order);
+    return (-1);
 }
 
-/*  Get target order (as added by user) */
-int mace_target_order(Target target) {
-    return (mace_hash_order(target._hash));
+int mace_config_order(u64 hash) {
+    int i;
+    for (i = 0; i < config_num; i++) {
+        if (hash == configs[i]._hash)
+            return (i);
+    }
+    return (-1);
 }
 
 /*  Add target with input order into build_order */
@@ -5797,7 +5719,7 @@ void mace_build_order_recursive(Target target,
         return;
     }
 
-    order = mace_target_order(target); /* target order */
+    order = mace_target_order(target._hash); /* target order */
     /* Target already in build order, skip */
     if (mace_in_build_order(order, build_order, build_order_num)) {
         return;
@@ -5815,10 +5737,11 @@ void mace_build_order_recursive(Target target,
     for (target._d_cnt = 0; target._d_cnt < target._deps_links_num; target._d_cnt++) {
         size_t next_target_order;
 
-        if (!mace_isTarget(target._deps_links[target._d_cnt]))
+        next_target_order = mace_target_order(target._deps_links[target._d_cnt]);
+
+        if (next_target_order < 0)
             continue;
 
-        next_target_order = mace_hash_order(target._deps_links[target._d_cnt]);
         /* Recursively search target's next dependency -> depth first search */
         mace_build_order_recursive(targets[next_target_order], o_cnt);
     }
@@ -5864,7 +5787,7 @@ b32 mace_circular_deps(Target *targs, size_t len) {
         /* 1- going through target i's dependencies */
         int z;
         for (z = 0; z < targs[i]._deps_links_num; z++) {
-            int j = mace_hash_order(targs[i]._deps_links[z]);
+            int j = mace_target_order(targs[i]._deps_links[z]);
 
             /* Dependency is not in list of targets */
             if (j < 0)
@@ -6899,15 +6822,65 @@ char *mace_checksum_filename(char *file, int mode) {
     return (sha1);
 }
 
+static void mace_timestamp( char *file, 
+                            struct stat *attr) {
+    MACE_ASSERT(file != NULL);
+    MACE_ASSERT(attr != NULL);
+    stat(file, attr);
+}
+
+static b32  mace_timestamp_cmp( const struct stat *attr1,
+                                const struct stat *attr2) {
+    double diff = difftime( attr1->st_mtime, 
+                            attr2->st_mtime);
+    return(diff > 0);
+}
+
+static void mace_checksum_w(const char *checksum_path,
+                            const u8 hash_current[SHA1_LEN]) {
+    FILE *fd = fopen(checksum_path, "w");
+    if (fd == NULL) {
+        fprintf(stderr, "Could not open file %s\n", checksum_path);
+        exit(1);
+    }
+    fwrite(hash_current, 1, SHA1_LEN, fd);
+    fclose(fd);
+}
+
+b32 mace_file_changed(
+    const char *checksum_path,
+    const u8 hash_current[SHA1_LEN],
+    u8 hash_previous[SHA1_LEN]
+) {
+    /* --- True if hash changed or file didn't exist. --- */
+    size_t size;
+    FILE *fd = fopen(checksum_path, "r");
+
+    /* --- Did file exist? --- */ 
+    MACE_CHECK_RET(fd != NULL, 1);
+
+    /* --- Reading previous checksum --- */ 
+    fseek(fd, 0, SEEK_SET);
+    size = fread(hash_previous, 1, SHA1_LEN, fd);
+    if (size != SHA1_LEN) {
+        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", checksum_path);
+        fclose(fd);
+        exit(1);
+    }
+    fclose(fd);
+
+    return(!mace_sha1dc_cmp(hash_previous, hash_current));
+}
+
 /*  Check if two shadc1 checksums are equal */
-b32 mace_sha1dc_cmp(u8 hash1[SHA1_LEN], 
-                    u8 hash2[SHA1_LEN]) {
+b32 mace_sha1dc_cmp(const u8 hash1[SHA1_LEN], 
+                    const u8 hash2[SHA1_LEN]) {
     return (memcmp(hash1, hash2, SHA1_LEN) == 0);
 }
 
-/*  Check for collision in sha1dc */
-/*         checksum between input file and hash */
 void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
+    /*  1. Compute hash of input file
+    **  2. Check for collision input file and hash */
     int      foundcollision;
     char     buffer[USHRT_MAX + 1];
     FILE    *fd;
@@ -7152,9 +7125,7 @@ Mace_Args mace_parse_args(int argc, char *argv[]) {
 
 void Mace_Args_Free(Mace_Args *args) {
     /* Skip if NULL */
-    if (args == NULL) {
-        return;
-    }
+    MACE_CHECK(args != NULL);
 
     MACE_FREE(args->macefile);
     MACE_FREE(args->user_target);

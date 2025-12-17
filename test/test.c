@@ -237,7 +237,7 @@ void test_target(void) {
     MACE_ADD_TARGET(F);
 
     A_hash  = mace_hash("A");
-    A_order = mace_hash_order(A_hash);
+    A_order = mace_target_order(A_hash);
     assert(A_order  > 0);
 
     nourstest_true(target_num == 7);
@@ -327,7 +327,7 @@ void test_target(void) {
     MACE_ADD_TARGET(DD);
 
     BB_hash     = mace_hash("BB");
-    BB_order    = mace_hash_order(BB_hash);
+    BB_order    = mace_target_order(BB_hash);
 
     assert(BB_order >= 0);
 
@@ -1055,41 +1055,41 @@ void test_build_order(void) {
     build_order_num = 0;
 
     /* set default_target to "D" check build_order */
-    mace_default_target = mace_hash_order(mace_hash("D"));
+    mace_default_target = mace_target_order(mace_hash("D"));
     mace_user_target    = MACE_TARGET_NULL;  /* order */
     mace_build_order();
     nourstest_true(build_order_num == 3);
 
-    nourstest_true(build_order[0] == mace_hash_order(mace_hash("F")));
-    nourstest_true(build_order[1] == mace_hash_order(mace_hash("G")));
-    nourstest_true(build_order[2] == mace_hash_order(mace_hash("D")));
+    nourstest_true(build_order[0] == mace_target_order(mace_hash("F")));
+    nourstest_true(build_order[1] == mace_target_order(mace_hash("G")));
+    nourstest_true(build_order[2] == mace_target_order(mace_hash("D")));
     build_order_num = 0;
 
     /* set user_target to E check build_order */
     /* user_target should override mace_default_target */
-    mace_user_target    = mace_hash_order(mace_hash("E"));
-    mace_default_target = mace_hash_order(mace_hash("D"));
+    mace_user_target    = mace_target_order(mace_hash("E"));
+    mace_default_target = mace_target_order(mace_hash("D"));
     mace_build_order();
     nourstest_true(build_order_num == 2);
 
-    nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
-    nourstest_true(build_order[1] == mace_hash_order(mace_hash("E")));
+    nourstest_true(build_order[0] == mace_target_order(mace_hash("G")));
+    nourstest_true(build_order[1] == mace_target_order(mace_hash("E")));
 
 
     /* set user_target to A check build_order */
     /* user_target should override mace_default_target */
-    mace_user_target    = mace_hash_order(mace_hash("A"));
-    mace_default_target = mace_hash_order(mace_hash("D"));
+    mace_user_target    = mace_target_order(mace_hash("A"));
+    mace_default_target = mace_target_order(mace_hash("D"));
     mace_build_order();
     nourstest_true(build_order_num == 7);
 
-    nourstest_true(build_order[0] == mace_hash_order(mace_hash("G")));
-    nourstest_true(build_order[1] == mace_hash_order(mace_hash("E")));
-    nourstest_true(build_order[2] == mace_hash_order(mace_hash("F")));
-    nourstest_true(build_order[3] == mace_hash_order(mace_hash("D")));
-    nourstest_true(build_order[4] == mace_hash_order(mace_hash("B")));
-    nourstest_true(build_order[5] == mace_hash_order(mace_hash("C")));
-    nourstest_true(build_order[6] == mace_hash_order(mace_hash("A")));
+    nourstest_true(build_order[0] == mace_target_order(mace_hash("G")));
+    nourstest_true(build_order[1] == mace_target_order(mace_hash("E")));
+    nourstest_true(build_order[2] == mace_target_order(mace_hash("F")));
+    nourstest_true(build_order[3] == mace_target_order(mace_hash("D")));
+    nourstest_true(build_order[4] == mace_target_order(mace_hash("B")));
+    nourstest_true(build_order[5] == mace_target_order(mace_hash("C")));
+    nourstest_true(build_order[6] == mace_target_order(mace_hash("A")));
 
     mace_default_target = MACE_TARGET_NULL;   /* order */
     mace_user_target    = MACE_TARGET_NULL;  /* order */
