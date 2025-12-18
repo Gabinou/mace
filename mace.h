@@ -455,19 +455,25 @@ static Mace_Args mace_combine_args_env(Mace_Args args,
 /* --- mace_utils --- */
 static char  *mace_str_buffer(const char *const strlit);
 
-/* --- mace_sha1dc --- */
+/* --- mace_criteria --- */
+/* -- sha1dc: recompile if hash changed -- */
 static void mace_sha1dc(const char *file,
                         u8 hash2[SHA1_LEN]);
 static b32  mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
                             const u8 hash2[SHA1_LEN]);
-static void mace_timestamp( char        *file, 
+/* -- timestamp: recompile if timestamp later -- */
+static void mace_timestamp( const char  *file, 
                             struct stat *attr);
 static b32  mace_timestamp_cmp( const struct stat *attr1,
                                 const struct stat *attr2);
+
 static b32  mace_file_changed(  const char *checksum,
                                 const char *header);
 static void mace_checksum_w(const char *checksum_path,
                             const u8 hash_current[SHA1_LEN]);
+static void mace_checksum_r(FILE *f,
+                            const char *path,
+                            u8 hash_previous[SHA1_LEN]);
 
 /* --- mace_hashing --- */
 static u64 mace_hash(const char *str);
@@ -6787,14 +6793,14 @@ char *mace_checksum_filename(char *file, int mode) {
     return (sha1);
 }
 
-static void mace_timestamp( char *file, 
-                            struct stat *attr) {
+void mace_timestamp(const char *file, 
+                    struct stat *attr) {
     MACE_EARLY_RET(file != NULL, MACE_VOID, assert);
     MACE_EARLY_RET(attr != NULL, MACE_VOID, assert);
     stat(file, attr);
 }
 
-static b32  mace_timestamp_cmp( const struct stat *attr1,
+b32  mace_timestamp_cmp( const struct stat *attr1,
                                 const struct stat *attr2) {
     double diff;
     MACE_EARLY_RET(attr1 != NULL, true, assert);
@@ -6803,14 +6809,48 @@ static b32  mace_timestamp_cmp( const struct stat *attr1,
     return(diff > 0);
 }
 
-static void mace_checksum_w(const char *checksum_path,
-                            const u8 hash_current[SHA1_LEN]) {
+void mace_checksum_t_w(const char *checksum_path,
+                        const struct stat *attr) {
+    char buf[256];
+    struct tm *ptm;
+
     FILE *fd = fopen(checksum_path, "w");
     if (fd == NULL) {
-        fprintf(stderr, "Could not open file %s\n", checksum_path);
+        fprintf(stderr, "Could not write to checksum file '%s'\n", checksum_path);
+        exit(1);
+    }
+
+    ptm = gmtime(&attr->st_mtime);
+    strftime(buf, sizeof(buf), "%c", ptm);
+    printf("buf '%s'\n", buf);
+    fwrite(buf, 1, sizeof(buf), fd);
+
+    fclose(fd);
+}
+
+void mace_checksum_w(const char *checksum_path,
+                     const u8 hash_current[SHA1_LEN]) {
+    FILE *fd = fopen(checksum_path, "w");
+    if (fd == NULL) {
+        fprintf(stderr, "Could not write to checksum file '%s'\n", checksum_path);
         exit(1);
     }
     fwrite(hash_current, 1, SHA1_LEN, fd);
+    fclose(fd);
+}
+
+void mace_checksum_r(FILE *fd, 
+                     const char *path, 
+                     u8 hash_previous[SHA1_LEN]) {
+    size_t size;
+    MACE_EARLY_RET(fd != NULL, MACE_VOID, assert);
+    fseek(fd, 0, SEEK_SET);
+    size = fread(hash_previous, 1, SHA1_LEN, fd);
+    if (size != SHA1_LEN) {
+        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", path);
+        fclose(fd);
+        exit(1);
+    }
     fclose(fd);
 }
 
@@ -6820,9 +6860,10 @@ b32 mace_file_changed(  const char *checksum_path,
     **      1. hash changed.
     **      2. file didn't exist.
     ** Also writes new checksum file if changed */
-    u8 hash_current[SHA1_LEN]     = {0};
-    u8 hash_previous[SHA1_LEN]    = {0};
-    size_t size;
+    u8 hash_current[SHA1_LEN]   = {0};
+    u8 hash_previous[SHA1_LEN]  = {0};
+    struct stat attr_current    = {0};
+    struct stat attr_previous   = {0};
     FILE *fd = fopen(checksum_path, "r");
 
     /* --- Did file exist? --- */
@@ -6833,16 +6874,15 @@ b32 mace_file_changed(  const char *checksum_path,
 
     /* --- File exists, comparing hashes --- */ 
     mace_sha1dc(file_path, hash_current);
-    fseek(fd, 0, SEEK_SET);
-    size = fread(hash_previous, 1, SHA1_LEN, fd);
-    if (size != SHA1_LEN) {
-        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", checksum_path);
-        fclose(fd);
-        exit(1);
+    mace_checksum_r(fd, checksum_path, hash_previous);
+
+    mace_timestamp(file_path, &attr_current); 
+    if (!mace_timestamp_cmp(&attr_current, &attr_previous)) { 
+        mace_checksum_t_w(checksum_path, &attr_current);
+        return(true);
     }
-    fclose(fd);
     
-    if (!mace_sha1dc_cmp(hash_current, hash_previous)) {
+    if (!mace_sha1dc_cmp(hash_current, hash_previous)) { 
         mace_checksum_w(checksum_path, hash_current);
         return(true);
     }
@@ -6870,7 +6910,7 @@ void mace_sha1dc(const char *file, u8 hash[SHA1_LEN]) {
     /* - open file - */
     fd = fopen(file, "rb");
     if (fd == NULL) {
-        fprintf(stderr, "cannot open file: %s\n", file);
+        fprintf(stderr, "cannot open file: '%s'\n", file);
         exit(1);
     }
 
@@ -6883,11 +6923,11 @@ void mace_sha1dc(const char *file, u8 hash[SHA1_LEN]) {
             break;
     }
     if (ferror(fd)) {
-        fprintf(stderr, "file read error: %s\n", file);
+        fprintf(stderr, "file read error: '%s'\n", file);
         exit(1);
     }
     if (!feof(fd)) {
-        fprintf(stderr, "not end of file?: %s\n", file);
+        fprintf(stderr, "not end of file?: '%s'\n", file);
         exit(1);
     }
 
