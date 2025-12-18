@@ -460,14 +460,14 @@ static void mace_sha1dc(char *file,
                         u8 hash2[SHA1_LEN]);
 static b32  mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
                             const u8 hash2[SHA1_LEN]);
-static void mace_timestamp(char *file, 
+static void mace_timestamp( char        *file, 
                             struct stat *attr);
 static b32  mace_timestamp_cmp( const struct stat *attr1,
                                 const struct stat *attr2);
 /* TODO: method independent API */
-static b32 mace_file_changed(const char *checksum_path,
-                             const u8 hash_current[SHA1_LEN],
-                                   u8 hash_previous[SHA1_LEN]);
+static b32  mace_file_changed(const char *checksum_path,
+                              const u8 hash_current[SHA1_LEN],
+                                    u8 hash_previous[SHA1_LEN]);
 static void mace_checksum_w(const char *checksum_path,
                             const u8 hash_current[SHA1_LEN]);
 
@@ -3722,7 +3722,7 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
 /* Early return, 
 **  1. if cond fails (pseudo-assert)
 **  2. with output or not
-**      if ret is MACE_VOID     -> return;
+**      if ret is MACE_VOID     -> no value return
 **  3. with assert or not
 **      if ass is MACE_nASSERT  -> don't assert */
 #define MACE_VOID
@@ -6822,6 +6822,8 @@ static void mace_timestamp( char *file,
 
 static b32  mace_timestamp_cmp( const struct stat *attr1,
                                 const struct stat *attr2) {
+    MACE_EARLY_RET(attr1 != NULL, true, assert);
+    MACE_EARLY_RET(attr2 != NULL, true, assert);
     double diff = difftime( attr1->st_mtime, 
                             attr2->st_mtime);
     return(diff > 0);
