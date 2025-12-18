@@ -456,7 +456,7 @@ static Mace_Args mace_combine_args_env(Mace_Args args,
 static char  *mace_str_buffer(const char *const strlit);
 
 /* --- mace_sha1dc --- */
-static void mace_sha1dc(char *file,
+static void mace_sha1dc(const char *file,
                         u8 hash2[SHA1_LEN]);
 static b32  mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
                             const u8 hash2[SHA1_LEN]);
@@ -464,10 +464,8 @@ static void mace_timestamp( char        *file,
                             struct stat *attr);
 static b32  mace_timestamp_cmp( const struct stat *attr1,
                                 const struct stat *attr2);
-/* TODO: method independent API */
-static b32  mace_file_changed(const char *checksum_path,
-                              const u8 hash_current[SHA1_LEN],
-                                    u8 hash_previous[SHA1_LEN]);
+static b32  mace_file_changed(  const char *checksum,
+                                const char *header);
 static void mace_checksum_w(const char *checksum_path,
                             const u8 hash_current[SHA1_LEN]);
 
@@ -5166,32 +5164,17 @@ void mace_Headers_Checksums_Checks(Target *target) {
 
 /*  Compute checksums for all headers. */
 void mace_Headers_Checksums(Target *target) {
-    u8  hash_current[SHA1_LEN];
-    u8  hash_previous[SHA1_LEN];
     int i;
 
     /* --- HEADERS CHECKSUMS --- */
     mace_chdir(cwd);
 
     for (i = 0; i < target->_headers_num; i++) {
-        b32 changed = true; /* set to false only if checksum file exists, changed */
-        char *checksum_path;
-        char *header_path;
+        const char *header_path     = target->_headers[i];
+        const char *checksum_path   = target->_headers_checksum[i];
 
-        /* - Compute current checksum - */
-        memset(hash_previous, 0, SHA1_LEN);
-        checksum_path = target->_headers_checksum[i];
-        header_path = target->_headers[i];
-        mace_sha1dc(header_path, hash_current);
+        b32 changed = mace_file_changed(checksum_path, header_path);
 
-        /* - Check if file changed - */
-        changed = mace_file_changed(checksum_path, hash_current, hash_previous);
-
-        /* - Write checksum file, if changed - */
-        if (changed) {
-            mace_checksum_w(checksum_path,
-                            hash_current);
-        }
         target->_hdrs_changed[i] = changed;
     }
 
@@ -5206,23 +5189,14 @@ b32 mace_Source_Checksum(   Target  *target,
                             char    *obj_path) {
     /* --- SOURCE CHECKSUM --- */
     /* - Compute current checksum - */
-    u8      hash_current[SHA1_LEN]  = {0};
-    u8      hash_previous[SHA1_LEN] = {0};
     b32     changed = true; 
     char    *checksum_path;
-
-    mace_sha1dc(source_path, hash_current);
 
     /* - Read existing checksum file - */
     mace_chdir(cwd);
     checksum_path = mace_checksum_filename(obj_path, MACE_CHECKSUM_MODE_SRC);
-    changed = mace_file_changed(checksum_path, hash_current, hash_previous);
+    changed = mace_file_changed(checksum_path, source_path);
 
-    /* - Write checksum file, if changed or didn't exist - */
-    if (changed) {
-        mace_checksum_w(checksum_path,
-                        hash_current);
-    }
     MACE_FREE(checksum_path);
 
     if (target->base_dir != NULL) {
@@ -6822,10 +6796,10 @@ static void mace_timestamp( char *file,
 
 static b32  mace_timestamp_cmp( const struct stat *attr1,
                                 const struct stat *attr2) {
+    double diff;
     MACE_EARLY_RET(attr1 != NULL, true, assert);
     MACE_EARLY_RET(attr2 != NULL, true, assert);
-    double diff = difftime( attr1->st_mtime, 
-                            attr2->st_mtime);
+    diff = difftime(attr1->st_mtime, attr2->st_mtime);
     return(diff > 0);
 }
 
@@ -6840,19 +6814,25 @@ static void mace_checksum_w(const char *checksum_path,
     fclose(fd);
 }
 
-b32 mace_file_changed(
-    const char *checksum_path,
-    const u8 hash_current[SHA1_LEN],
-    u8 hash_previous[SHA1_LEN]
-) {
-    /* --- True if hash changed or file didn't exist. --- */
+b32 mace_file_changed(  const char *checksum_path,
+                        const char *file_path) {
+    /* Returns true if
+    **      1. hash changed.
+    **      2. file didn't exist.
+    ** Also writes new checksum file if changed */
+    u8 hash_current[SHA1_LEN]     = {0};
+    u8 hash_previous[SHA1_LEN]    = {0};
     size_t size;
     FILE *fd = fopen(checksum_path, "r");
 
-    /* --- Did file exist? --- */ 
-    MACE_EARLY_RET(fd != NULL, 1, MACE_nASSERT);
+    /* --- Did file exist? --- */
+    if (fd == NULL) {
+        mace_checksum_w(checksum_path, hash_current);
+        return(true);
+    }
 
-    /* --- Reading previous checksum --- */ 
+    /* --- File exists, comparing hashes --- */ 
+    mace_sha1dc(file_path, hash_current);
     fseek(fd, 0, SEEK_SET);
     size = fread(hash_previous, 1, SHA1_LEN, fd);
     if (size != SHA1_LEN) {
@@ -6861,8 +6841,13 @@ b32 mace_file_changed(
         exit(1);
     }
     fclose(fd);
+    
+    if (!mace_sha1dc_cmp(hash_current, hash_previous)) {
+        mace_checksum_w(checksum_path, hash_current);
+        return(true);
+    }
 
-    return(!mace_sha1dc_cmp(hash_previous, hash_current));
+    return(0);
 }
 
 /*  Check if two shadc1 checksums are equal */
@@ -6871,7 +6856,7 @@ b32 mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
     return (memcmp(hash1, hash2, SHA1_LEN) == 0);
 }
 
-void mace_sha1dc(char *file, u8 hash[SHA1_LEN]) {
+void mace_sha1dc(const char *file, u8 hash[SHA1_LEN]) {
     /*  1. Compute hash of input file
     **  2. Check for collision input file and hash */
     int      foundcollision;
