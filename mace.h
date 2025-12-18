@@ -6822,7 +6822,12 @@ b32  mace_timestamp_cmp( const struct stat *attr1,
 
 #define MACE_TIMESAMP "%c"
 #define MACE_TIMESAMP_BUFFER 25 /* Just enough for %c */
-
+/* How to multiple checksum interface
+**  1. Void pointer to struct, type at boffset 
+**      - Runtime penalty no gain
+**  -> 2. Common struct interface, members & code #define'd out 
+**      - Nuking code is good
+** */
 void mace_checksum_t_w(const char *checksum_path,
                         const struct stat *attr) {
     char buf[MACE_TIMESAMP_BUFFER] = {0};
