@@ -6809,9 +6809,12 @@ b32  mace_timestamp_cmp( const struct stat *attr1,
     return(diff > 0);
 }
 
+#define MACE_TIMESAMP "%c"
+#define MACE_TIMESAMP_BUFFER 25 /* Just enough for %c */
+
 void mace_checksum_t_w(const char *checksum_path,
                         const struct stat *attr) {
-    char buf[256];
+    char buf[MACE_TIMESAMP_BUFFER] = {0};
     struct tm *ptm;
 
     FILE *fd = fopen(checksum_path, "w");
@@ -6821,10 +6824,29 @@ void mace_checksum_t_w(const char *checksum_path,
     }
 
     ptm = gmtime(&attr->st_mtime);
-    strftime(buf, sizeof(buf), "%c", ptm);
-    printf("buf '%s'\n", buf);
-    fwrite(buf, 1, sizeof(buf), fd);
+    strftime(buf, sizeof(buf), MACE_TIMESAMP, ptm);
+    fwrite(buf, 1, strlen(buf), fd);
 
+    fclose(fd);
+}
+
+void mace_checksum_t_r(FILE *fd, const char *path, 
+                     struct stat *attr) {
+    char buf[MACE_TIMESAMP_BUFFER] = {0};
+    size_t size;
+    struct tm tm;
+    MACE_EARLY_RET(fd != NULL, MACE_VOID, assert);
+    fseek(fd, 0, SEEK_SET);
+
+    size = fread(buf, 1, MACE_TIMESAMP_BUFFER, fd);
+    if (size != (MACE_TIMESAMP_BUFFER - 1)) {
+        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", path);
+        fclose(fd);
+        exit(1);
+    }
+
+    strptime(buf, MACE_TIMESAMP, &tm);
+    attr->st_mtime = mktime(&tm);
     fclose(fd);
 }
 
@@ -6866,27 +6888,30 @@ b32 mace_file_changed(  const char *checksum_path,
     struct stat attr_previous   = {0};
     FILE *fd = fopen(checksum_path, "r");
 
-    /* --- Did file exist? --- */
+    /* --- Did checksum file exist? --- */
+    /* mace_sha1dc(file_path, hash_current) */;
+    mace_timestamp(file_path, &attr_current) ; 
     if (fd == NULL) {
-        mace_checksum_w(checksum_path, hash_current);
+        /* mace_checksum_w(checksum_path, hash_current); */
+        
+        mace_checksum_t_w(checksum_path, &attr_current);
         return(true);
     }
 
-    /* --- File exists, comparing hashes --- */ 
-    mace_sha1dc(file_path, hash_current);
-    mace_checksum_r(fd, checksum_path, hash_previous);
-
-    mace_timestamp(file_path, &attr_current); 
+    /* --- File exists, comparing checksums --- */ 
+    mace_checksum_t_r(fd, checksum_path, &attr_previous);
     if (!mace_timestamp_cmp(&attr_current, &attr_previous)) { 
         mace_checksum_t_w(checksum_path, &attr_current);
         return(true);
     }
     
+    /*
+    mace_checksum_r(fd, checksum_path, hash_previous);
     if (!mace_sha1dc_cmp(hash_current, hash_previous)) { 
         mace_checksum_w(checksum_path, hash_current);
         return(true);
     }
-
+    */
     return(0);
 }
 
