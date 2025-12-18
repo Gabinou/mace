@@ -28,6 +28,16 @@
 #define _XOPEN_SOURCE 500 /* Include POSIX 1995 */
 #define SHA1DC_NO_STANDARD_INCLUDES
 
+/* -- Recompilation criteria -- */
+#ifndef MACE_RECOMPILE_TIMESTAMP
+#define MACE_RECOMPILE_SHA1DC
+#endif
+
+#if defined(MACE_RECOMPILE_TIMESTAMP) && \
+    defined(MACE_RECOMPILE_SHA1DC)
+#undef MACE_RECOMPILE_TIMESTAMP
+#endif
+
 /* -- libc -- */
 #include <errno.h>
 #include <stdio.h>
@@ -6438,6 +6448,7 @@ void mace_Target_Read_ho(Target *target, int source_i) {
     fho = fopen(obj_file, "rb");
     if (fho == NULL) {
         /* .ho file does not exist: no dependencies */
+        MACE_FREE(obj_file);
         return;
     }
 
