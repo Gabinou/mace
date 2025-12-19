@@ -42,7 +42,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-
 #define SHA1DC_NO_STANDARD_INCLUDES
 /* -- Recompilation criteria -- */
 #if !defined(MACE_RECOMPILE_TIMESTAMP) && \
@@ -53,8 +52,8 @@
 #if defined(MACE_RECOMPILE_TIMESTAMP) && \
     defined(MACE_RECOMPILE_SHA1DC)
     #error  Define only one: \
-            MACE_RECOMPILE_TIMESTAMP, or \
-            MACE_RECOMPILE_SHA1DC
+    MACE_RECOMPILE_TIMESTAMP, or \
+    MACE_RECOMPILE_SHA1DC
 #endif
 
 #if defined(MACE_RECOMPILE_TIMESTAMP)
@@ -63,7 +62,7 @@
     #define MACE_CHECKSUM_EXTENSION ".sha1dc"
 #else
     #error  Define either MACE_RECOMPILE_TIMESTAMP, or \
-            MACE_RECOMPILE_SHA1DC
+    MACE_RECOMPILE_SHA1DC
 #endif
 
 /*----------------------------------------------*/
@@ -74,7 +73,7 @@
 /*               USER ENTRY POINT               */
 /*----------------------------------------------*/
 
-/* The 'mace' function must be implemented by the user. */
+/* User must implement 'mace' function. */
 extern int mace(int argc, char *argv[]);
 /* Required:
 **   1- Add targets         -> MACE_ADD_TARGET
@@ -183,10 +182,10 @@ struct Config;
 
 /* --- Constants --- */
 #ifndef MACE_DEFAULT_BUILD_DIR
-#define MACE_DEFAULT_BUILD_DIR "build"
+    #define MACE_DEFAULT_BUILD_DIR "build"
 #endif
 #ifndef MACE_DEFAULT_OBJ_DIR
-#define MACE_DEFAULT_OBJ_DIR "obj"
+    #define MACE_DEFAULT_OBJ_DIR "obj"
 #endif
 
 enum MACE_TARGET_KIND { /* for target.kind */
@@ -485,13 +484,13 @@ static void mace_sha1dc(const char *file,
 static b32  mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
                             const u8 hash2[SHA1_LEN]);
 /* -- timestamp: recompile if timestamp later -- */
-static void mace_timestamp( const char  *file, 
-                            struct stat *attr);
-static b32  mace_timestamp_cmp( const struct stat *attr1,
-                                const struct stat *attr2);
+static void mace_timestamp(const char  *file,
+                           struct stat *attr);
+static b32  mace_timestamp_cmp(const struct stat *attr1,
+                               const struct stat *attr2);
 
-static b32  mace_file_changed(  const char *checksum,
-                                const char *header);
+static b32  mace_file_changed(const char *checksum,
+                              const char *header);
 static void mace_checksum_w(const char *checksum_path,
                             const u8 hash_current[SHA1_LEN]);
 static void mace_checksum_r(FILE *f,
@@ -3746,7 +3745,7 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
         }\
     } while(0)
 
-/* Early return, 
+/* Early return,
 **  1. if cond fails (pseudo-assert)
 **  2. with output or not
 **      if ret is MACE_VOID     -> no value return
@@ -3896,7 +3895,7 @@ void mace_user_target_set(u64 hash) {
     MACE_EARLY_RET(hash != 0ul, MACE_VOID, MACE_nASSERT);
 
     mace_user_target = mace_target_order(hash);
-    
+
     if (mace_user_target < 0)
         fprintf(stderr, "Warning: User target '%lu' not found.\n", hash);
 }
@@ -4482,8 +4481,8 @@ int mace_globerr(const char *path, int eerrno) {
 
 /***************** mace_exec ******************/
 /*  Print command to be run in forked process. */
-void mace_exec_print(   char *const arguments[],
-                        size_t argnum) {
+void mace_exec_print(char *const arguments[],
+                     size_t argnum) {
     int i;
 
     for (i = 0; i < argnum; i++) {
@@ -4530,8 +4529,8 @@ char *mace_args2line(char *const arguments[]) {
 
 /*  Execute command in a different fork with */
 /*         execvp and bash. */
-pid_t mace_exec_wbash(  const char *exec,
-                        char *const arguments[]) {
+pid_t mace_exec_wbash(const char *exec,
+                      char *const arguments[]) {
     char    *argline    = mace_args2line(arguments);
     pid_t    pid        = fork();
     if (pid < 0) {
@@ -4713,15 +4712,15 @@ void mace_link_static_library(Target *target) {
     char    *token;
     char    *rcsflag;
     size_t   lib_len;
-    
+
     int       argc          = 0;
     int       arg_len       = 8;
     int       argc_ar       = 0;
     int       argc_objects  = target->_argc_sources;
     char     *lib = mace_library_path(target->_name, MACE_STATIC_LIBRARY);
     char    **argv_objects  = target->_argv_objects;
-    char    **argv          = calloc(   arg_len,
-                                        sizeof(*argv));
+    char    **argv          = calloc(arg_len,
+                                     sizeof(*argv));
 
     if (!silent)
         printf("Linking  %s\n", lib);
@@ -5213,12 +5212,12 @@ void mace_Headers_Checksums(Target *target) {
 }
 
 /*  Compute checksums for all sources. */
-b32 mace_Source_Checksum(   Target  *target,
-                            char    *source_path,
-                            char    *obj_path) {
+b32 mace_Source_Checksum(Target  *target,
+                         char    *source_path,
+                         char    *obj_path) {
     /* --- SOURCE CHECKSUM --- */
     /* - Compute current checksum - */
-    b32     changed = true; 
+    b32     changed = true;
     char    *checksum_path;
 
     /* - Read existing checksum file - */
@@ -5495,8 +5494,8 @@ void mace_run_commands(const char *commands,
     if (commands == NULL)
         return;
 
-    printf("Running command-%s, target '%s'\n", 
-            preorpost, target);
+    printf("Running command-%s, target '%s'\n",
+           preorpost, target);
     mace_chdir(cwd);
 
     argv = calloc(len, sizeof(*argv));
@@ -5826,7 +5825,7 @@ void mace_parse_config(Config *config) {
     char    *token;
 
     mace_Config_Free(config);
-    
+
     if (config->flags == NULL) {
         fprintf(stderr, "Config has no flags.\n");
         exit(1);
@@ -5944,7 +5943,7 @@ void mace_build(void) {
 
 void mace_Config_Free(Config *config) {
     int i;
-    
+
     MACE_EARLY_RET(config != NULL, MACE_VOID, MACE_nASSERT);
 
     if (config->_flags != NULL) {
@@ -6499,7 +6498,7 @@ void mace_Target_Parse_Objdeps(Target *target) {
 void mace_pre_user(Mace_Args *args) {
     mace_post_build(NULL);
 
-    /* --- 1. Initialize variables --- */    
+    /* --- 1. Initialize variables --- */
     target_num      = 0;
     config_num      = 0;
     build_order_num = 0;
@@ -6673,7 +6672,7 @@ void mace_Target_Deps_Grow(Target *target) {
     size_t bytesize;
     if (target->_deps_links_len > target->_deps_links_num)
         return;
-    
+
     target->_deps_links_len *= 2;
     bytesize = target->_deps_links_len * sizeof(*target->_deps_links);
     target->_deps_links = realloc(target->_deps_links, bytesize);
@@ -6691,7 +6690,7 @@ void mace_Target_Deps_Hash(Target *target) {
     /* --- Preliminaries --- */
     char *buffer;
     char *token;
-    
+
     if ((target->links          == NULL) &&
         (target->dependencies   == NULL))
         return;
@@ -6817,32 +6816,32 @@ char *mace_checksum_filename(char *file, int mode) {
     return (sha1);
 }
 
-void mace_timestamp(const char *file, 
+void mace_timestamp(const char *file,
                     struct stat *attr) {
     MACE_EARLY_RET(file != NULL, MACE_VOID, assert);
     MACE_EARLY_RET(attr != NULL, MACE_VOID, assert);
     stat(file, attr);
 }
 
-b32  mace_timestamp_cmp( const struct stat *attr1,
-                                const struct stat *attr2) {
-    double diff;
-    MACE_EARLY_RET(attr1 != NULL, true, assert);
-    MACE_EARLY_RET(attr2 != NULL, true, assert);
-    diff = difftime(attr1->st_mtime, attr2->st_mtime);
-    return(diff > 0);
-}
+b32  mace_timestamp_cmp(const struct stat *attr1,
+                            const struct stat *attr2) {
+        double diff;
+        MACE_EARLY_RET(attr1 != NULL, true, assert);
+        MACE_EARLY_RET(attr2 != NULL, true, assert);
+        diff = difftime(attr1->st_mtime, attr2->st_mtime);
+        return (diff > 0);
+    }
 
 #define MACE_TIMESAMP "%c"
 #define MACE_TIMESAMP_BUFFER 25 /* Just enough for %c */
 /* How to multiple checksum interface
-**  1. Void pointer to struct, type at boffset 
+**  1. Void pointer to struct, type at boffset
 **      - Runtime penalty no gain
-**  -> 2. Common struct interface, members & code #define'd out 
+**  -> 2. Common struct interface, members & code #define'd out
 **      - Nuking code is good
 ** */
 void mace_checksum_t_w(const char *checksum_path,
-                        const struct stat *attr) {
+                       const struct stat *attr) {
     char buf[MACE_TIMESAMP_BUFFER] = {0};
     struct tm *ptm;
 
@@ -6859,8 +6858,8 @@ void mace_checksum_t_w(const char *checksum_path,
     fclose(fd);
 }
 
-void mace_checksum_t_r(FILE *fd, const char *path, 
-                     struct stat *attr) {
+void mace_checksum_t_r(FILE *fd, const char *path,
+                       struct stat *attr) {
     char buf[MACE_TIMESAMP_BUFFER] = {0};
     size_t size;
     struct tm tm;
@@ -6890,8 +6889,8 @@ void mace_checksum_w(const char *checksum_path,
     fclose(fd);
 }
 
-void mace_checksum_r(FILE *fd, 
-                     const char *path, 
+void mace_checksum_r(FILE *fd,
+                     const char *path,
                      u8 hash_previous[SHA1_LEN]) {
     size_t size;
     MACE_EARLY_RET(fd != NULL, MACE_VOID, assert);
@@ -6905,8 +6904,8 @@ void mace_checksum_r(FILE *fd,
     fclose(fd);
 }
 
-b32 mace_file_changed(  const char *checksum_path,
-                        const char *file_path) {
+b32 mace_file_changed(const char *checksum_path,
+                      const char *file_path) {
     /* Returns true if
     **      1. hash changed.
     **      2. file didn't exist.
@@ -6919,33 +6918,33 @@ b32 mace_file_changed(  const char *checksum_path,
 
     /* --- Did checksum file exist? --- */
     /* mace_sha1dc(file_path, hash_current) */;
-    mace_timestamp(file_path, &attr_current) ; 
+    mace_timestamp(file_path, &attr_current) ;
     if (fd == NULL) {
         /* mace_checksum_w(checksum_path, hash_current); */
-        
+
         mace_checksum_t_w(checksum_path, &attr_current);
-        return(true);
+        return (true);
     }
 
-    /* --- File exists, comparing checksums --- */ 
+    /* --- File exists, comparing checksums --- */
     mace_checksum_t_r(fd, checksum_path, &attr_previous);
-    if (!mace_timestamp_cmp(&attr_current, &attr_previous)) { 
+    if (!mace_timestamp_cmp(&attr_current, &attr_previous)) {
         mace_checksum_t_w(checksum_path, &attr_current);
-        return(true);
+        return (true);
     }
-    
+
     /*
     mace_checksum_r(fd, checksum_path, hash_previous);
-    if (!mace_sha1dc_cmp(hash_current, hash_previous)) { 
+    if (!mace_sha1dc_cmp(hash_current, hash_previous)) {
         mace_checksum_w(checksum_path, hash_current);
         return(true);
     }
     */
-    return(0);
+    return (0);
 }
 
 /*  Check if two shadc1 checksums are equal */
-b32 mace_sha1dc_cmp(const u8 hash1[SHA1_LEN], 
+b32 mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
                     const u8 hash2[SHA1_LEN]) {
     return (memcmp(hash1, hash2, SHA1_LEN) == 0);
 }
