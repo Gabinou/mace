@@ -58,8 +58,14 @@
 
 #if defined(MACE_RECOMPILE_TIMESTAMP)
     #define MACE_CHECKSUM_EXTENSION ".tm"
+    #define MACE_CHECKSUM_EXTENSION_STR_LEN 3
+    #define MACE_TIMESTAMP "%c"
+    #define MACE_TIMESTAMP_BUFFER 25 /* Just enough for %c */
 #elif defined(MACE_RECOMPILE_SHA1DC)
-    #define MACE_CHECKSUM_EXTENSION ".sha1dc"
+    #define MACE_CHECKSUM_EXTENSION ".sha1"
+    #define MACE_CHECKSUM_EXTENSION_STR_LEN 5
+    /* Note: MACE_SHA1_LEN is a magic number in sha1dc */
+    #define MACE_SHA1_LEN 20
 #else
     #error  Define either MACE_RECOMPILE_TIMESTAMP, or \
     MACE_RECOMPILE_SHA1DC
@@ -416,10 +422,10 @@ typedef struct Mace_Args {
 void Mace_Args_Free(Mace_Args *args);
 
 /***************** CONSTANTS ****************/
-#define MACE_VER_PATCH 4
+#define MACE_VER_PATCH 5
 #define MACE_VER_MINOR 0
 #define MACE_VER_MAJOR 0
-#define MACE_VER_STRING "4.0.0"
+#define MACE_VER_STRING "5.0.0"
 #define MACE_USAGE_MIDCOLW 12
 
 enum MACE {
@@ -427,8 +433,6 @@ enum MACE {
     MACE_MAX_ITERATIONS         = 1024,
     MACE_DEFAULT_OBJECT_LEN     =   16,
     MACE_CWD_BUFFERSIZE         =  256,
-    /* Note: SHA1_LEN is a magic number in sha1dc */
-    SHA1_LEN                    =   20, /* [bytes] */
     MACE_OBJDEP_BUFFER          = 4096
 };
 
@@ -478,24 +482,26 @@ static Mace_Args mace_combine_args_env(Mace_Args args,
 static char  *mace_str_buffer(const char *const strlit);
 
 /* --- mace_criteria --- */
-/* -- sha1dc: recompile if hash changed -- */
-static void mace_sha1dc(const char *file,
-                        u8 hash2[SHA1_LEN]);
-static b32  mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
-                            const u8 hash2[SHA1_LEN]);
-/* -- timestamp: recompile if timestamp later -- */
-static void mace_timestamp(const char  *file,
-                           struct stat *attr);
-static b32  mace_timestamp_cmp(const struct stat *attr1,
-                               const struct stat *attr2);
+typedef struct Mace_Checksum {
+    FILE            *file;
+    const char      *path;
+#ifdef MACE_RECOMPILE_TIMESTAMP
+    struct  stat    *attr_current;
+    struct  stat    *attr_previous;
+#endif
+#ifdef MACE_RECOMPILE_SHA1DC
+    u8               hash_current[MACE_SHA1_LEN];
+    u8               hash_previous[MACE_SHA1_LEN];
+#endif
+} Mace_Checksum;
+
+static void mace_checksum(Mace_Checksum *checksum);
+static b32  mace_checksum_cmp(const Mace_Checksum *checksum);
 
 static b32  mace_file_changed(const char *checksum,
                               const char *header);
-static void mace_checksum_w(const char *checksum_path,
-                            const u8 hash_current[SHA1_LEN]);
-static void mace_checksum_r(FILE *f,
-                            const char *path,
-                            u8 hash_previous[SHA1_LEN]);
+static void mace_checksum_w(Mace_Checksum *checksum);
+static void mace_checksum_r(Mace_Checksum *checksum);
 
 /* --- mace_hashing --- */
 static u64 mace_hash(const char *str);
@@ -869,7 +875,7 @@ void SHA1DCUpdate(SHA1_CTX *, const char *, size_t);
 
 /* obtain SHA-1 hash from SHA-1 context */
 /* returns: 0 = no collision detected, otherwise = collision found => warn user for active attack */
-int  SHA1DCFinal(unsigned char[SHA1_LEN], SHA1_CTX *);
+int  SHA1DCFinal(unsigned char[MACE_SHA1_LEN], SHA1_CTX *);
 
 #ifdef SHA1DC_CUSTOM_TRAILING_INCLUDE_SHA1_H
     #include SHA1DC_CUSTOM_TRAILING_INCLUDE_SHA1_H
@@ -1411,415 +1417,415 @@ static void sha1_compression_W(u32 ihv[5], const u32 W[80]) {
 
 
 void sha1_compression_states(u32 ihv[5], const u32 m[16], u32 W[80],
-     u32 states[80][5]) {
+                             u32 states[80][5]) {
     u32 a = ihv[0], b = ihv[1], c = ihv[2], d = ihv[3], e = ihv[4];
     u32 temp;
 
-    #ifdef DOSTORESTATE00
+#ifdef DOSTORESTATE00
     SHA1_STORE_STATE(0)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(a, b, c, d, e, m, W, 0, temp);
 
-    #ifdef DOSTORESTATE01
+#ifdef DOSTORESTATE01
     SHA1_STORE_STATE(1)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(e, a, b, c, d, m, W, 1, temp);
 
-    #ifdef DOSTORESTATE02
+#ifdef DOSTORESTATE02
     SHA1_STORE_STATE(2)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(d, e, a, b, c, m, W, 2, temp);
 
-    #ifdef DOSTORESTATE03
+#ifdef DOSTORESTATE03
     SHA1_STORE_STATE(3)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(c, d, e, a, b, m, W, 3, temp);
 
-    #ifdef DOSTORESTATE04
+#ifdef DOSTORESTATE04
     SHA1_STORE_STATE(4)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(b, c, d, e, a, m, W, 4, temp);
 
-    #ifdef DOSTORESTATE05
+#ifdef DOSTORESTATE05
     SHA1_STORE_STATE(5)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(a, b, c, d, e, m, W, 5, temp);
 
-    #ifdef DOSTORESTATE06
+#ifdef DOSTORESTATE06
     SHA1_STORE_STATE(6)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(e, a, b, c, d, m, W, 6, temp);
 
-    #ifdef DOSTORESTATE07
+#ifdef DOSTORESTATE07
     SHA1_STORE_STATE(7)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(d, e, a, b, c, m, W, 7, temp);
 
-    #ifdef DOSTORESTATE08
+#ifdef DOSTORESTATE08
     SHA1_STORE_STATE(8)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(c, d, e, a, b, m, W, 8, temp);
 
-    #ifdef DOSTORESTATE09
+#ifdef DOSTORESTATE09
     SHA1_STORE_STATE(9)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(b, c, d, e, a, m, W, 9, temp);
 
-    #ifdef DOSTORESTATE10
+#ifdef DOSTORESTATE10
     SHA1_STORE_STATE(10)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(a, b, c, d, e, m, W, 10, temp);
 
-    #ifdef DOSTORESTATE11
+#ifdef DOSTORESTATE11
     SHA1_STORE_STATE(11)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(e, a, b, c, d, m, W, 11, temp);
 
-    #ifdef DOSTORESTATE12
+#ifdef DOSTORESTATE12
     SHA1_STORE_STATE(12)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(d, e, a, b, c, m, W, 12, temp);
 
-    #ifdef DOSTORESTATE13
+#ifdef DOSTORESTATE13
     SHA1_STORE_STATE(13)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(c, d, e, a, b, m, W, 13, temp);
 
-    #ifdef DOSTORESTATE14
+#ifdef DOSTORESTATE14
     SHA1_STORE_STATE(14)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(b, c, d, e, a, m, W, 14, temp);
 
-    #ifdef DOSTORESTATE15
+#ifdef DOSTORESTATE15
     SHA1_STORE_STATE(15)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_LOAD(a, b, c, d, e, m, W, 15, temp);
 
-    #ifdef DOSTORESTATE16
+#ifdef DOSTORESTATE16
     SHA1_STORE_STATE(16)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_EXPAND(e, a, b, c, d, W, 16, temp);
 
-    #ifdef DOSTORESTATE17
+#ifdef DOSTORESTATE17
     SHA1_STORE_STATE(17)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_EXPAND(d, e, a, b, c, W, 17, temp);
 
-    #ifdef DOSTORESTATE18
+#ifdef DOSTORESTATE18
     SHA1_STORE_STATE(18)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_EXPAND(c, d, e, a, b, W, 18, temp);
 
-    #ifdef DOSTORESTATE19
+#ifdef DOSTORESTATE19
     SHA1_STORE_STATE(19)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND1_STEP_EXPAND(b, c, d, e, a, W, 19, temp);
 
 
 
-    #ifdef DOSTORESTATE20
+#ifdef DOSTORESTATE20
     SHA1_STORE_STATE(20)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(a, b, c, d, e, W, 20, temp);
 
-    #ifdef DOSTORESTATE21
+#ifdef DOSTORESTATE21
     SHA1_STORE_STATE(21)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(e, a, b, c, d, W, 21, temp);
 
-    #ifdef DOSTORESTATE22
+#ifdef DOSTORESTATE22
     SHA1_STORE_STATE(22)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(d, e, a, b, c, W, 22, temp);
 
-    #ifdef DOSTORESTATE23
+#ifdef DOSTORESTATE23
     SHA1_STORE_STATE(23)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(c, d, e, a, b, W, 23, temp);
 
-    #ifdef DOSTORESTATE24
+#ifdef DOSTORESTATE24
     SHA1_STORE_STATE(24)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(b, c, d, e, a, W, 24, temp);
 
-    #ifdef DOSTORESTATE25
+#ifdef DOSTORESTATE25
     SHA1_STORE_STATE(25)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(a, b, c, d, e, W, 25, temp);
 
-    #ifdef DOSTORESTATE26
+#ifdef DOSTORESTATE26
     SHA1_STORE_STATE(26)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(e, a, b, c, d, W, 26, temp);
 
-    #ifdef DOSTORESTATE27
+#ifdef DOSTORESTATE27
     SHA1_STORE_STATE(27)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(d, e, a, b, c, W, 27, temp);
 
-    #ifdef DOSTORESTATE28
+#ifdef DOSTORESTATE28
     SHA1_STORE_STATE(28)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(c, d, e, a, b, W, 28, temp);
 
-    #ifdef DOSTORESTATE29
+#ifdef DOSTORESTATE29
     SHA1_STORE_STATE(29)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(b, c, d, e, a, W, 29, temp);
 
-    #ifdef DOSTORESTATE30
+#ifdef DOSTORESTATE30
     SHA1_STORE_STATE(30)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(a, b, c, d, e, W, 30, temp);
 
-    #ifdef DOSTORESTATE31
+#ifdef DOSTORESTATE31
     SHA1_STORE_STATE(31)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(e, a, b, c, d, W, 31, temp);
 
-    #ifdef DOSTORESTATE32
+#ifdef DOSTORESTATE32
     SHA1_STORE_STATE(32)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(d, e, a, b, c, W, 32, temp);
 
-    #ifdef DOSTORESTATE33
+#ifdef DOSTORESTATE33
     SHA1_STORE_STATE(33)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(c, d, e, a, b, W, 33, temp);
 
-    #ifdef DOSTORESTATE34
+#ifdef DOSTORESTATE34
     SHA1_STORE_STATE(34)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(b, c, d, e, a, W, 34, temp);
 
-    #ifdef DOSTORESTATE35
+#ifdef DOSTORESTATE35
     SHA1_STORE_STATE(35)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(a, b, c, d, e, W, 35, temp);
 
-    #ifdef DOSTORESTATE36
+#ifdef DOSTORESTATE36
     SHA1_STORE_STATE(36)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(e, a, b, c, d, W, 36, temp);
 
-    #ifdef DOSTORESTATE37
+#ifdef DOSTORESTATE37
     SHA1_STORE_STATE(37)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(d, e, a, b, c, W, 37, temp);
 
-    #ifdef DOSTORESTATE38
+#ifdef DOSTORESTATE38
     SHA1_STORE_STATE(38)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(c, d, e, a, b, W, 38, temp);
 
-    #ifdef DOSTORESTATE39
+#ifdef DOSTORESTATE39
     SHA1_STORE_STATE(39)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND2_STEP(b, c, d, e, a, W, 39, temp);
 
 
 
-    #ifdef DOSTORESTATE40
+#ifdef DOSTORESTATE40
     SHA1_STORE_STATE(40)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(a, b, c, d, e, W, 40, temp);
 
-    #ifdef DOSTORESTATE41
+#ifdef DOSTORESTATE41
     SHA1_STORE_STATE(41)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(e, a, b, c, d, W, 41, temp);
 
-    #ifdef DOSTORESTATE42
+#ifdef DOSTORESTATE42
     SHA1_STORE_STATE(42)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(d, e, a, b, c, W, 42, temp);
 
-    #ifdef DOSTORESTATE43
+#ifdef DOSTORESTATE43
     SHA1_STORE_STATE(43)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(c, d, e, a, b, W, 43, temp);
 
-    #ifdef DOSTORESTATE44
+#ifdef DOSTORESTATE44
     SHA1_STORE_STATE(44)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(b, c, d, e, a, W, 44, temp);
 
-    #ifdef DOSTORESTATE45
+#ifdef DOSTORESTATE45
     SHA1_STORE_STATE(45)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(a, b, c, d, e, W, 45, temp);
 
-    #ifdef DOSTORESTATE46
+#ifdef DOSTORESTATE46
     SHA1_STORE_STATE(46)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(e, a, b, c, d, W, 46, temp);
 
-    #ifdef DOSTORESTATE47
+#ifdef DOSTORESTATE47
     SHA1_STORE_STATE(47)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(d, e, a, b, c, W, 47, temp);
 
-    #ifdef DOSTORESTATE48
+#ifdef DOSTORESTATE48
     SHA1_STORE_STATE(48)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(c, d, e, a, b, W, 48, temp);
 
-    #ifdef DOSTORESTATE49
+#ifdef DOSTORESTATE49
     SHA1_STORE_STATE(49)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(b, c, d, e, a, W, 49, temp);
 
-    #ifdef DOSTORESTATE50
+#ifdef DOSTORESTATE50
     SHA1_STORE_STATE(50)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(a, b, c, d, e, W, 50, temp);
 
-    #ifdef DOSTORESTATE51
+#ifdef DOSTORESTATE51
     SHA1_STORE_STATE(51)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(e, a, b, c, d, W, 51, temp);
 
-    #ifdef DOSTORESTATE52
+#ifdef DOSTORESTATE52
     SHA1_STORE_STATE(52)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(d, e, a, b, c, W, 52, temp);
 
-    #ifdef DOSTORESTATE53
+#ifdef DOSTORESTATE53
     SHA1_STORE_STATE(53)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(c, d, e, a, b, W, 53, temp);
 
-    #ifdef DOSTORESTATE54
+#ifdef DOSTORESTATE54
     SHA1_STORE_STATE(54)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(b, c, d, e, a, W, 54, temp);
 
-    #ifdef DOSTORESTATE55
+#ifdef DOSTORESTATE55
     SHA1_STORE_STATE(55)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(a, b, c, d, e, W, 55, temp);
 
-    #ifdef DOSTORESTATE56
+#ifdef DOSTORESTATE56
     SHA1_STORE_STATE(56)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(e, a, b, c, d, W, 56, temp);
 
-    #ifdef DOSTORESTATE57
+#ifdef DOSTORESTATE57
     SHA1_STORE_STATE(57)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(d, e, a, b, c, W, 57, temp);
 
-    #ifdef DOSTORESTATE58
+#ifdef DOSTORESTATE58
     SHA1_STORE_STATE(58)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(c, d, e, a, b, W, 58, temp);
 
-    #ifdef DOSTORESTATE59
+#ifdef DOSTORESTATE59
     SHA1_STORE_STATE(59)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND3_STEP(b, c, d, e, a, W, 59, temp);
 
 
 
 
-    #ifdef DOSTORESTATE60
+#ifdef DOSTORESTATE60
     SHA1_STORE_STATE(60)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(a, b, c, d, e, W, 60, temp);
 
-    #ifdef DOSTORESTATE61
+#ifdef DOSTORESTATE61
     SHA1_STORE_STATE(61)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(e, a, b, c, d, W, 61, temp);
 
-    #ifdef DOSTORESTATE62
+#ifdef DOSTORESTATE62
     SHA1_STORE_STATE(62)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(d, e, a, b, c, W, 62, temp);
 
-    #ifdef DOSTORESTATE63
+#ifdef DOSTORESTATE63
     SHA1_STORE_STATE(63)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(c, d, e, a, b, W, 63, temp);
 
-    #ifdef DOSTORESTATE64
+#ifdef DOSTORESTATE64
     SHA1_STORE_STATE(64)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(b, c, d, e, a, W, 64, temp);
 
-    #ifdef DOSTORESTATE65
+#ifdef DOSTORESTATE65
     SHA1_STORE_STATE(65)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(a, b, c, d, e, W, 65, temp);
 
-    #ifdef DOSTORESTATE66
+#ifdef DOSTORESTATE66
     SHA1_STORE_STATE(66)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(e, a, b, c, d, W, 66, temp);
 
-    #ifdef DOSTORESTATE67
+#ifdef DOSTORESTATE67
     SHA1_STORE_STATE(67)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(d, e, a, b, c, W, 67, temp);
 
-    #ifdef DOSTORESTATE68
+#ifdef DOSTORESTATE68
     SHA1_STORE_STATE(68)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(c, d, e, a, b, W, 68, temp);
 
-    #ifdef DOSTORESTATE69
+#ifdef DOSTORESTATE69
     SHA1_STORE_STATE(69)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(b, c, d, e, a, W, 69, temp);
 
-    #ifdef DOSTORESTATE70
+#ifdef DOSTORESTATE70
     SHA1_STORE_STATE(70)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(a, b, c, d, e, W, 70, temp);
 
-    #ifdef DOSTORESTATE71
+#ifdef DOSTORESTATE71
     SHA1_STORE_STATE(71)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(e, a, b, c, d, W, 71, temp);
 
-    #ifdef DOSTORESTATE72
+#ifdef DOSTORESTATE72
     SHA1_STORE_STATE(72)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(d, e, a, b, c, W, 72, temp);
 
-    #ifdef DOSTORESTATE73
+#ifdef DOSTORESTATE73
     SHA1_STORE_STATE(73)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(c, d, e, a, b, W, 73, temp);
 
-    #ifdef DOSTORESTATE74
+#ifdef DOSTORESTATE74
     SHA1_STORE_STATE(74)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(b, c, d, e, a, W, 74, temp);
 
-    #ifdef DOSTORESTATE75
+#ifdef DOSTORESTATE75
     SHA1_STORE_STATE(75)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(a, b, c, d, e, W, 75, temp);
 
-    #ifdef DOSTORESTATE76
+#ifdef DOSTORESTATE76
     SHA1_STORE_STATE(76)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(e, a, b, c, d, W, 76, temp);
 
-    #ifdef DOSTORESTATE77
+#ifdef DOSTORESTATE77
     SHA1_STORE_STATE(77)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(d, e, a, b, c, W, 77, temp);
 
-    #ifdef DOSTORESTATE78
+#ifdef DOSTORESTATE78
     SHA1_STORE_STATE(78)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(c, d, e, a, b, W, 78, temp);
 
-    #ifdef DOSTORESTATE79
+#ifdef DOSTORESTATE79
     SHA1_STORE_STATE(79)
-    #endif
+#endif
     SHA1COMPRESS_FULL_ROUND4_STEP(b, c, d, e, a, W, 79, temp);
 
 
@@ -2335,406 +2341,406 @@ void sha1_compression_states(u32 ihv[5], const u32 m[16], u32 W[80],
 static void sha1_recompression_step(u32 step, u32 ihvin[5], u32 ihvout[5],
                                     const u32 me2[80], const u32 state[5]) {
     switch (step) {
-            #ifdef DOSTORESTATE0
+#ifdef DOSTORESTATE0
         case 0:
             sha1recompress_fast_0(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE1
+#endif
+#ifdef DOSTORESTATE1
         case 1:
             sha1recompress_fast_1(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE2
+#endif
+#ifdef DOSTORESTATE2
         case 2:
             sha1recompress_fast_2(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE3
+#endif
+#ifdef DOSTORESTATE3
         case 3:
             sha1recompress_fast_3(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE4
+#endif
+#ifdef DOSTORESTATE4
         case 4:
             sha1recompress_fast_4(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE5
+#endif
+#ifdef DOSTORESTATE5
         case 5:
             sha1recompress_fast_5(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE6
+#endif
+#ifdef DOSTORESTATE6
         case 6:
             sha1recompress_fast_6(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE7
+#endif
+#ifdef DOSTORESTATE7
         case 7:
             sha1recompress_fast_7(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE8
+#endif
+#ifdef DOSTORESTATE8
         case 8:
             sha1recompress_fast_8(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE9
+#endif
+#ifdef DOSTORESTATE9
         case 9:
             sha1recompress_fast_9(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE10
+#endif
+#ifdef DOSTORESTATE10
         case 10:
             sha1recompress_fast_10(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE11
+#endif
+#ifdef DOSTORESTATE11
         case 11:
             sha1recompress_fast_11(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE12
+#endif
+#ifdef DOSTORESTATE12
         case 12:
             sha1recompress_fast_12(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE13
+#endif
+#ifdef DOSTORESTATE13
         case 13:
             sha1recompress_fast_13(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE14
+#endif
+#ifdef DOSTORESTATE14
         case 14:
             sha1recompress_fast_14(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE15
+#endif
+#ifdef DOSTORESTATE15
         case 15:
             sha1recompress_fast_15(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE16
+#endif
+#ifdef DOSTORESTATE16
         case 16:
             sha1recompress_fast_16(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE17
+#endif
+#ifdef DOSTORESTATE17
         case 17:
             sha1recompress_fast_17(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE18
+#endif
+#ifdef DOSTORESTATE18
         case 18:
             sha1recompress_fast_18(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE19
+#endif
+#ifdef DOSTORESTATE19
         case 19:
             sha1recompress_fast_19(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE20
+#endif
+#ifdef DOSTORESTATE20
         case 20:
             sha1recompress_fast_20(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE21
+#endif
+#ifdef DOSTORESTATE21
         case 21:
             sha1recompress_fast_21(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE22
+#endif
+#ifdef DOSTORESTATE22
         case 22:
             sha1recompress_fast_22(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE23
+#endif
+#ifdef DOSTORESTATE23
         case 23:
             sha1recompress_fast_23(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE24
+#endif
+#ifdef DOSTORESTATE24
         case 24:
             sha1recompress_fast_24(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE25
+#endif
+#ifdef DOSTORESTATE25
         case 25:
             sha1recompress_fast_25(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE26
+#endif
+#ifdef DOSTORESTATE26
         case 26:
             sha1recompress_fast_26(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE27
+#endif
+#ifdef DOSTORESTATE27
         case 27:
             sha1recompress_fast_27(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE28
+#endif
+#ifdef DOSTORESTATE28
         case 28:
             sha1recompress_fast_28(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE29
+#endif
+#ifdef DOSTORESTATE29
         case 29:
             sha1recompress_fast_29(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE30
+#endif
+#ifdef DOSTORESTATE30
         case 30:
             sha1recompress_fast_30(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE31
+#endif
+#ifdef DOSTORESTATE31
         case 31:
             sha1recompress_fast_31(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE32
+#endif
+#ifdef DOSTORESTATE32
         case 32:
             sha1recompress_fast_32(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE33
+#endif
+#ifdef DOSTORESTATE33
         case 33:
             sha1recompress_fast_33(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE34
+#endif
+#ifdef DOSTORESTATE34
         case 34:
             sha1recompress_fast_34(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE35
+#endif
+#ifdef DOSTORESTATE35
         case 35:
             sha1recompress_fast_35(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE36
+#endif
+#ifdef DOSTORESTATE36
         case 36:
             sha1recompress_fast_36(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE37
+#endif
+#ifdef DOSTORESTATE37
         case 37:
             sha1recompress_fast_37(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE38
+#endif
+#ifdef DOSTORESTATE38
         case 38:
             sha1recompress_fast_38(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE39
+#endif
+#ifdef DOSTORESTATE39
         case 39:
             sha1recompress_fast_39(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE40
+#endif
+#ifdef DOSTORESTATE40
         case 40:
             sha1recompress_fast_40(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE41
+#endif
+#ifdef DOSTORESTATE41
         case 41:
             sha1recompress_fast_41(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE42
+#endif
+#ifdef DOSTORESTATE42
         case 42:
             sha1recompress_fast_42(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE43
+#endif
+#ifdef DOSTORESTATE43
         case 43:
             sha1recompress_fast_43(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE44
+#endif
+#ifdef DOSTORESTATE44
         case 44:
             sha1recompress_fast_44(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE45
+#endif
+#ifdef DOSTORESTATE45
         case 45:
             sha1recompress_fast_45(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE46
+#endif
+#ifdef DOSTORESTATE46
         case 46:
             sha1recompress_fast_46(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE47
+#endif
+#ifdef DOSTORESTATE47
         case 47:
             sha1recompress_fast_47(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE48
+#endif
+#ifdef DOSTORESTATE48
         case 48:
             sha1recompress_fast_48(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE49
+#endif
+#ifdef DOSTORESTATE49
         case 49:
             sha1recompress_fast_49(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE50
+#endif
+#ifdef DOSTORESTATE50
         case 50:
             sha1recompress_fast_50(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE51
+#endif
+#ifdef DOSTORESTATE51
         case 51:
             sha1recompress_fast_51(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE52
+#endif
+#ifdef DOSTORESTATE52
         case 52:
             sha1recompress_fast_52(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE53
+#endif
+#ifdef DOSTORESTATE53
         case 53:
             sha1recompress_fast_53(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE54
+#endif
+#ifdef DOSTORESTATE54
         case 54:
             sha1recompress_fast_54(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE55
+#endif
+#ifdef DOSTORESTATE55
         case 55:
             sha1recompress_fast_55(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE56
+#endif
+#ifdef DOSTORESTATE56
         case 56:
             sha1recompress_fast_56(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE57
+#endif
+#ifdef DOSTORESTATE57
         case 57:
             sha1recompress_fast_57(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE58
+#endif
+#ifdef DOSTORESTATE58
         case 58:
             sha1recompress_fast_58(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE59
+#endif
+#ifdef DOSTORESTATE59
         case 59:
             sha1recompress_fast_59(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE60
+#endif
+#ifdef DOSTORESTATE60
         case 60:
             sha1recompress_fast_60(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE61
+#endif
+#ifdef DOSTORESTATE61
         case 61:
             sha1recompress_fast_61(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE62
+#endif
+#ifdef DOSTORESTATE62
         case 62:
             sha1recompress_fast_62(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE63
+#endif
+#ifdef DOSTORESTATE63
         case 63:
             sha1recompress_fast_63(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE64
+#endif
+#ifdef DOSTORESTATE64
         case 64:
             sha1recompress_fast_64(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE65
+#endif
+#ifdef DOSTORESTATE65
         case 65:
             sha1recompress_fast_65(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE66
+#endif
+#ifdef DOSTORESTATE66
         case 66:
             sha1recompress_fast_66(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE67
+#endif
+#ifdef DOSTORESTATE67
         case 67:
             sha1recompress_fast_67(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE68
+#endif
+#ifdef DOSTORESTATE68
         case 68:
             sha1recompress_fast_68(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE69
+#endif
+#ifdef DOSTORESTATE69
         case 69:
             sha1recompress_fast_69(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE70
+#endif
+#ifdef DOSTORESTATE70
         case 70:
             sha1recompress_fast_70(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE71
+#endif
+#ifdef DOSTORESTATE71
         case 71:
             sha1recompress_fast_71(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE72
+#endif
+#ifdef DOSTORESTATE72
         case 72:
             sha1recompress_fast_72(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE73
+#endif
+#ifdef DOSTORESTATE73
         case 73:
             sha1recompress_fast_73(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE74
+#endif
+#ifdef DOSTORESTATE74
         case 74:
             sha1recompress_fast_74(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE75
+#endif
+#ifdef DOSTORESTATE75
         case 75:
             sha1recompress_fast_75(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE76
+#endif
+#ifdef DOSTORESTATE76
         case 76:
             sha1recompress_fast_76(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE77
+#endif
+#ifdef DOSTORESTATE77
         case 77:
             sha1recompress_fast_77(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE78
+#endif
+#ifdef DOSTORESTATE78
         case 78:
             sha1recompress_fast_78(ihvin, ihvout, me2, state);
             break;
-            #endif
-            #ifdef DOSTORESTATE79
+#endif
+#ifdef DOSTORESTATE79
         case 79:
             sha1recompress_fast_79(ihvin, ihvout, me2, state);
             break;
-            #endif
+#endif
         default:
             abort();
     }
@@ -2859,12 +2865,12 @@ void SHA1DCUpdate(SHA1_CTX *ctx, const char *buf, size_t len) {
     while (len >= 64) {
         ctx->total += 64;
 
-        #if defined(SHA1DC_ALLOW_UNALIGNED_ACCESS)
+#if defined(SHA1DC_ALLOW_UNALIGNED_ACCESS)
         sha1_process(ctx, (u32 *)(buf));
-        #else
+#else
         memcpy(ctx->buffer, buf, 64);
         sha1_process(ctx, (u32 *)(ctx->buffer));
-        #endif /* defined(SHA1DC_ALLOW_UNALIGNED_ACCESS) */
+#endif /* defined(SHA1DC_ALLOW_UNALIGNED_ACCESS) */
         buf += 64;
         len -= 64;
     }
@@ -2881,7 +2887,7 @@ static const unsigned char sha1_padding[64] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-int SHA1DCFinal(unsigned char output[SHA1_LEN], SHA1_CTX *ctx) {
+int SHA1DCFinal(unsigned char output[MACE_SHA1_LEN], SHA1_CTX *ctx) {
     u32 last = ctx->total & 63;
     u32 padn = (last < 56) ? (56 - last) : (120 - last);
     u64 total;
@@ -3375,7 +3381,7 @@ void reverse(char *v[], int i, int j) {
 
 /* Check if state is at end of argv */
 int is_argv_end(const struct parg_state *ps, int argc,
-                    char *const argv[]) {
+                char *const argv[]) {
     return ps->optind >= argc || argv[ps->optind] == NULL;
 }
 
@@ -5868,9 +5874,9 @@ void mace_parse_configs(void) {
 /*         using depth-first  search through its */
 /*         dependencies */
 void mace_build_order(void) {
-    #ifndef NDEBUG
+#ifndef NDEBUG
     b32 cond;
-    #endif /* NDEBUG */
+#endif /* NDEBUG */
 
     size_t o_cnt = 0; /* order count */
 
@@ -5891,12 +5897,12 @@ void mace_build_order(void) {
     }
     /* If user_target is all,  */
     /*  or default_target is all and no user_target */
-    #ifndef NDEBUG
+#ifndef NDEBUG
     cond  = (mace_user_target == MACE_TARGET_NULL) &&
             (mace_default_target == MACE_TARGET_NULL);
     cond |= (mace_user_target == MACE_TARGET_NULL);
     assert(cond);
-    #endif /* NDEBUG */
+#endif /* NDEBUG */
 
     o_cnt = 0;
     /* Visit all targets */
@@ -6744,7 +6750,6 @@ void mace_Target_Deps_Hash(Target *target) {
 /******************* checksums ******************/
 #define MACE_SRC_FOLDER_STR_LEN 4
 #define MACE_INCLUDE_FOLDER_STR_LEN 8
-#define MACE_CHECKSUM_EXTENSION_STR_LEN 5
 #define MACE_SEPARATOR_STR_LEN 1
 /*  Compute sha1dc checksum of file. */
 char *mace_checksum_filename(char *file, int mode) {
@@ -6812,96 +6817,68 @@ char *mace_checksum_filename(char *file, int mode) {
     total += file_len;
 
     /* Add extension */
-    memcpy(sha1 + total, ".sha1", MACE_CHECKSUM_EXTENSION_STR_LEN);
+    memcpy(sha1 + total,
+           MACE_CHECKSUM_EXTENSION,
+           MACE_CHECKSUM_EXTENSION_STR_LEN);
     return (sha1);
 }
 
-void mace_timestamp(const char *file,
-                    struct stat *attr) {
-    MACE_EARLY_RET(file != NULL, MACE_VOID, assert);
-    MACE_EARLY_RET(attr != NULL, MACE_VOID, assert);
-    stat(file, attr);
-}
-
-b32  mace_timestamp_cmp(const struct stat *attr1,
-                            const struct stat *attr2) {
-        double diff;
-        MACE_EARLY_RET(attr1 != NULL, true, assert);
-        MACE_EARLY_RET(attr2 != NULL, true, assert);
-        diff = difftime(attr1->st_mtime, attr2->st_mtime);
-        return (diff > 0);
-    }
-
-#define MACE_TIMESAMP "%c"
-#define MACE_TIMESAMP_BUFFER 25 /* Just enough for %c */
-/* How to multiple checksum interface
-**  1. Void pointer to struct, type at boffset
-**      - Runtime penalty no gain
-**  -> 2. Common struct interface, members & code #define'd out
-**      - Nuking code is good
-** */
-void mace_checksum_t_w(const char *checksum_path,
-                       const struct stat *attr) {
-    char buf[MACE_TIMESAMP_BUFFER] = {0};
+void mace_checksum_w(Mace_Checksum *checksum) {
+#ifdef MACE_RECOMPILE_TIMESTAMP
+    char buf[MACE_TIMESTAMP_BUFFER] = {0};
     struct tm *ptm;
+#endif /* MACE_RECOMPILE_TIMESTAMP */
 
-    FILE *fd = fopen(checksum_path, "w");
-    if (fd == NULL) {
-        fprintf(stderr, "Could not write to checksum file '%s'\n", checksum_path);
+    checksum->file = fopen(checksum->path, "w");
+    if (checksum->file == NULL) {
+        fprintf(stderr,
+                "Could not write to checksum file '%s'\n",
+                checksum->path);
         exit(1);
     }
 
-    ptm = gmtime(&attr->st_mtime);
-    strftime(buf, sizeof(buf), MACE_TIMESAMP, ptm);
-    fwrite(buf, 1, strlen(buf), fd);
-
-    fclose(fd);
+#if defined(MACE_RECOMPILE_SHA1DC)
+    fwrite(checksum->hash_current, 1, MACE_SHA1_LEN, checksum->file);
+#elif defined(MACE_RECOMPILE_TIMESTAMP)
+    ptm = gmtime(&checksum->attr_current->st_mtime);
+    strftime(buf, sizeof(buf), MACE_TIMESTAMP, ptm);
+    fwrite(buf, 1, strlen(buf), checksum->file);
+#else
+    #error No recompilation flag set
+#endif
 }
 
-void mace_checksum_t_r(FILE *fd, const char *path,
-                       struct stat *attr) {
-    char buf[MACE_TIMESAMP_BUFFER] = {0};
+void mace_checksum_r(Mace_Checksum *checksum) {
     size_t size;
-    struct tm tm;
-    MACE_EARLY_RET(fd != NULL, MACE_VOID, assert);
-    fseek(fd, 0, SEEK_SET);
+#if defined(MACE_RECOMPILE_TIMESTAMP)
+    char buf[MACE_TIMESTAMP_BUFFER] = {0};
+    struct tm *ptm;
+#endif /* MACE_RECOMPILE_TIMESTAMP */
 
-    size = fread(buf, 1, MACE_TIMESAMP_BUFFER, fd);
-    if (size != (MACE_TIMESAMP_BUFFER - 1)) {
-        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", path);
-        fclose(fd);
+    MACE_EARLY_RET(checksum->file != NULL, MACE_VOID, assert);
+    fseek(checksum->file, 0, SEEK_SET);
+
+#if defined(MACE_RECOMPILE_SHA1DC)
+    size = fread(   checksum->hash_previous, 1,
+                    MACE_SHA1_LEN, checksum->file);
+    if (size != MACE_SHA1_LEN) {
+#elif defined(MACE_RECOMPILE_TIMESTAMP)
+    size = fread(buf, 1, MACE_TIMESTAMP_BUFFER, checksum->file);
+    if (size != (MACE_TIMESTAMP_BUFFER - 1)) {
+#else 
+    #error No recompilation flag set
+#endif
+        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", checksum->path);
+        fclose(checksum->file);
         exit(1);
     }
 
-    strptime(buf, MACE_TIMESAMP, &tm);
-    attr->st_mtime = mktime(&tm);
-    fclose(fd);
-}
+#if defined(MACE_RECOMPILE_TIMESTAMP)
+    strptime(buf, MACE_TIMESTAMP, &tm);
+    checksum->attr_previous->st_mtime = mktime(&tm);
+#endif /* MACE_RECOMPILE_TIMESTAMP */
 
-void mace_checksum_w(const char *checksum_path,
-                     const u8 hash_current[SHA1_LEN]) {
-    FILE *fd = fopen(checksum_path, "w");
-    if (fd == NULL) {
-        fprintf(stderr, "Could not write to checksum file '%s'\n", checksum_path);
-        exit(1);
-    }
-    fwrite(hash_current, 1, SHA1_LEN, fd);
-    fclose(fd);
-}
-
-void mace_checksum_r(FILE *fd,
-                     const char *path,
-                     u8 hash_previous[SHA1_LEN]) {
-    size_t size;
-    MACE_EARLY_RET(fd != NULL, MACE_VOID, assert);
-    fseek(fd, 0, SEEK_SET);
-    size = fread(hash_previous, 1, SHA1_LEN, fd);
-    if (size != SHA1_LEN) {
-        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", path);
-        fclose(fd);
-        exit(1);
-    }
-    fclose(fd);
+    fclose(checksum->file);
 }
 
 b32 mace_file_changed(const char *checksum_path,
@@ -6910,82 +6887,84 @@ b32 mace_file_changed(const char *checksum_path,
     **      1. hash changed.
     **      2. file didn't exist.
     ** Also writes new checksum file if changed */
-    u8 hash_current[SHA1_LEN]   = {0};
-    u8 hash_previous[SHA1_LEN]  = {0};
-    struct stat attr_current    = {0};
-    struct stat attr_previous   = {0};
-    FILE *fd = fopen(checksum_path, "r");
+    Mace_Checksum checksum = {0};
+    checksum.path = checksum_path;
+    checksum.file = fopen(checksum.path, "r");
 
     /* --- Did checksum file exist? --- */
-    /* mace_sha1dc(file_path, hash_current) */;
-    mace_timestamp(file_path, &attr_current) ;
-    if (fd == NULL) {
-        /* mace_checksum_w(checksum_path, hash_current); */
-
-        mace_checksum_t_w(checksum_path, &attr_current);
+    mace_checksum(&checksum);
+    if (checksum.file == NULL) {
+        mace_checksum_w(&checksum); 
         return (true);
     }
 
     /* --- File exists, comparing checksums --- */
-    mace_checksum_t_r(fd, checksum_path, &attr_previous);
-    if (!mace_timestamp_cmp(&attr_current, &attr_previous)) {
-        mace_checksum_t_w(checksum_path, &attr_current);
+    mace_checksum_r(&checksum);
+    if (!mace_checksum_cmp(&checksum)) {
+        mace_checksum_w(&checksum);
         return (true);
     }
-
-    /*
-    mace_checksum_r(fd, checksum_path, hash_previous);
-    if (!mace_sha1dc_cmp(hash_current, hash_previous)) {
-        mace_checksum_w(checksum_path, hash_current);
-        return(true);
-    }
-    */
     return (0);
 }
 
-/*  Check if two shadc1 checksums are equal */
-b32 mace_sha1dc_cmp(const u8 hash1[SHA1_LEN],
-                    const u8 hash2[SHA1_LEN]) {
-    return (memcmp(hash1, hash2, SHA1_LEN) == 0);
+b32 mace_checksum_cmp(const Mace_Checksum *checksum) {
+#if defined(MACE_RECOMPILE_TIMESTAMP)
+    double diff;
+    MACE_EARLY_RET(checksum->attr_current   != NULL, true, assert);
+    MACE_EARLY_RET(checksum->attr_previous  != NULL, true, assert);
+    diff = difftime(checksum->attr_current->st_mtime, 
+                    checksum->attr_previous->st_mtime);
+    return (diff > 0);
+#elif defined(MACE_RECOMPILE_SHA1DC)
+    return (memcmp( checksum->hash_current, 
+                    checksum->hash_previous, 
+                    MACE_SHA1_LEN) == 0);
+#else
+    #error No recompilation flag set
+#endif
 }
 
-void mace_sha1dc(const char *file, u8 hash[SHA1_LEN]) {
+void mace_checksum(Mace_Checksum *checksum) {
+#if defined(MACE_RECOMPILE_TIMESTAMP)
+    MACE_EARLY_RET(checksum->path           != NULL, MACE_VOID, assert);
+    MACE_EARLY_RET(checksum->attr_current   != NULL, MACE_VOID, assert);
+    stat(checksum->path, checksum->attr_current);
+#elif defined(MACE_RECOMPILE_SHA1DC)
     /*  1. Compute hash of input file
     **  2. Check for collision input file and hash */
     int      foundcollision;
     char     buffer[USHRT_MAX + 1];
-    FILE    *fd;
     size_t   size;
     SHA1_CTX ctx2;
 
-    MACE_EARLY_RET(file != NULL, MACE_VOID, assert);
+    MACE_EARLY_RET(checksum->path != NULL, MACE_VOID, assert);
 
     /* - open file - */
-    fd = fopen(file, "rb");
-    if (fd == NULL) {
-        fprintf(stderr, "cannot open file: '%s'\n", file);
+    checksum->file = fopen(checksum->path, "rb");
+    if (checksum->file == NULL) {
+        fprintf(stderr, "cannot open file: '%s'\n", checksum->path);
         exit(1);
     }
 
     /* - compute checksum - */
     SHA1DCInit(&ctx2);
     while (true) {
-        size = fread(buffer, 1, (USHRT_MAX + 1), fd);
+        size = fread(buffer, 1, (USHRT_MAX + 1), checksum->file);
         SHA1DCUpdate(&ctx2, buffer, (unsigned)(size));
         if (size != (USHRT_MAX + 1))
             break;
     }
-    if (ferror(fd)) {
-        fprintf(stderr, "file read error: '%s'\n", file);
+    if (ferror(checksum->file)) {
+        fprintf(stderr, "file read error: '%s'\n", checksum->path);
         exit(1);
     }
-    if (!feof(fd)) {
-        fprintf(stderr, "not end of file?: '%s'\n", file);
+    if (!feof(checksum->file)) {
+        fprintf(stderr, "not end of file?: '%s'\n", checksum->path);
         exit(1);
     }
 
     /* - check for collision - */
-    foundcollision = SHA1DCFinal(hash, &ctx2);
+    foundcollision = SHA1DCFinal(checksum->hash_current, &ctx2);
 
     /* TODO: Any way to solve collision?  */
     if (foundcollision) {
@@ -6993,7 +6972,10 @@ void mace_sha1dc(const char *file, u8 hash[SHA1_LEN]) {
         exit(1);
     }
 
-    fclose(fd);
+    fclose(checksum->file);
+#else
+    #error No recompilation flag set
+#endif
 }
 
 /************** argument parsing **************/

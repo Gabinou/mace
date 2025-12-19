@@ -1,4 +1,3 @@
-# Copyright (C) Gabriel Taillon, 2023
 # Astyle option file aka config
 
 # Show only formatted files
@@ -14,7 +13,6 @@
 --indent-continuation=2
 --indent-preproc-block
 --indent-preproc-define
---indent-preproc-cond
 --indent-col1-comments
 --min-conditional-indent=0
 --max-continuation-indent=60
@@ -23,9 +21,8 @@
 --pad-oper
 --pad-comma
 --pad-header
---unpad-paren
---align-pointer=name
---align-reference=name
+# As of 3.5.2 operators in enums are aligned as pointers
+# --align-pointer=name
 
 # Formatting options #
 --break-one-line-headers
