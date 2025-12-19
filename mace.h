@@ -484,7 +484,8 @@ static char  *mace_str_buffer(const char *const strlit);
 /* --- mace_criteria --- */
 typedef struct Mace_Checksum {
     FILE            *file;
-    const char      *path;
+    const char      *file_path;
+    const char      *checksum_path;
 #ifdef MACE_RECOMPILE_TIMESTAMP
     struct  stat    *attr_current;
     struct  stat    *attr_previous;
@@ -6829,11 +6830,11 @@ void mace_checksum_w(Mace_Checksum *checksum) {
     struct tm *ptm;
 #endif /* MACE_RECOMPILE_TIMESTAMP */
 
-    checksum->file = fopen(checksum->path, "w");
+    checksum->file = fopen(checksum->checksum_path, "w");
     if (checksum->file == NULL) {
         fprintf(stderr,
                 "Could not write to checksum file '%s'\n",
-                checksum->path);
+                checksum->checksum_path);
         exit(1);
     }
 
@@ -6868,7 +6869,7 @@ void mace_checksum_r(Mace_Checksum *checksum) {
 #else 
     #error No recompilation flag set
 #endif
-        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", checksum->path);
+        fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", checksum->checksum_path);
         fclose(checksum->file);
         exit(1);
     }
@@ -6888,8 +6889,9 @@ b32 mace_file_changed(const char *checksum_path,
     **      2. file didn't exist.
     ** Also writes new checksum file if changed */
     Mace_Checksum checksum = {0};
-    checksum.path = checksum_path;
-    checksum.file = fopen(checksum.path, "r");
+    checksum.checksum_path  = checksum_path;
+    checksum.file_path      = file_path;
+    checksum.file = fopen(checksum.checksum_path, "r");
 
     /* --- Did checksum file exist? --- */
     mace_checksum(&checksum);
@@ -6934,32 +6936,33 @@ void mace_checksum(Mace_Checksum *checksum) {
     **  2. Check for collision input file and hash */
     int      foundcollision;
     char     buffer[USHRT_MAX + 1];
+    FILE    *file;
     size_t   size;
     SHA1_CTX ctx2;
 
-    MACE_EARLY_RET(checksum->path != NULL, MACE_VOID, assert);
+    MACE_EARLY_RET(checksum->file_path != NULL, MACE_VOID, assert);
 
     /* - open file - */
-    checksum->file = fopen(checksum->path, "rb");
-    if (checksum->file == NULL) {
-        fprintf(stderr, "cannot open file: '%s'\n", checksum->path);
+    file = fopen(checksum->file_path, "rb");
+    if (file == NULL) {
+        fprintf(stderr, "cannot open file: '%s'\n", checksum->file_path);
         exit(1);
     }
 
     /* - compute checksum - */
     SHA1DCInit(&ctx2);
     while (true) {
-        size = fread(buffer, 1, (USHRT_MAX + 1), checksum->file);
+        size = fread(buffer, 1, (USHRT_MAX + 1), file);
         SHA1DCUpdate(&ctx2, buffer, (unsigned)(size));
         if (size != (USHRT_MAX + 1))
             break;
     }
-    if (ferror(checksum->file)) {
-        fprintf(stderr, "file read error: '%s'\n", checksum->path);
+    if (ferror(file)) {
+        fprintf(stderr, "file read error: '%s'\n", checksum->file_path);
         exit(1);
     }
-    if (!feof(checksum->file)) {
-        fprintf(stderr, "not end of file?: '%s'\n", checksum->path);
+    if (!feof(file)) {
+        fprintf(stderr, "not end of file?: '%s'\n", checksum->file_path);
         exit(1);
     }
 
@@ -6972,7 +6975,7 @@ void mace_checksum(Mace_Checksum *checksum) {
         exit(1);
     }
 
-    fclose(checksum->file);
+    fclose(file);
 #else
     #error No recompilation flag set
 #endif
