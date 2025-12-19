@@ -487,8 +487,8 @@ typedef struct Mace_Checksum {
     const char      *file_path;
     const char      *checksum_path;
 #ifdef MACE_RECOMPILE_TIMESTAMP
-    struct  stat    *attr_current;
-    struct  stat    *attr_previous;
+    struct  stat    attr_current;
+    struct  stat    attr_previous;
 #endif
 #ifdef MACE_RECOMPILE_SHA1DC
     u8               hash_current[MACE_SHA1_LEN];
@@ -778,6 +778,7 @@ static char     *build_dir   = NULL;
 /* -- mace_globals control -- */
 static void mace_object_grow(void);
 
+#if defined(MACE_RECOMPILE_SHA1DC)
 /*************** SHA1DC DECLARATION ***************/
 
 /***
@@ -935,6 +936,8 @@ void ubc_check(const u32 W[80], u32 dvmask[DVMASKSIZE]);
 #endif /* SHA1DC_CUSTOM_TRAILING_INCLUDE_UBC_CHECK_H */
 
 #endif /* SHA1DC_UBC_CHECK_H */
+#endif /*MACE_RECOMPILE_SHA1DC */
+
 /************* SHA1DC DECLARATION END *************/
 
 /**************** PARG DECLARATION ****************/
@@ -1025,6 +1028,7 @@ extern int parg_getopt_long(struct parg_state *ps, int c, char *const v[],
 #endif /* PARG_INCLUDED */
 /*************** PARG DECLARATION END ***************/
 
+#if defined(MACE_RECOMPILE_SHA1DC)
 /******************* SHA1DC SOURCE ******************/
 /***
 * Copyright 2017 Marc Stevens <marc@marc-stevens.nl>, Dan Shumow (danshu@microsoft.com)
@@ -3359,6 +3363,7 @@ void ubc_check(const u32 W[80], u32 dvmask[1]) {
 #endif
 
 /**************** SHA1DC SOURCE END ***************/
+#endif /* MACE_RECOMPILE_SHA1DC */
 
 /******************* PARG SOURCE ******************/
 
@@ -6841,7 +6846,7 @@ void mace_checksum_w(Mace_Checksum *checksum) {
 #if defined(MACE_RECOMPILE_SHA1DC)
     fwrite(checksum->hash_current, 1, MACE_SHA1_LEN, checksum->file);
 #elif defined(MACE_RECOMPILE_TIMESTAMP)
-    ptm = gmtime(&checksum->attr_current->st_mtime);
+    ptm = gmtime(&checksum->attr_current.st_mtime);
     strftime(buf, sizeof(buf), MACE_TIMESTAMP, ptm);
     fwrite(buf, 1, strlen(buf), checksum->file);
 #else
@@ -6853,7 +6858,7 @@ void mace_checksum_r(Mace_Checksum *checksum) {
     size_t size;
 #if defined(MACE_RECOMPILE_TIMESTAMP)
     char buf[MACE_TIMESTAMP_BUFFER] = {0};
-    struct tm *ptm;
+    struct tm ptm;
 #endif /* MACE_RECOMPILE_TIMESTAMP */
 
     MACE_EARLY_RET(checksum->file != NULL, MACE_VOID, assert);
@@ -6875,8 +6880,8 @@ void mace_checksum_r(Mace_Checksum *checksum) {
     }
 
 #if defined(MACE_RECOMPILE_TIMESTAMP)
-    strptime(buf, MACE_TIMESTAMP, &tm);
-    checksum->attr_previous->st_mtime = mktime(&tm);
+    strptime(buf, MACE_TIMESTAMP, &ptm);
+    checksum->attr_previous.st_mtime = mktime(&ptm);
 #endif /* MACE_RECOMPILE_TIMESTAMP */
 
     fclose(checksum->file);
@@ -6912,10 +6917,9 @@ b32 mace_file_changed(const char *checksum_path,
 b32 mace_checksum_cmp(const Mace_Checksum *checksum) {
 #if defined(MACE_RECOMPILE_TIMESTAMP)
     double diff;
-    MACE_EARLY_RET(checksum->attr_current   != NULL, true, assert);
-    MACE_EARLY_RET(checksum->attr_previous  != NULL, true, assert);
-    diff = difftime(checksum->attr_current->st_mtime, 
-                    checksum->attr_previous->st_mtime);
+    MACE_EARLY_RET(checksum   != NULL, true, assert);
+    diff = difftime(checksum->attr_current.st_mtime, 
+                    checksum->attr_previous.st_mtime);
     return (diff > 0);
 #elif defined(MACE_RECOMPILE_SHA1DC)
     return (memcmp( checksum->hash_current, 
@@ -6928,9 +6932,9 @@ b32 mace_checksum_cmp(const Mace_Checksum *checksum) {
 
 void mace_checksum(Mace_Checksum *checksum) {
 #if defined(MACE_RECOMPILE_TIMESTAMP)
-    MACE_EARLY_RET(checksum->path           != NULL, MACE_VOID, assert);
-    MACE_EARLY_RET(checksum->attr_current   != NULL, MACE_VOID, assert);
-    stat(checksum->path, checksum->attr_current);
+    MACE_EARLY_RET(checksum             != NULL, MACE_VOID, assert);
+    MACE_EARLY_RET(checksum->file_path  != NULL, MACE_VOID, assert);
+    stat(checksum->file_path, &checksum->attr_current);
 #elif defined(MACE_RECOMPILE_SHA1DC)
     /*  1. Compute hash of input file
     **  2. Check for collision input file and hash */
