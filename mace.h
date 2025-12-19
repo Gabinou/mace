@@ -26,17 +26,6 @@
 */
 
 #define _XOPEN_SOURCE 500 /* Include POSIX 1995 */
-#define SHA1DC_NO_STANDARD_INCLUDES
-
-/* -- Recompilation criteria -- */
-#ifndef MACE_RECOMPILE_TIMESTAMP
-#define MACE_RECOMPILE_SHA1DC
-#endif
-
-#if defined(MACE_RECOMPILE_TIMESTAMP) && \
-    defined(MACE_RECOMPILE_SHA1DC)
-#undef MACE_RECOMPILE_TIMESTAMP
-#endif
 
 /* -- libc -- */
 #include <errno.h>
@@ -52,6 +41,30 @@
 #include <glob.h>
 #include <unistd.h>
 #include <sys/wait.h>
+
+
+#define SHA1DC_NO_STANDARD_INCLUDES
+/* -- Recompilation criteria -- */
+#if !defined(MACE_RECOMPILE_TIMESTAMP) && \
+    !defined(MACE_RECOMPILE_SHA1DC)
+    #define MACE_RECOMPILE_SHA1DC
+#endif
+
+#if defined(MACE_RECOMPILE_TIMESTAMP) && \
+    defined(MACE_RECOMPILE_SHA1DC)
+    #error  Define only one: \
+            MACE_RECOMPILE_TIMESTAMP, or \
+            MACE_RECOMPILE_SHA1DC
+#endif
+
+#if defined(MACE_RECOMPILE_TIMESTAMP)
+    #define MACE_CHECKSUM_EXTENSION ".tm"
+#elif defined(MACE_RECOMPILE_SHA1DC)
+    #define MACE_CHECKSUM_EXTENSION ".sha1dc"
+#else
+    #error  Define either MACE_RECOMPILE_TIMESTAMP, or \
+            MACE_RECOMPILE_SHA1DC
+#endif
 
 /*----------------------------------------------*/
 /*                  PUBLIC API                  */
