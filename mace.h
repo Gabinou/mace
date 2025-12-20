@@ -5481,8 +5481,9 @@ void mace_print_message(const char *message) {
 }
 
 void mace_chdir(const char *path) {
+    MACE_EARLY_RET(path, MACE_VOID, assert);
     if (chdir(path) != 0) {
-        fprintf(stderr, "Could not cd to directory '%s'",
+        fprintf(stderr, "Could not cd to directory '%s'\n",
                 path);
         exit(1);
     }
@@ -5561,8 +5562,10 @@ void mace_prebuild_target(Target *target) {
         return;
     }
 
-    if (!silent)
+    if (!silent) {
+        MACE_EARLY_RET(target->_name != NULL, MACE_VOID, assert);
         printf("Pre-build target '%s'\n", target->_name);
+    }
 
     /* Check which sources don't need to be recompiled */
     /* --- Move to target base_dir, compile there --- */
@@ -5701,9 +5704,10 @@ int mace_config_order(u64 hash) {
 }
 
 /*  Add target with input order into build_order */
-void mace_build_order_add(size_t order) {
+void mace_build_order_add(int order) {
     assert(build_order != NULL);
     assert(build_order_num < target_num);
+    assert(order >= 0);
     if (mace_in_build_order(order, build_order, build_order_num)) {
         fprintf(stderr, "Target ID is already in build_order."
                 "Exiting.\n");
@@ -5740,9 +5744,7 @@ void mace_build_order_recursive(Target target,
 
     /* Visit all target dependencies */
     for (target._d_cnt = 0; target._d_cnt < target._deps_links_num; target._d_cnt++) {
-        size_t next_target_order;
-
-        next_target_order = mace_target_order(target._deps_links[target._d_cnt]);
+        int next_target_order = mace_target_order(target._deps_links[target._d_cnt]);
 
         if (next_target_order < 0)
             continue;
@@ -5931,6 +5933,7 @@ void mace_pre_build(void) {
 
     /* Actually prebuild all targets */
     for (z = 0; z < build_order_num; z++) {
+        assert(build_order[z] >= 0);
         mace_Target_Grow_Headers(&targets[build_order[z]]);
         mace_prebuild_target(&targets[build_order[z]]);
     }
@@ -6328,7 +6331,7 @@ char *mace_Target_Read_d(Target *target, int source_i) {
     memcpy(obj_file + ext + 1, "ho", 2);
     obj_file[ext + 3] = '\0';
 
-    fho = fopen(obj_file, "r");
+    fho = fopen(obj_file, "rb");
     fho_exists = false;
     if (fho != NULL) {
         fho_exists = true;
@@ -6834,8 +6837,9 @@ void mace_checksum_w(Mace_Checksum *checksum) {
     char buf[MACE_TIMESTAMP_BUFFER] = {0};
     struct tm *ptm;
 #endif /* MACE_RECOMPILE_TIMESTAMP */
+    MACE_EARLY_RET(checksum->file == NULL, MACE_VOID, assert);
 
-    checksum->file = fopen(checksum->checksum_path, "w");
+    checksum->file = fopen(checksum->checksum_path, "wb");
     if (checksum->file == NULL) {
         fprintf(stderr,
                 "Could not write to checksum file '%s'\n",
@@ -6852,6 +6856,8 @@ void mace_checksum_w(Mace_Checksum *checksum) {
 #else
     #error No recompilation flag set
 #endif
+    fclose(checksum->file);
+    checksum->file = NULL;
 }
 
 void mace_checksum_r(Mace_Checksum *checksum) {
@@ -6869,6 +6875,7 @@ void mace_checksum_r(Mace_Checksum *checksum) {
                     MACE_SHA1_LEN, checksum->file);
     if (size != MACE_SHA1_LEN) {
 #elif defined(MACE_RECOMPILE_TIMESTAMP)
+    fseek(checksum->file, 0, SEEK_SET);
     size = fread(buf, 1, MACE_TIMESTAMP_BUFFER, checksum->file);
     if (size != (MACE_TIMESTAMP_BUFFER - 1)) {
 #else 
@@ -6885,6 +6892,7 @@ void mace_checksum_r(Mace_Checksum *checksum) {
 #endif /* MACE_RECOMPILE_TIMESTAMP */
 
     fclose(checksum->file);
+    checksum->file = NULL;
 }
 
 b32 mace_file_changed(const char *checksum_path,
@@ -6893,10 +6901,10 @@ b32 mace_file_changed(const char *checksum_path,
     **      1. hash changed.
     **      2. file didn't exist.
     ** Also writes new checksum file if changed */
-    Mace_Checksum checksum = {0};
+    Mace_Checksum checksum  = {0};
     checksum.checksum_path  = checksum_path;
     checksum.file_path      = file_path;
-    checksum.file = fopen(checksum.checksum_path, "r");
+    checksum.file = fopen(checksum.checksum_path, "rb");
 
     /* --- Did checksum file exist? --- */
     mace_checksum(&checksum);
@@ -6908,7 +6916,12 @@ b32 mace_file_changed(const char *checksum_path,
     /* --- File exists, comparing checksums --- */
     mace_checksum_r(&checksum);
     if (!mace_checksum_cmp(&checksum)) {
+        if (checksum.file != NULL) {
+            fclose(checksum.file);
+            checksum.file = NULL;
+        } 
         mace_checksum_w(&checksum);
+
         return (true);
     }
     return (0);
