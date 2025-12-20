@@ -46,6 +46,7 @@
 /* -- Recompilation criteria -- */
 #if !defined(MACE_RECOMPILE_TIMESTAMP) && \
     !defined(MACE_RECOMPILE_SHA1DC)
+    /* Both equally fast on my PC */
     #define MACE_RECOMPILE_SHA1DC
 #endif
 

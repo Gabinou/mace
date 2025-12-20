@@ -65,7 +65,7 @@ Flags for `installer` to customize `mace`:
 - User inputs target dependencies with `target.links` and `target.dependencies`
     - Build order determined by depth first search through all target dependencies.
 - Mace saves file checksums to `.sha1` files in `<obj_dir>/src`, `<obj_dir>/include`
-    - Uses checksum to check if sources, headers change for recompilation.
+    - Uses sha1dc hash to check if sources, headers change for recompilation.
 - Compiler computes object file dependencies, saved to `.d` files in `<obj_dir>`
     - Parsed into binary `.ho` file for faster reading.
 
@@ -81,6 +81,8 @@ gcc --std=iso9899:1990 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fw
 1. `cd` into benchmarks folder
 2. Compile test: `gcc benchmarks.c -o bench`
 3. Run benchmarks `./benchmarks`
+
+### Switching recompilation criteria
 
 ### Known issues
 - Can't compile targets if there are no headers?

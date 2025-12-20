@@ -65,7 +65,10 @@ int main(int argc, char *argv[]) {
     }
 
     /* - Write space-separated command - */
-    size_t len_total    = len_cc + 1 + len_macefile + 1 + len_flag + 1 + len_builder + 1;
+    size_t len_total    =   len_cc          + 1 +
+                            len_macefile    + 1 +
+                            len_flag        + 1 + 
+                            len_builder     + 1;
     char *compile_cmd   = calloc(len_total, sizeof(compile_cmd));
     size_t i = 0;
     strncpy(compile_cmd + i, cc,         len_cc);
