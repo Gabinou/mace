@@ -102,14 +102,9 @@ struct Target;
 
 /* When default target set by user, mace builds
 ** only default target and its dependencies.
-** If no default target is set,
-** mace builds first target. */
+** Default target is first one if not set. */
 #define MACE_SET_DEFAULT_TARGET(target) \
     mace_set_default_target(STRINGIFY(target))
-
-/* Default config is first one if not set */
-#define MACE_SET_DEFAULT_CONFIG(target) \
-    mace_set_default_config(STRINGIFY(target))
 
 /* -- Compiler -- */
 /* Compiler setting priority:
@@ -120,29 +115,30 @@ struct Target;
     mace_set_compiler(STRINGIFY(compiler))
 
 /* -- Directories -- */
-/* - obj_dir - */
-/* Folder for intermediary files: .o, .d .sha1, etc. */
+/* obj_dir, for intermediary files: .o, .d, etc. */
 #define MACE_SET_OBJ_DIR(dir) \
     mace_set_obj_dir(STRINGIFY(dir))
 
-/* - build_dir - */
-/* Folder for targets: binaries, libraries. */
+/* build_dir: for targets: binaries, libraries. */
 #define MACE_SET_BUILD_DIR(dir) \
     mace_set_build_dir(STRINGIFY(dir))
 
 /* -- Separator -- */
 void mace_set_separator(char sep);
 
-/* -- Configs -- */
+/* -- Config -- */
 struct Config;
 
-/* Note: stringifies variable name for hashing */
+/* Default config is first one if not set. */
+#define MACE_SET_DEFAULT_CONFIG(target) \
+    mace_set_default_config(STRINGIFY(target))
+
 #define MACE_ADD_CONFIG(config) \
     mace_add_config(&config, STRINGIFY(config))
 
-/* Set default config for target. */
 #define MACE_TARGET_CONFIG(target, config) \
-    mace_target_config(STRINGIFY(target), STRINGIFY(config))
+    mace_target_config( STRINGIFY(target), \
+                        STRINGIFY(config))
 
 /* -- Archiver -- */
 /* Archiver setting priority:
@@ -170,20 +166,13 @@ struct Config;
 #define MACE_CHECKSUM_EXTENSION_STR_LEN 5
 
 enum MACE_TARGET_KIND { /* for target.kind */
-    MACE_TARGET_NULL        = 0,
+    MACE_TARGET_NULL,
     MACE_EXECUTABLE,
     MACE_STATIC_LIBRARY,
     MACE_SHARED_LIBRARY,
     MACE_DYNAMIC_LIBRARY,
     MACE_PHONY,
     MACE_TARGET_KIND_NUM
-};
-
-enum MACE_CONSTANTS {
-    MACE_JOBS_DEFAULT       = 12,
-    /* This is a magic number in sha1dc */
-    MACE_SHA1_LEN           = 20
-
 };
 
 /******************* STRUCTS ******************/
@@ -409,12 +398,15 @@ void Mace_Args_Free(Mace_Args *args);
 #define MACE_VER_STRING "5.0.0"
 #define MACE_USAGE_MIDCOLW 12
 
-enum MACE {
+enum MACE_CONSTANTS {
     MACE_DEFAULT_TARGET_LEN     =    8,
     MACE_MAX_ITERATIONS         = 1024,
     MACE_DEFAULT_OBJECT_LEN     =   16,
     MACE_CWD_BUFFERSIZE         =  256,
-    MACE_OBJDEP_BUFFER          = 4096
+    MACE_OBJDEP_BUFFER          = 4096,
+    MACE_JOBS_DEFAULT           =   12,
+    /* MACE_SHA1_LEN is a magic number in sha1dc */
+    MACE_SHA1_LEN               =   20
 };
 
 enum MACE_CONFIG {
@@ -423,19 +415,19 @@ enum MACE_CONFIG {
 };
 
 enum MACE_TARGET {
-    MACE_TARGET_DEFAULT         =   0
+    MACE_TARGET_DEFAULT
 };
 
 enum MACE_ARGV {
     /* single source compilation */
-    MACE_ARGV_CC                =   0,
+    MACE_ARGV_CC,
     MACE_ARGV_SOURCE,
     MACE_ARGV_OBJECT,
     MACE_ARGV_OTHER
 };
 
 enum MACE_CHECKSUM_MODE {
-    MACE_CHECKSUM_MODE_NULL     =   0,
+    MACE_CHECKSUM_MODE_NULL,
     MACE_CHECKSUM_MODE_SRC,
     MACE_CHECKSUM_MODE_INCLUDE
 };
@@ -681,9 +673,9 @@ static void mace_chdir(const char *path);
 
 static b32 silent     = false;
 static b32 verbose    = false;
-/* Pre-compile, don't compile */
+/* dry_run: Pre-compile, don't compile */
 static b32 dry_run    = false;
-/* Don't check object dependencies */
+/* build_all: Build all targets */
 static b32 build_all  = false;
 
 /* --- Processes --- */
@@ -694,8 +686,8 @@ static int      pnum    =  0;
 static int      plen    = -1;
 
 /* -- separator -- */
-static char mace_separator[2]           = " \0";
-static char *mace_command_separator     = "&&";
+static char mace_separator[2]           = " ";
+static char mace_command_separator[3]   = "&&";
 
 /* -- Compiler -- */
 static char *cc         = "gcc";
@@ -3746,6 +3738,9 @@ int parg_zgetopt_long(struct parg_state *ps, int argc, char *const argv[],
 /***************** MACE_ADD_CONFIG *****************/
 /*  Add config to list of configs. */
 void mace_add_config(Config *config, char *name) {
+    MACE_EARLY_RET(name, MACE_VOID, assert);
+    MACE_EARLY_RET(config, MACE_VOID, assert);
+
     configs[config_num]        = *config;
     configs[config_num]._name  = name;
     configs[config_num]._hash  = mace_hash(name);
@@ -3761,6 +3756,9 @@ void mace_add_config(Config *config, char *name) {
 /**************** MACE_ADD_TARGET ***************/
 /*  Add target to list of targets. */
 void mace_add_target(Target *target, char *name) {
+    MACE_EARLY_RET(name, MACE_VOID, assert);
+    MACE_EARLY_RET(target, MACE_VOID, assert);
+
     targets[target_num]          = *target;
     targets[target_num]._name    = name;
     targets[target_num]._hash    = mace_hash(name);
@@ -3783,7 +3781,7 @@ void mace_add_target(Target *target, char *name) {
 /*  Set target built by default when */
 /*         running mace without target */
 void mace_set_default_target(char *name) {
-    MACE_EARLY_RET(name, MACE_VOID, MACE_nASSERT);
+    MACE_EARLY_RET(name, MACE_VOID, assert);
 
     mace_default_target_hash = mace_hash(name);
 }
@@ -3803,7 +3801,7 @@ void mace_default_target_order(void) {
 
 /*  Set config used to build targets by default */
 void mace_set_default_config(char *name) {
-    MACE_EARLY_RET(name, MACE_VOID, MACE_nASSERT);
+    MACE_EARLY_RET(name, MACE_VOID, assert);
 
     mace_default_config_hash = mace_hash(name);
 }
@@ -3850,6 +3848,7 @@ void mace_target_resolve(void) {
 /*  Decide if user config or default */
 /*         config should be used. */
 void mace_config_resolve(Target *target) {
+    MACE_EARLY_RET(target, MACE_VOID, assert);
     /* Config priority: */
     /*  - user      config */
     /*  - target    config */
@@ -3886,10 +3885,18 @@ void mace_user_target_set(u64 hash) {
 /*  Set default config for target. */
 void mace_target_config(char *target_name,
                         char *config_name) {
-    u64 target_hash = mace_hash(target_name);
-    u64 config_hash = mace_hash(config_name);
-    int config_order = mace_config_order(config_hash);
-    int target_order = mace_target_order(target_hash);
+    u64 target_hash;
+    u64 config_hash;
+    int config_order;
+    int target_order;
+    
+    MACE_EARLY_RET(target_name, MACE_VOID, assert);
+    MACE_EARLY_RET(config_name, MACE_VOID, assert);
+
+    target_hash = mace_hash(target_name);
+    config_hash = mace_hash(config_name);
+    config_order = mace_config_order(config_hash);
+    target_order = mace_target_order(target_hash);
 
     MACE_EARLY_RET(target_order >= 0, MACE_VOID, MACE_nASSERT);
     MACE_EARLY_RET(config_order >= 0, MACE_VOID, MACE_nASSERT);
@@ -3907,8 +3914,10 @@ u64 mace_hash(const char *str) {
     * (why it works better than many other constants, prime or not) has never been adequately explained.
     * [1] https://stackoverflow.com/questions/7666509/hash-function-for-string
     * [2] http://www.cse.yorku.ca/~oz/hash.html */
-    u64 hash = 5381ul;
+    u64 hash;
     i32 str_char;
+    MACE_EARLY_RET(str, 0ul, assert);
+    hash = 5381ul;
     while ((str_char = *str++))
         hash = ((hash << 5ul) + hash) + str_char; /* hash * 33 + c */
     return (hash);
@@ -5264,19 +5273,20 @@ b32 mace_Target_Source_Add(Target *target, char *token) {
 void mace_Target_Parse_Source(Target *target,
                               char *path,
                               char *src) {
+    b32 exists;
+    b32 changed_src;
+    size_t i;
     b32 excluded = mace_Target_Source_Add(target, path);
-    if (!excluded) {
-        b32 exists;
-        b32 changed_src;
-        size_t i;
+    if (excluded)
+        return;
 
-        mace_object_path(src);
-        exists  = mace_Target_Object_Add(target, object);
-        i = target->_argc_sources - 1;
-        changed_src  = mace_Source_Checksum(target, target->_argv_sources[i],
-                                            target->_argv_objects[i]);
-        mace_Target_Recompiles_Add(target, !excluded && (changed_src || !exists));
-    }
+    mace_object_path(src);
+    exists  = mace_Target_Object_Add(target, object);
+    i = target->_argc_sources - 1;
+    changed_src = mace_Source_Checksum(target, 
+                                target->_argv_sources[i],
+                                target->_argv_objects[i]);
+    mace_Target_Recompiles_Add(target, !excluded && (changed_src || !exists));
 }
 
 /*  Globbed files for sources and parse objects. */
