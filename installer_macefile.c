@@ -69,10 +69,6 @@ int mace(int argc, char *argv[]) {
     MACE_SET_BUILD_DIR(BUILD_DIR);
     MACE_SET_OBJ_DIR(OBJ_DIR);
 
-    /* -- mace convenience executable -- */
-    // Note: "mace" token is reserved for user entry point.
-
-    // Add target with different name, i.e. "mace"
     mace_add_target(&MACE, "mace");
     MACE_SET_DEFAULT_TARGET(mace);
     return (0);

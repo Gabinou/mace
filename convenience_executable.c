@@ -25,6 +25,8 @@
 #ifndef BUILDER
     #define BUILDER builder
 #endif
+/* tne number of argc_run++, +1 */
+#define MAX_ARGC_RUN 14 
 
 int main(int argc, char *argv[]) {
     /* -- Parse inputs -- */
@@ -45,8 +47,13 @@ int main(int argc, char *argv[]) {
     }
 
     /* Move to args.dir */
-    if (args.dir != NULL)
-        assert(chdir(args.dir) == 0);
+    if (args.dir != NULL) {
+        int success = chdir(args.dir);
+        if (success != 0) {
+            fprintf(stderr, "Could not mv to '%s'", args.dir);
+            exit(1);
+        }
+    }
 
     /* --- Compile the macefile --- */
     /* - Read macefile name from args - */
@@ -93,14 +100,14 @@ int main(int argc, char *argv[]) {
     mace_wait_pid(pid);
 
     /* --- Run the resulting executable --- */
-    /* - Build argv_run:  pass target and flags to builder - */
+    /* - Build argv_run: pass target and flags to builder - */
     char *Bflag = "-B";
     char *dflag = "-d";
     char *nflag = "-n";
     char *sflag = "-s";
     char *jflag = "-j";
 
-    char *argv_run[] = {"./"STRINGIFY(BUILDER), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+    char *argv_run[MAX_ARGC_RUN] = {"./"STRINGIFY(BUILDER)};
     int argc_run = 1;
     if (args.build_all)
         argv_run[argc_run++] = Bflag;
