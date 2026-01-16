@@ -1,12 +1,23 @@
 /*
-* installer.c
-*
-* Copyright (C) Gabriel Taillon, 2023
-*
-* Macefile for 'mace' convenience executable.
-*   - Builds 'mace' executable.
-*   - Installs: 'mace' to PREFIX/bin, mace.h PREFIX/include
-*
+**  Copyright 2023-2026 Gabriel Taillon
+**  Licensed under GPLv3
+**
+**      Éloigne de moi l'esprit d'oisiveté, de
+**          découragement, de domination et de
+**          vaines paroles.
+**      Accorde-moi l'esprit d'intégrité,
+**          d'humilité, de patience et de charité.
+**      Donne-moi de voir mes fautes.
+**
+***************************************************
+**  Macefile for 'mace' convenience executable
+**  
+**  1. Builds 'mace' exe
+**  2. Installs: 
+**      1. mace         to PREFIX/bin
+**      2. mace.h       to PREFIX/include
+**      3. _mace.zsh    to ZSH_COMPLETION
+**
 */
 
 #include "mace.h"

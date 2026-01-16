@@ -1,5 +1,5 @@
 /*
-**  Copyright 2023-2025 Gabriel Taillon
+**  Copyright 2023-2026 Gabriel Taillon
 **  Licensed under GPLv3
 **
 **      Éloigne de moi l'esprit d'oisiveté, de
@@ -60,7 +60,7 @@ extern int mace(int argc, char *argv[]);
 **   2- Set compiler        -> MACE_SET_COMPILER
 **   3- Set build_dir       -> MACE_SET_OBJ_DIR
 **   4- Set obj_dir         -> MACE_SET_BUILD_DIR
-**   5- Set separator       -> MACE_SET_SEPARATOR
+**   5- Set separator       -> mace_set_separator
 **   6- Set default target  -> MACE_SET_DEFAULT_TARGET
 **   7- Add configs         -> MACE_ADD_CONFIG
 **   8- Set default config  -> MACE_SET_DEFAULT_CONFIG

@@ -1,12 +1,22 @@
 /*
-* mace.c
-*
-* Copyright (C) Gabriel Taillon, 2023
-*
-* Convenience executable for mace C-based build system.
-*   - Compiles input macefile to builder executable.
-*   - Runs builder executable.
-*
+**  Copyright 2023-2026 Gabriel Taillon
+**  Licensed under GPLv3
+**
+**      Éloigne de moi l'esprit d'oisiveté, de
+**          découragement, de domination et de
+**          vaines paroles.
+**      Accorde-moi l'esprit d'intégrité,
+**          d'humilité, de patience et de charité.
+**      Donne-moi de voir mes fautes.
+**
+***************************************************
+**
+**  Convenience executable for mace build system
+**   
+**  1. Compiles input macefile to builder exe
+**  2. Runs builder exe
+**      - Passes flags to builder exe
+**
 */
 
 #include "mace.h"
@@ -99,7 +109,7 @@ int main(int argc, char *argv[]) {
     pid_t pid = mace_exec(cc, argv_compile);
     mace_wait_pid(pid);
 
-    /* --- Run the resulting executable --- */
+    /* --- Run the builder executable --- */
     /* - Build argv_run: pass target and flags to builder - */
     char *Bflag = "-B";
     char *dflag = "-d";
@@ -140,9 +150,9 @@ int main(int argc, char *argv[]) {
     /* - Run it - */
     mace_exec_print(argv_run, argc_run);
     pid = mace_exec("./"STRINGIFY(BUILDER), argv_run);
+    mace_wait_pid(pid);
 
     /* - Free everything - */
-    mace_wait_pid(pid);
     mace_argv_free(argv_compile, argc_compile);
     Mace_Args_Free(&args);
     free(compile_cmd);
