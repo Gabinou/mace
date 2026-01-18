@@ -25,14 +25,14 @@
 **
 */
 
-#define _XOPEN_SOURCE 500 /* Include POSIX 1995 */
+#define _XOPEN_SOURCE 500 /* include POSIX 1995 */
 
 /* -- libc -- */
+#include <time.h>
 #include <errno.h>
 #include <stdio.h>
 #include <assert.h>
 #include <limits.h>
-#include <time.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -49,7 +49,7 @@
 /*----------------------------------------------*/
 
 /* -- User entry point -- */
-/* Must be implement by user, and add at
+/* Must be implement by user & add at
 ** least one target with MACE_ADD_TARGET. */
 extern int mace(int argc, char *argv[]);
 
@@ -63,12 +63,6 @@ typedef unsigned    int     u32; /* 42u     */
 typedef signed      long    i64; /* 42ll    */
 typedef unsigned    long    u64; /* 42ull   */
 typedef i32                 b32;
-
-/* -- Struct forward declaration -- */
-struct Target;
-struct Target_Private;
-struct Config;
-struct Config_Private;
 
 /* -- Macro utils -- */
 #define  STRINGIFY(x) _STRINGIFY(x)
@@ -128,8 +122,7 @@ void mace_set_separator(char sep);
     mace_set_archiver(STRINGIFY(archiver))
 
 /* -- cc_depflag -- */
-/* Set cc_depflag: compiler flag to
-** build .d dependency files.
+/* Compiler flag to build .d dependency files
 ** Ex: gcc -MM ... */
 #define MACE_SET_CC_DEPFLAG(cc_depflag) \
     mace_set_cc_depflag(STRINGIFY(cc_depflag))
@@ -141,21 +134,23 @@ void mace_set_separator(char sep);
 #ifndef MACE_DEFAULT_OBJ_DIR
     #define MACE_DEFAULT_OBJ_DIR "obj"
 #endif
-#define MACE_CHECKSUM_EXTENSION ".sha1"
-#define MACE_CHECKSUM_EXTENSION_STR_LEN 5
+#define MACE_SHA1_EXT ".sha1"
 
-enum MACE_TARGET_KIND { /* for target.kind */
+enum MACE_CONSTANTS {
+    MACE_CC_BUFFER          =    8,
+    MACE_SHA1_EXT_LEN       =    5
+};
+
+enum MACE_TARGET_KIND { /* target.kind */
     MACE_TARGET_NULL,
     MACE_EXECUTABLE,
     MACE_STATIC_LIBRARY,
-    MACE_SHARED_LIBRARY,
     MACE_DYNAMIC_LIBRARY,
     MACE_PHONY,
-    MACE_TARGET_KIND_NUM,
-    MACE_BUFFER =    8
+    MACE_TARGET_KIND_NUM
 };
 
-/************* STRUCTS DEFINITION ************/
+/* --- struct definitions --- */
 
 /* Why Macro'd struct definitions?
 **  1- Public section before private for clarity
@@ -168,11 +163,17 @@ enum MACE_TARGET_KIND { /* for target.kind */
 **      call it in private section 
 */
 
-#define MACE_TARGET_DEFINITION typedef struct Target { \
+#define MACE_TARGET_DEFINITION \
+typedef struct Target { \
     const char *includes;   /* dirs                 */ \
     const char *sources;    /* files, dirs, glob    */ \
     const char *excludes;   /* files                */ \
     const char *base_dir;   /* dir                  */ \
+    const char *flags;      /* passed as is         */ \
+    const char *cmd_pre;    /* ran before build     */ \
+    const char *cmd_post;   /* ran after  build     */ \
+    const char *msg_pre;    /* printed before build */ \
+    const char *msg_post;   /* printed after  build */ \
 \
     /* Links are targets or libraries. 
     ** If target, its built before self. */ \
@@ -183,27 +184,23 @@ enum MACE_TARGET_KIND { /* for target.kind */
     const char *link_flags; \
 \
     /* Dependencies are targets, built before self. */ \
-    const char *dependencies;   /* targets              */ \
-    const char *flags;          /* passed as is         */ \
-    const char *cmd_pre;        /* ran before build     */ \
-    const char *cmd_post;       /* ran after  build     */ \
-    const char *msg_pre;        /* printed before build */ \
-    const char *msg_post;       /* printed after build  */ \
-    int kind;   /* MACE_TARGET_KIND */ \
+    const char *dependencies;   /* targets          */ \
 \
     /* allatonce: Compile all .o with one call.
     ** It's slightly faster.
     ** WARNING: DOES NOT WORK if multiple source
     ** files have the same filename. */ \
     b32 allatonce; \
+    int kind; /* MACE_TARGET_KIND */ \
 \
     Target_Private private; \
 } Target;
 
-#define MACE_CONFIG_DEFINITION typedef struct Config { \
-    char cc[MACE_BUFFER];   /* compiler     */ \
-    char ar[MACE_BUFFER];   /* archiver     */ \
-    const char *flags;      /* passed as is */ \
+#define MACE_CONFIG_DEFINITION \
+typedef struct Config { \
+    char cc[MACE_CC_BUFFER];    /* compiler     */ \
+    char ar[MACE_CC_BUFFER];    /* archiver     */ \
+    const char *flags;          /* passed as is */ \
 \
     Config_Private private; \
 } Config;
@@ -362,20 +359,20 @@ void Mace_Args_Free(Mace_Args *args);
 #define MACE_VER_STRING "5.0.2"
 #define MACE_USAGE_MIDCOLW 12
 
-enum MACE_CONSTANTS {
-    MACE_DEFAULT_TARGET_LEN     =    8,
-    MACE_MAX_ITERATIONS         = 1024,
-    MACE_DEFAULT_OBJECT_LEN     =   16,
-    MACE_CWD_BUFFERSIZE         =  256,
-    MACE_OBJDEP_BUFFER          = 4096,
-    MACE_JOBS_DEFAULT           =   12,
-    /* MACE_SHA1_LEN is a magic number in sha1dc */
-    MACE_SHA1_LEN               =   20
+enum MACE_PRIVATE_CONSTANTS {
+    MACE_DEFAULT_TARGET_LEN =    8,
+    MACE_MAX_ITERATIONS     = 1024,
+    MACE_DEFAULT_OBJECT_LEN =   16,
+    MACE_CWD_BUFFERSIZE     =  256,
+    MACE_OBJDEP_BUFFER      = 4096,
+    MACE_JOBS_DEFAULT       =   12,
+    /* SHA1DC_LEN is a magic number in sha1dc */
+    SHA1DC_LEN              =   20
 };
 
 enum MACE_CONFIG {
-    MACE_CONFIG_NULL            =  -1,
-    MACE_CONFIG_DEFAULT         =   0
+    MACE_CONFIG_NULL        =  -1,
+    MACE_CONFIG_DEFAULT     =   0
 };
 
 enum MACE_TARGET {
@@ -416,8 +413,8 @@ static Mace_Args mace_combine_args_env(Mace_Args args,
                                        Mace_Args env);
 /* --- setters --- */
 /* Automatically set from compiler */
-static void  mace_set_archiver(const char *ar);
-static void  mace_set_cc_depflag(const char *depflag);
+static void  mace_set_archiver(     const char *ar);
+static void  mace_set_cc_depflag(   const char *depflag);
 
 /* --- mace_utils --- */
 static char  *mace_str_buffer(const char *const strlit);
@@ -427,8 +424,8 @@ typedef struct Mace_Checksum {
     FILE            *file;
     const char      *file_path;
     const char      *checksum_path;
-    u8               hash_current[MACE_SHA1_LEN];
-    u8               hash_previous[MACE_SHA1_LEN];
+    u8               hash_current[SHA1DC_LEN];
+    u8               hash_previous[SHA1DC_LEN];
 } Mace_Checksum;
 
 static void mace_checksum(Mace_Checksum *checksum);
@@ -657,12 +654,12 @@ static char mace_command_separator[3]   = "&&";
 
 /* -- Compiler -- */
 /* cc: gcc, clang or tcc */
-static char cc[MACE_BUFFER]         = "gcc";
+static char cc[MACE_CC_BUFFER]         = "gcc";
 /* ar: ar, llvm-ar or tcc -ar */
-static char ar[MACE_BUFFER]         = "ar";
+static char ar[MACE_CC_BUFFER]         = "ar";
 
 /* flag to create .d file */
-static char cc_depflag[MACE_BUFFER] = "-MM";
+static char cc_depflag[MACE_CC_BUFFER] = "-MM";
 
 /* -- current working directory -- */
 static char cwd[MACE_CWD_BUFFERSIZE];
@@ -812,7 +809,7 @@ void SHA1DCUpdate(SHA1_CTX *, const char *, size_t);
 
 /* obtain SHA-1 hash from SHA-1 context */
 /* returns: 0 = no collision detected, otherwise = collision found => warn user for active attack */
-int  SHA1DCFinal(unsigned char[MACE_SHA1_LEN], SHA1_CTX *);
+int  SHA1DCFinal(unsigned char[SHA1DC_LEN], SHA1_CTX *);
 
 #ifdef SHA1DC_CUSTOM_TRAILING_INCLUDE_SHA1_H
     #include SHA1DC_CUSTOM_TRAILING_INCLUDE_SHA1_H
@@ -2825,7 +2822,7 @@ static const unsigned char sha1_padding[64] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-int SHA1DCFinal(unsigned char output[MACE_SHA1_LEN], SHA1_CTX *ctx) {
+int SHA1DCFinal(unsigned char output[SHA1DC_LEN], SHA1_CTX *ctx) {
     u32 last = ctx->total & 63;
     u32 padn = (last < 56) ? (56 - last) : (120 - last);
     u64 total;
@@ -3913,7 +3910,7 @@ void mace_set_cc_depflag(const char *depflag) {
     MACE_EARLY_RET(depflag, MACE_VOID, MACE_nASSERT);
     
     len = strlen(depflag);
-    to_cpy = len > MACE_BUFFER ? MACE_BUFFER : len;
+    to_cpy = len > MACE_CC_BUFFER ? MACE_CC_BUFFER : len;
     memcpy(cc_depflag, depflag, to_cpy);
 }
 
@@ -3925,7 +3922,7 @@ void mace_set_archiver(const char *archiver) {
     MACE_EARLY_RET(archiver, MACE_VOID, MACE_nASSERT);
     
     len = strlen(archiver);
-    to_cpy = len > MACE_BUFFER ? MACE_BUFFER : len;
+    to_cpy = len > MACE_CC_BUFFER ? MACE_CC_BUFFER : len;
     memcpy(ar, archiver, to_cpy);
 }
 
@@ -3937,7 +3934,7 @@ void mace_set_compiler(const char *compiler) {
     MACE_EARLY_RET(compiler, MACE_VOID, MACE_nASSERT);
 
     len = strlen(compiler);
-    to_cpy = len > MACE_BUFFER ? MACE_BUFFER : len;
+    to_cpy = len > MACE_CC_BUFFER ? MACE_CC_BUFFER : len;
     memcpy(cc, compiler, to_cpy);
 
     if (strstr(cc, "gcc") != NULL) {
@@ -6739,7 +6736,7 @@ char *mace_checksum_filename(char *file, int mode) {
     obj_dir_len  = strlen(obj_dir);
 
     /* Alloc new file */
-    checksum_len  = (file_len + MACE_SEPARATOR_STR_LEN + MACE_CHECKSUM_EXTENSION_STR_LEN) +
+    checksum_len  = (file_len + MACE_SEPARATOR_STR_LEN + MACE_SHA1_EXT_LEN) +
                     obj_dir_len + 1;
     if (mode == MACE_CHECKSUM_MODE_SRC) {
         checksum_len += MACE_SRC_FOLDER_STR_LEN;
@@ -6773,9 +6770,8 @@ char *mace_checksum_filename(char *file, int mode) {
     total += file_len;
 
     /* Add extension */
-    memcpy(sha1 + total,
-           MACE_CHECKSUM_EXTENSION,
-           MACE_CHECKSUM_EXTENSION_STR_LEN);
+    memcpy(sha1 + total, MACE_SHA1_EXT,
+           MACE_SHA1_EXT_LEN);
     return (sha1);
 }
 
@@ -6790,7 +6786,7 @@ void mace_checksum_w(Mace_Checksum *checksum) {
         exit(1);
     }
 
-    fwrite(checksum->hash_current, 1, MACE_SHA1_LEN, checksum->file);
+    fwrite(checksum->hash_current, 1, SHA1DC_LEN, checksum->file);
     fclose(checksum->file);
     checksum->file = NULL;
 }
@@ -6802,8 +6798,8 @@ void mace_checksum_r(Mace_Checksum *checksum) {
     fseek(checksum->file, 0, SEEK_SET);
 
     size = fread(   checksum->hash_previous, 1,
-                    MACE_SHA1_LEN, checksum->file);
-    if (size != MACE_SHA1_LEN) {
+                    SHA1DC_LEN, checksum->file);
+    if (size != SHA1DC_LEN) {
         fprintf(stderr, "Could not read checksum from '%s'. Try deleting it. \n", checksum->checksum_path);
         fclose(checksum->file);
         exit(1);
@@ -6848,7 +6844,7 @@ b32 mace_file_changed(const char *checksum_path,
 b32 mace_checksum_cmp(const Mace_Checksum *checksum) {
     return (memcmp( checksum->hash_current, 
                     checksum->hash_previous, 
-                    MACE_SHA1_LEN) == 0);
+                    SHA1DC_LEN) == 0);
 }
 
 void mace_checksum(Mace_Checksum *checksum) {

@@ -1,10 +1,18 @@
 /*
-* test.c
-*
-* Copyright (C) Gabriel Taillon, 2023
-*
-* Tests for mace C-based build system.
-*
+**  Copyright 2023-2026 Gabriel Taillon
+**  Licensed under GPLv3
+**
+**      Éloigne de moi l'esprit d'oisiveté, de
+**          découragement, de domination et de
+**          vaines paroles.
+**      Accorde-moi l'esprit d'intégrité,
+**          d'humilité, de patience et de charité.
+**      Donne-moi de voir mes fautes.
+**
+***************************************************
+**
+** Tests for mace C-based build system.
+**
 */
 
 #include "../mace.h"
@@ -624,7 +632,7 @@ void test_post_user(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        memset(cc, 0, MACE_BUFFER);
+        memset(cc, 0, MACE_CC_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -687,7 +695,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        memset(cc, 0, MACE_BUFFER);
+        memset(cc, 0, MACE_CC_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -707,7 +715,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        memset(cc, 0, MACE_BUFFER);
+        memset(cc, 0, MACE_CC_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -728,7 +736,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        memset(cc, 0, MACE_BUFFER);
+        memset(cc, 0, MACE_CC_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -748,7 +756,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        memset(cc, 0, MACE_BUFFER);
+        memset(cc, 0, MACE_CC_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
@@ -768,7 +776,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        memset(cc, 0, MACE_BUFFER);
+        memset(cc, 0, MACE_CC_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
@@ -1102,27 +1110,27 @@ void test_checksum(void) {
     mace_pre_user(NULL);
     mace_set_obj_dir("obj");
     allo = mace_checksum_filename("allo.c", MACE_CHECKSUM_MODE_NULL);
-    nourstest_true(strcmp(allo, "obj/allo" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(allo, "obj/allo" MACE_SHA1_EXT) == 0);
     free(allo);
     allo = mace_checksum_filename("allo.h", MACE_CHECKSUM_MODE_NULL);
-    nourstest_true(strcmp(allo, "obj/allo" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(allo, "obj/allo" MACE_SHA1_EXT) == 0);
     free(allo);
     allo = mace_checksum_filename("src/allo.h", MACE_CHECKSUM_MODE_NULL);
-    nourstest_true(strcmp(allo, "obj/allo" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(allo, "obj/allo" MACE_SHA1_EXT) == 0);
     free(allo);
 
     header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
                                             MACE_CHECKSUM_MODE_NULL);
-    nourstest_true(strcmp(header_objpath, "obj/combat" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(header_objpath, "obj/combat" MACE_SHA1_EXT) == 0);
     free(header_objpath);
 
     header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
                                             MACE_CHECKSUM_MODE_INCLUDE);
-    nourstest_true(strcmp(header_objpath, "obj/include/combat" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(header_objpath, "obj/include/combat" MACE_SHA1_EXT) == 0);
     free(header_objpath);
     header_objpath = mace_checksum_filename("/home/gabinours/Sync/Firesaga/include/combat.h",
                                             MACE_CHECKSUM_MODE_SRC);
-    nourstest_true(strcmp(header_objpath, "obj/src/combat" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(header_objpath, "obj/src/combat" MACE_SHA1_EXT) == 0);
     free(header_objpath);
 
     mace_post_build(NULL);
@@ -1341,79 +1349,79 @@ void test_parse_d(void) {
     nourstest_true(targets[1].private._headers_checksum[70] != NULL);
     nourstest_true(targets[1].private._headers_checksum[71] != NULL);
 
-    nourstest_true(strcmp(targets[1].private._headers_checksum[0], "obj/include/unit" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[1], "obj/include/types" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[2], "obj/include/enums" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[3], "obj/include/mounts_types" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[4], "obj/include/mounts" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[5], "obj/include/chapters" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[6], "obj/include/shops" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[7], "obj/include/options" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[8], "obj/include/items" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[9], "obj/include/units_stats" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[10], "obj/include/skills_passive" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[11], "obj/include/skills_active" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[12], "obj/include/items_types" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[13], "obj/include/items_stats" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[14], "obj/include/weapon_stats" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[15], "obj/include/units_PC" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[16], "obj/include/units_NPC" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[17], "obj/include/items_effects" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[18], "obj/include/camp_jobs" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[19], "obj/include/classes" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[20], "obj/include/units_types" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[21], "obj/include/armies" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[22], "obj/include/units_statuses" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[23], "obj/include/tiles" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[24], "obj/include/game_states" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[25], "obj/include/game_substates" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[26], "obj/include/json_elements" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[27], "obj/include/mvt_types" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[28], "obj/include/buttons" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[0], "obj/include/unit" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[1], "obj/include/types" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[2], "obj/include/enums" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[3], "obj/include/mounts_types" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[4], "obj/include/mounts" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[5], "obj/include/chapters" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[6], "obj/include/shops" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[7], "obj/include/options" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[8], "obj/include/items" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[9], "obj/include/units_stats" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[10], "obj/include/skills_passive" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[11], "obj/include/skills_active" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[12], "obj/include/items_types" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[13], "obj/include/items_stats" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[14], "obj/include/weapon_stats" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[15], "obj/include/units_PC" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[16], "obj/include/units_NPC" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[17], "obj/include/items_effects" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[18], "obj/include/camp_jobs" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[19], "obj/include/classes" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[20], "obj/include/units_types" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[21], "obj/include/armies" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[22], "obj/include/units_statuses" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[23], "obj/include/tiles" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[24], "obj/include/game_states" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[25], "obj/include/game_substates" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[26], "obj/include/json_elements" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[27], "obj/include/mvt_types" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[28], "obj/include/buttons" MACE_SHA1_EXT) == 0);
     nourstest_true(strcmp(targets[1].private._headers_checksum[29], "obj/include/types0.sha") == 0);
     nourstest_true(strcmp(targets[1].private._headers_checksum[30], "obj/include/types1.sha") == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[31], "obj/include/player_select" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[32], "obj/include/errors" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[33], "obj/include/input_flags" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[34], "obj/include/scene_time" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[35], "obj/include/structs" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[36], "obj/include/nmath" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[37], "obj/include/tnecs" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[38], "obj/include/filesystem" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[39], "obj/include/globals" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[40], "obj/include/physfs" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[41], "obj/include/platform" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[42], "obj/include/cJSON" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[43], "obj/include/nstr" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[44], "obj/include/utilities" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[45], "obj/include/palette" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[46], "obj/include/debug" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[47], "obj/include/macros" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[48], "obj/include/names" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[49], "obj/include/hashes" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[50], "obj/include/supports" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[51], "obj/include/support_types" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[52], "obj/include/jsonio" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[53], "obj/include/tile" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[54], "obj/include/weapon" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[55], "obj/include/item" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[56], "obj/include/stb_sprintf" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[57], "obj/include/pixelfonts" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[58], "obj/include/convoy" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[59], "obj/include/camp" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[60], "obj/include/narrative" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[61], "obj/include/bitfields" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[62], "obj/include/RNG" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[63], "obj/include/tinymt32" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[64], "obj/include/sprite" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[65], "obj/include/index_shader" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[66], "obj/include/map" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[67], "obj/include/arrow" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[68], "obj/include/position" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[69], "obj/include/equations" MACE_CHECKSUM_EXTENSION) == 0);
-    nourstest_true(strcmp(targets[1].private._headers_checksum[70], "obj/include/combat" MACE_CHECKSUM_EXTENSION) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[31], "obj/include/player_select" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[32], "obj/include/errors" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[33], "obj/include/input_flags" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[34], "obj/include/scene_time" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[35], "obj/include/structs" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[36], "obj/include/nmath" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[37], "obj/include/tnecs" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[38], "obj/include/filesystem" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[39], "obj/include/globals" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[40], "obj/include/physfs" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[41], "obj/include/platform" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[42], "obj/include/cJSON" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[43], "obj/include/nstr" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[44], "obj/include/utilities" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[45], "obj/include/palette" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[46], "obj/include/debug" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[47], "obj/include/macros" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[48], "obj/include/names" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[49], "obj/include/hashes" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[50], "obj/include/supports" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[51], "obj/include/support_types" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[52], "obj/include/jsonio" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[53], "obj/include/tile" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[54], "obj/include/weapon" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[55], "obj/include/item" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[56], "obj/include/stb_sprintf" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[57], "obj/include/pixelfonts" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[58], "obj/include/convoy" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[59], "obj/include/camp" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[60], "obj/include/narrative" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[61], "obj/include/bitfields" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[62], "obj/include/RNG" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[63], "obj/include/tinymt32" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[64], "obj/include/sprite" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[65], "obj/include/index_shader" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[66], "obj/include/map" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[67], "obj/include/arrow" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[68], "obj/include/position" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[69], "obj/include/equations" MACE_SHA1_EXT) == 0);
+    nourstest_true(strcmp(targets[1].private._headers_checksum[70], "obj/include/combat" MACE_SHA1_EXT) == 0);
     nourstest_true(strcmp(targets[1].private._headers_checksum[71],
-                          "obj/include/units_struct_stats" MACE_CHECKSUM_EXTENSION) == 0);
+                          "obj/include/units_struct_stats" MACE_SHA1_EXT) == 0);
 
     mace_post_build(NULL);
 }
