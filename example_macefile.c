@@ -1,9 +1,8 @@
 
 #include "mace.h"
 
-// Compiler/archiver defines so that they can be set
-// 1. Two step build: when bootsrapping with "-D CC=gcc" preprocessor option
-// 2. One step build: when bootsrapping with "-D CC=gcc" preprocessor option
+/* Compiler/archiver defines so that they can be set
+** when bootsrapping with "-D CC=gcc" preprocessor option */
 #ifndef CC
     #define CC "tcc"
 #endif

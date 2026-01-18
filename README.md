@@ -2,32 +2,34 @@
 # mace
 
 Single-header build system for C.
+
 Use C to build C.
 
-Specificity, reduced scope, everything in service of *simplicity*. 
-
 ## Features
-- C syntax build file.
-- Simple API.
-- Single header: `mace.h`.
+- Simple API
+- C syntax build file: `macefile.c`
+- Single header: `mace.h`
     - Fully C89 compliant
-- `mace` convenience executable with `make`-like usage, flags.
+- Convenience executable `mace` with `make`-like usage, flags.
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
+- Minimal dependencies
+    - `libc`, `POSIX`
+    - `sha1dc`, `parg` copied into `mace.h` w/ MIT licence
 - Tab completion (`zsh` only), see `_mace.zsh`
 
 ## How to
-### Write a macefile 
+### Write your build file (macefile) 
 1. See [`example_macefile.c`](example_macefile.c)
 2. Read `PUBLIC API` section in [`mace.h`](mace.h)  
 
-### Two step build (single-header build)
+### Build: Two step  (single-header build)
 1. Bootstrap: `gcc macefile.c -o builder`
 2. Build: `./builder` 
 
 Use the `MACEFLAGS` environment variable to set default flags.
 Same as `MAKEFLAGS` e.g. `export MACEFLAGS=-j12`
 
-### One step build (with mace convenience executable)
+### Build: One step (with `mace` convenience executable)
 0. Install `mace` convenience executable
     1. Bootstrap: `gcc installer_macefile.c -o installer`
     2. Install: `./installer`. 
@@ -46,28 +48,18 @@ Flags for `installer` to customize `mace`:
 2. Compiler: `<./builder or mace> -c gcc`
 3. Macefile: `<./builder or mace> -f my_macefile.c`
 
-## Why?
-+ Too many complex, slow build systems.
-+ Using C to build C gets you free lunches.
-    + Learning C is learning `mace`.
-    + Full C functionality in your macefile.
-+ Using C to build C gets me free lunches.
-    + No weird syntax to create.
-    + No bespoke parser to implement.
-    + Piggybacking C compilers.
-
 ## Limitations
-- POSIX `glob.h` required.
-    - On Windows, `Cygwin` or `MSYS2` shells might work. Untested.
-- Circular dependencies unsupported.
+- Windows unsupported because POSIX is required.
+    - `Cygwin` or `MSYS2` might work. 
+- Target: Circular dependencies unsupported
 
 ## Under the hood
-- User inputs target dependencies with `target.links` and `target.dependencies`
-    - Build order determined by depth first search through all target dependencies.
-- Mace saves file checksums to `.sha1` files in `<obj_dir>/src`, `<obj_dir>/include`
-    - Uses sha1dc hash to check if sources, headers change for recompilation.
-- Compiler computes object file dependencies, saved to `.d` files in `<obj_dir>`
-    - Parsed into binary `.ho` file for faster reading.
+- Build order by target dependencies depth first search
+    - Target dependencies: members `links` and `dependencies`
+- Uses `sha1dc` hash to check for recompilation.
+    - Checksums saved to `.sha1` files in `<obj_dir>/src`, `<obj_dir>/include`
+- Object file dependencies, saved to `.d` files in `<obj_dir>`
+    - Parsed into binary `.ho` file for faster reading
 
 ### Running tests
 1. `cd` into test folder
@@ -82,14 +74,8 @@ gcc --std=iso9899:1990 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fw
 2. Compile test: `gcc benchmarks.c -o bench`
 3. Run benchmarks `./benchmarks`
 
-### Switching recompilation criteria
-
-### Known issues
-- Can't compile targets if there are no headers?
-    - Cannot reproduce in tests
-
 ## Credits
-Copyright (c) 2025 Gabriel Taillon
+Copyright (c) 2023-2026 Gabriel Taillon
 
 - Checksum sha1dc algorithm: [sha1collisiondetection](https://github.com/cr-marcstevens/sha1collisiondetection)
 - Argument parser: [parg](https://github.com/jibsen/parg)
