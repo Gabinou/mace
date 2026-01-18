@@ -14,11 +14,11 @@ Use C to build C.
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
 - Minimal dependencies
     - `libc`, `POSIX`
-    - `sha1dc`, `parg` copied into `mace.h` w/ MIT licence
+    - `sha1dc`, `parg` & their MIT licences copied into `mace.h`
 - Tab completion (`zsh` only), see `_mace.zsh`
 
 ## How to
-### Write your build file (macefile) 
+### Write your build file (macefile.c) 
 1. See [`example_macefile.c`](example_macefile.c)
 2. Read `PUBLIC API` section in [`mace.h`](mace.h)  
 
@@ -65,7 +65,7 @@ Flags for `installer` to customize `mace`:
 1. `cd` into test folder
 2. Compile test:
 ```bash
-gcc --std=iso9899:1990 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fwrapv -fno-delete-null-pointer-checks -g test.c -o test -I.. -Wall -Wpedantic
+gcc --std=iso9899:1990 -O0 -fsanitize=undefined,address -fno-strict-aliasing -fwrapv -fno-delete-null-pointer-checks -g test.c -o test -Wall -Wpedantic
 ```
 3. Run tests `./test`
 

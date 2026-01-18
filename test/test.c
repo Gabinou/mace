@@ -7,7 +7,7 @@
 *
 */
 
-#include "mace.h"
+#include "../mace.h"
 #include <fcntl.h>
 
 /* --- Testing library --- */
@@ -624,7 +624,7 @@ void test_post_user(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        cc = NULL;
+        memset(cc, 0, MACE_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -687,7 +687,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        cc = NULL;
+        memset(cc, 0, MACE_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -707,7 +707,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        cc = NULL;
+        memset(cc, 0, MACE_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -728,7 +728,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        cc = NULL;
+        memset(cc, 0, MACE_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         /* open the file /dev/null */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
@@ -748,7 +748,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        cc = NULL;
+        memset(cc, 0, MACE_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
@@ -768,7 +768,7 @@ void test_separator(void) {
         exit(1);
     } else if (pid == 0) {
         int fd;
-        cc = NULL;
+        memset(cc, 0, MACE_BUFFER);
         /* -- redirect stderr and stdout to /dev/null -- */
         fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);  /* open the file /dev/null */
         dup2(fd, fileno(stderr));
