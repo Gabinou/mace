@@ -13,7 +13,7 @@ Use C to build C.
 - Convenience executable `mace` with `make`-like usage, flags.
 - Compatible with `gcc`, `clang`, `tcc` toolchains.
 - Minimal dependencies
-    - `libc`, `POSIX`
+    - `libc`, POSIX
     - `sha1dc`, `parg` & their MIT licences copied into `mace.h`
 - Tab completion (`zsh` only), see `_mace.zsh`
 

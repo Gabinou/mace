@@ -316,54 +316,160 @@ typedef struct Target {
     b32 *_hdrs_changed;
 } Target;
 
+/*-----------------------------------------*/
+/*             CONFIG EXAMPLE               /
+**                                          /
+**   Config myconfig = {                    /
+**       .target  = "foo",                  /
+**       .flags   = "-g -O0 -rdynamic",     /
+**   };                                     /
+**      NOTE: default separator is ' ',     /
+**        set with 'mace_set_separator'     /
+**                                          /
+**------------------------------------------*/
 
-
-typedef struct Config {
-    /*------------ PUBLIC MEMBERS ----------*/
-    char cc[MACE_BUFFER]; /* compiler     */
-    char ar[MACE_BUFFER]; /* archiver     */
-    const char *flags;          /* passed as is */
-
-    /*------------------------------------*/
-    /*               EXAMPLE               /
-    **                                     /
-    ** Config myconfig = {                 /
-    **     .target  = "foo",               /
-    **     .flags   = "-g -O0 -rdynamic",  /
-    ** };                                  /
-    **    NOTE: default separator is ' ',  /
-    **      set with 'mace_set_separator'  /
-    **                                     /
-    **------------------------------------*/
-
-    /*---------- PRIVATE MEMBERS -----------*/
-    /* config name                          */
-    char    *_name;
-    /* config name hash                     */
-    u64      _hash;
-    /* config order added by user           */
-    int      _order;
-
-    char   **_flags;
-    int      _flag_num;
-
-    struct Config_Private *private;
+/* Why Macro'd struct definitions?
+**  1- Public section is before private (clear docs)
+**  2- Private struct member, not struct ptr
+**  Problem:
+**      1 & 2 contradiction.
+**  Solution:   
+**      Macro the definiton, call it in private 
+*/
+#define CONFIG_DEFINITION typedef struct Config { \
+    /*------------ PUBLIC MEMBERS ----------*/ \
+    char cc[MACE_BUFFER];   /* compiler     */ \
+    char ar[MACE_BUFFER];   /* archiver     */ \
+    const char *flags;      /* passed as is */ \
+    Config_Private private; \
 } Config;
 
 /*------------------------------------------*/
 /*                 PRIVATE                  */
 /*------------------------------------------*/
 
+typedef struct Target_Private {
+    /* config order set from name user
+    ** inputs in MACE_TARGET_CONFIG */
+    int      _config; /* [order]            */
+    /* target name                          */
+    char    *_name;
+    /* target name hash                     */
+    u64      _hash;
+    /* target order added by user           */
+    int      _order;
+
+    /* --- Compilation --- */
+    /* argv buffer for commands             */
+    char **_argv;
+    /* number of arguments in argv          */
+    int    _argc;
+    /* alloced len of argv                  */
+    int    _arg_len;
+    /* tail of argv to free                 */
+    int    _argc_tail;
+    /* user includes, in argv form          */
+    char **_argv_includes;
+    /* number of args in _argv_includes     */
+    int    _argc_includes;
+    /* linker flags                         */
+    char **_argv_link_flags;
+    /* num of args in argv_links            */
+    int    _argc_link_flags;
+    /* linked libraries                     */
+    char **_argv_links;
+    /* num of args in argv_links            */
+    int    _argc_links;
+    /* user flags                           */
+    char **_argv_flags;
+    /* number of args in argv_flags         */
+    int    _argc_flags;
+    /* sources                              */
+    char **_argv_sources;
+    /* number of args in argv_sources       */
+    int    _argc_sources;
+    /* alloc len of args in argv_sources    */
+    int    _len_sources;
+
+    /* WARNING: _argv_objects_hash DOES NOT
+    ** include objects with numbers to prevent
+    ** collisions! */
+    /* objects, in argv form        */
+    u64      *_argv_objects_hash;
+    /* num of args in argv_sources  */
+    int       _argc_objects_hash;
+    /* sources, in argv form        */
+    char    **_argv_objects;
+    /* sources num                  */
+    int      *_argv_objects_cnt;
+    /* Note: Includes objects with number to
+    ** prevent collisions.          */
+    u64      *_objects_hash_nocoll;
+    int       _objects_hash_nocoll_num;
+    int       _objects_hash_nocoll_len;
+
+    /* -- Exclusions --  */
+    /* hash of excluded source files      */
+    u64 *_excludes;
+    int  _excludes_num;
+    int  _excludes_len;
+
+    /* --- Dependencies ---  */
+    /* -- Target dependencies --  */
+    /* target or libs hashes               */
+    u64     *_deps_links;
+    /* target or libs hashes               */
+    size_t   _deps_links_num;
+    /* target or libs hashes               */
+    size_t   _deps_links_len;
+    /* dependency count, for build order   */
+    size_t   _d_cnt;
+
+    /* -- Object dependencies --  */
+    u64     *_headers_checksum_hash;
+    char   **_headers_checksum;
+    /* # hdrs with same path   */
+    int     *_headers_checksum_cnt;
+
+    /* [hdr_order] filenames       */
+    char   **_headers;
+    /* Note: num _headers == _headers_checksum */
+    /* [hdr_order] filename hashes */
+    u64     *_headers_hash;
+    /* len of headers              */
+    int      _headers_num;
+    /* number of headers           */
+    int      _headers_len;
+    /* [arg_src][dep_order] hdr_order  */
+    int    **_deps_headers;
+    /* len of object header deps   */
+    int     *_deps_headers_num;
+    /* num of object header deps   */
+    int     *_deps_headers_len;
+
+    /* --- Check for cwd in header dependencies ---  */
+    b32 _checkcwd;
+
+    /* --- Recompile switches ---  */
+    /* [argc_source]    */
+    b32 *_recompiles;
+    /* [hdr_order]      */
+    b32 *_hdrs_changed;
+
+} Target_Private;
+
 typedef struct Config_Private {
     /* order config was added by user */
     int      _order;
 
     char    *_name;
-    u64      _name_hash;
+    u64      _hash;
 
     char   **_flags;
     int      _flag_num;
 } Config_Private;
+
+CONFIG_DEFINITION
 
 typedef struct Mace_Args {
     char *user_target;
@@ -3737,10 +3843,10 @@ void mace_add_config(Config *config, char *name) {
     MACE_EARLY_RET(name, MACE_VOID, assert);
     MACE_EARLY_RET(config, MACE_VOID, assert);
 
-    configs[config_num]        = *config;
-    configs[config_num]._name  = name;
-    configs[config_num]._hash  = mace_hash(name);
-    configs[config_num]._order = target_num;
+    configs[config_num]                 = *config;
+    configs[config_num].private._name   = name;
+    configs[config_num].private._hash   = mace_hash(name);
+    configs[config_num].private._order  = target_num;
     if (++config_num >= config_len) {
         size_t bytesize;
         config_len *= 2;
@@ -4430,11 +4536,11 @@ void mace_argv_add_config(Target *target, char ** *argv,
         return;
     }
 
-    for (i = 0; i < configs[mace_config]._flag_num; ++i) {
-        size_t len  = strlen(configs[mace_config]._flags[i]) + 1;
+    for (i = 0; i < configs[mace_config].private._flag_num; ++i) {
+        size_t len  = strlen(configs[mace_config].private._flags[i]) + 1;
         char *flag  = calloc(len, sizeof(*flag));
         *argv       = mace_argv_grow(*argv, argc, arg_len);
-        strncpy(flag, configs[mace_config]._flags[i],  len);
+        strncpy(flag, configs[mace_config].private._flags[i],  len);
         (*argv)[(*argc)++] = flag;
     }
 }
@@ -5691,7 +5797,7 @@ int mace_target_order(u64 hash) {
 int mace_config_order(u64 hash) {
     int i;
     for (i = 0; i < config_num; i++) {
-        if (hash == configs[i]._hash)
+        if (hash == configs[i].private._hash)
             return (i);
     }
     return (-1);
@@ -5840,9 +5946,9 @@ void mace_parse_config(Config *config) {
     }
 
     /* -- Split flags string into target orders -- */
-    config->_flags    = calloc(len, sizeof(*config->_flags));
-    MACE_MEMCHECK(config->_flags);
-    config->_flag_num = 0;
+    config->private._flags    = calloc(len, sizeof(*config->private._flags));
+    MACE_MEMCHECK(config->private._flags);
+    config->private._flag_num = 0;
 
     buffer = mace_str_buffer(config->flags);
     token  = strtok(buffer, mace_separator);
@@ -5850,15 +5956,15 @@ void mace_parse_config(Config *config) {
         char *flag = calloc(strlen(token) + 1, sizeof(*flag));
         MACE_MEMCHECK(flag);
         strncpy(flag, token, strlen(token));
-        config->_flags[config->_flag_num++] = flag;
-        /* Increase config->_flags size */
-        if (config->_flag_num >= len) {
+        config->private._flags[config->private._flag_num++] = flag;
+        /* Increase config->private._flags size */
+        if (config->private._flag_num >= len) {
             size_t bytesize;
             len *= 2;
-            bytesize = len * sizeof(*config->_flags);
-            config->_flags  = realloc(config->_flags, bytesize);
-            MACE_MEMCHECK(config->_flags);
-            memset(config->_flags + len / 2, 0, len / 2);
+            bytesize = len * sizeof(*config->private._flags);
+            config->private._flags  = realloc(config->private._flags, bytesize);
+            MACE_MEMCHECK(config->private._flags);
+            memset(config->private._flags + len / 2, 0, len / 2);
         }
         token = strtok(NULL, mace_separator);
     } while (token != NULL);
@@ -5955,12 +6061,12 @@ void mace_Config_Free(Config *config) {
 
     MACE_EARLY_RET(config != NULL, MACE_VOID, MACE_nASSERT);
 
-    if (config->_flags != NULL) {
-        for (i = 0; i < config->_flag_num; i++) {
-            MACE_FREE(config->_flags[i]);
+    if (config-> private._flags != NULL) {
+        for (i = 0; i < config->private._flag_num; i++) {
+            MACE_FREE(config->private._flags[i]);
         }
     }
-    MACE_FREE(config->_flags);
+    MACE_FREE(config->private._flags);
 }
 
 void mace_Target_Free(Target *target) {

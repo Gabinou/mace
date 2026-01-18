@@ -1434,9 +1434,9 @@ void test_config_specific(void) {
 
     mace_set_separator(',');
     MACE_ADD_CONFIG(notdebug);
-    nourstest_true(configs[0]._hash == mace_hash("notdebug"));
+    nourstest_true(configs[0].private._hash == mace_hash("notdebug"));
     MACE_ADD_CONFIG(debug);
-    nourstest_true(configs[1]._hash == mace_hash("debug"));
+    nourstest_true(configs[1].private._hash == mace_hash("debug"));
     assert(config_num == 2);
 
     tnecs.includes           = "tnecs.h";
@@ -1491,7 +1491,7 @@ void test_config_global(void) {
 
     mace_parse_config(&configs[0]);
     nourstest_true(config_num == 2);
-    assert(configs[0]._flags[0] != NULL);
+    assert(configs[0].private._flags[0] != NULL);
     mace_post_build(NULL);
 }
 
