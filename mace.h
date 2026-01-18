@@ -66,7 +66,9 @@ typedef i32                 b32;
 
 /* -- Struct forward declaration -- */
 struct Target;
+struct Target_Private;
 struct Config;
+struct Config_Private;
 
 /* -- Macro utils -- */
 #define  STRINGIFY(x) _STRINGIFY(x)
@@ -203,6 +205,8 @@ typedef struct Target {
     **                                                  /
     **-------------------------------------------------*/
 
+    struct Target_Private *private;
+
     /*----------------- PRIVATE MEMBERS ---------------*/
     /* config order set from name user
     ** inputs in MACE_TARGET_CONFIG */
@@ -312,27 +316,27 @@ typedef struct Target {
     b32 *_hdrs_changed;
 } Target;
 
-struct Config_Private;
+
 
 typedef struct Config {
-    /*------------- PUBLIC MEMBERS ----------*/
+    /*------------ PUBLIC MEMBERS ----------*/
     char cc[MACE_BUFFER]; /* compiler     */
     char ar[MACE_BUFFER]; /* archiver     */
     const char *flags;          /* passed as is */
 
-    /*-----------------------------------------------*/
-    /*                   EXAMPLE                      /
-    **                                                /
-    ** Config myconfig = {                            /
-    **     .target             = "foo",               /
-    **     .flags              = "-g -O0 -rdynamic",  /
-    ** };                                             /
-    **    NOTE: default separator is ' ',             /
-    **          set with 'mace_set_separator'         /
-    **                                                /
-    **-----------------------------------------------*/
+    /*------------------------------------*/
+    /*               EXAMPLE               /
+    **                                     /
+    ** Config myconfig = {                 /
+    **     .target  = "foo",               /
+    **     .flags   = "-g -O0 -rdynamic",  /
+    ** };                                  /
+    **    NOTE: default separator is ' ',  /
+    **      set with 'mace_set_separator'  /
+    **                                     /
+    **------------------------------------*/
 
-    /*-------------- PRIVATE MEMBERS --------------*/
+    /*---------- PRIVATE MEMBERS -----------*/
     /* config name                          */
     char    *_name;
     /* config name hash                     */
@@ -343,12 +347,12 @@ typedef struct Config {
     char   **_flags;
     int      _flag_num;
 
-    void    *private;
+    struct Config_Private *private;
 } Config;
 
-/*-----------------------------------------------*/
-/*                   PRIVATE                     */
-/*-----------------------------------------------*/
+/*------------------------------------------*/
+/*                 PRIVATE                  */
+/*------------------------------------------*/
 
 typedef struct Config_Private {
     /* order config was added by user */
