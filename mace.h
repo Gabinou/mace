@@ -98,12 +98,12 @@ static void  mace_set_compiler(const char *cc);
 /* obj_dir, for intermediary files: .o, .d, etc. */
 #define MACE_SET_OBJ_DIR(dir) \
     mace_set_obj_dir(STRINGIFY(dir))
-static char *mace_set_obj_dir(const char *obj);
+static void mace_set_obj_dir(const char *obj);
 
 /* build_dir, for targets: binaries, libraries. */
 #define MACE_SET_BUILD_DIR(dir) \
     mace_set_build_dir(STRINGIFY(dir))
-static char *mace_set_build_dir(const char *build);
+static void mace_set_build_dir(const char *build);
 
 /* -- Separator -- */
 /* To separate tokens in strings
@@ -3915,16 +3915,16 @@ u64 mace_hash(const char *str) {
 /***************** MACE_SETTERS *****************/
 /*  Sets where the object files will */
 /*         be placed during build. */
-char *mace_set_obj_dir(const char *obj) {
+void mace_set_obj_dir(const char *obj) {
     MACE_FREE(obj_dir);
-    return (obj_dir = mace_str_buffer(obj));
+    obj_dir = mace_str_buffer(obj);
 }
 
 /*  Sets where the executables, libraries */
 /*         will be built to. */
-char *mace_set_build_dir(const char *build) {
+void mace_set_build_dir(const char *build) {
     MACE_FREE(build_dir);
-    return (build_dir = mace_str_buffer(build));
+    build_dir = mace_str_buffer(build);
 }
 
 /*  Only place where cc_depflag is set. */
