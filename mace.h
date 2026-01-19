@@ -347,10 +347,13 @@ typedef struct Mace_Args {
 void Mace_Args_Free(Mace_Args *args);
 
 /***************** CONSTANTS ****************/
-#define MACE_VER_PATCH 5
+#define MACE_VER_MAJOR 5
 #define MACE_VER_MINOR 0
-#define MACE_VER_MAJOR 2
-#define MACE_VER_STRING "5.0.2"
+#define MACE_VER_PATCH 2
+#define MACE_VER_STRING \
+    STRINGIFY(MACE_VER_MAJOR)"."\
+    STRINGIFY(MACE_VER_MINOR)"."\
+    STRINGIFY(MACE_VER_PATCH)
 
 #define MACE_SHA1_EXT ".sha1"
 
@@ -361,10 +364,10 @@ enum MACE_PRIVATE_CONSTANTS {
     MACE_CWD_BUFFERSIZE     =  256,
     MACE_OBJDEP_BUFFER      = 4096,
     MACE_JOBS_DEFAULT       =   12,
-    /* SHA1DC_LEN is a magic number in sha1dc */
-    SHA1DC_LEN              =   20,
     MACE_SHA1_EXT_LEN       =    5,
-    MACE_USAGE_MIDCOLW      =   12
+    MACE_USAGE_MIDCOLW      =   12,
+    /* SHA1DC_LEN is a magic number in sha1dc */
+    SHA1DC_LEN              =   20
 };
 
 enum MACE_CONFIG {
