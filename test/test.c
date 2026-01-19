@@ -379,6 +379,10 @@ void test_target(void) {
     mace_set_default_target("A");
     nourstest_true(mace_default_target_hash == mace_hash("A"));
 
+    /* Set default config */
+    mace_set_default_config("B");
+    nourstest_true(mace_default_config_hash == mace_hash("B"));
+
     mace_post_build(NULL);
 }
 

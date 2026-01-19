@@ -109,13 +109,13 @@ static void mace_set_build_dir(const char *build);
 /* To separate tokens in strings
 ** e.g. target.src, config.flags, etc.
 ** Default is ' ' */
-void mace_set_separator(char sep);
+static void mace_set_separator(char sep);
 
 /* -- Config -- */
 /* Default config is first one if not set. */
 #define MACE_SET_DEFAULT_CONFIG(target) \
     mace_set_default_config(STRINGIFY(target))
-void mace_set_default_config(const char *name);
+static void mace_set_default_config(const char *name);
 
 #define MACE_ADD_CONFIG(config) \
     mace_add_config(&config, STRINGIFY(config))
