@@ -375,6 +375,10 @@ void test_target(void) {
     nourstest_true(build_order[0]);
     nourstest_true(build_order[target_num - 1] == BB_order);
 
+    /* Set default target */
+    mace_set_default_target("A");
+    nourstest_true(mace_default_target_hash == mace_hash("A"));
+
     mace_post_build(NULL);
 }
 

@@ -83,6 +83,7 @@ static void mace_add_target(struct Target *target,
 ** Default target is first one if not set. */
 #define MACE_SET_DEFAULT_TARGET(target) \
     mace_set_default_target(STRINGIFY(target))
+static void mace_set_default_target(const char *name);
 
 /* -- Compiler -- */
 /* Compiler setting priority:
@@ -97,7 +98,7 @@ static void  mace_set_compiler(const char *cc);
 /* obj_dir, for intermediary files: .o, .d, etc. */
 #define MACE_SET_OBJ_DIR(dir) \
     mace_set_obj_dir(STRINGIFY(dir))
-static char *mace_set_obj_dir(char *obj);
+static char *mace_set_obj_dir(const char *obj);
 
 /* build_dir: for targets: binaries, libraries. */
 #define MACE_SET_BUILD_DIR(dir) \
@@ -3748,7 +3749,7 @@ void mace_add_target(Target *target, char *name) {
 
 /*  Set target built by default when */
 /*         running mace without target */
-void mace_set_default_target(char *name) {
+void mace_set_default_target(const char *name) {
     MACE_EARLY_RET(name, MACE_VOID, assert);
 
     mace_default_target_hash = mace_hash(name);
@@ -3894,7 +3895,7 @@ u64 mace_hash(const char *str) {
 /***************** MACE_SETTERS *****************/
 /*  Sets where the object files will */
 /*         be placed during build. */
-char *mace_set_obj_dir(char *obj) {
+char *mace_set_obj_dir(const char *obj) {
     MACE_FREE(obj_dir);
     return (obj_dir = mace_str_buffer(obj));
 }
@@ -6486,6 +6487,9 @@ void mace_pre_user(Mace_Args *args) {
     target_len      = MACE_DEFAULT_TARGET_LEN;
     config_len      = MACE_DEFAULT_TARGET_LEN;
     object_len      = MACE_DEFAULT_OBJECT_LEN;
+    
+    mace_default_target_hash = 0ul;
+    mace_default_config_hash = 0ul;
 
     /* --- 2. Set switches --- */
     if (args != NULL) {
