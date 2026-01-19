@@ -1527,18 +1527,22 @@ void test_target_no_includes(void) {
     tnecs.base_dir           = ".";
     tnecs.kind               = MACE_EXECUTABLE;
     MACE_ADD_TARGET(tnecs);
+    assert(targets[0].private._name != NULL);
     mace_target = 0;
     nourstest_true(target_num == 1);
     nourstest_true(targets != NULL);
+    assert(targets[0].private._name != NULL);
 
     mace_post_user(&args);
     nourstest_true(target_num == 1);
     nourstest_true(targets != NULL);
+    assert(targets[0].private._name != NULL);
 
     /* --- Check which objects need recompilation --- */
     mace_pre_build();
     nourstest_true(target_num == 1);
     nourstest_true(targets != NULL);
+    assert(targets[0].private._name != NULL);
 
     /* --- Perform compilation with build_order --- */
     mace_build();
