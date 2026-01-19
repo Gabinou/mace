@@ -128,16 +128,11 @@ static void mace_target_config( char *ntarget,
                                 char *nconfig);
 
 /* --- Constants --- */
-#ifndef MACE_DEFAULT_BUILD_DIR
-    #define MACE_DEFAULT_BUILD_DIR "build"
-#endif
-#ifndef MACE_DEFAULT_OBJ_DIR
-    #define MACE_DEFAULT_OBJ_DIR "obj"
-#endif
-#define MACE_SHA1_EXT ".sha1"
+#define MACE_DEFAULT_BUILD_DIR "build"
+#define MACE_DEFAULT_OBJ_DIR "obj"
 
 enum MACE_CONSTANTS {
-    MACE_CC_BUFFER          =    8
+    MACE_CC_BUFFER = 8
 };
 
 enum MACE_TARGET_KIND { /* target.kind */
@@ -167,7 +162,7 @@ typedef struct Target { \
     const char *includes;   /* dirs                 */ \
     const char *sources;    /* files, dirs, glob    */ \
     const char *excludes;   /* files                */ \
-    const char *base_dir;   /* dir                  */ \
+    const char *base_dir;   /* dir cd before build  */ \
     const char *flags;      /* passed as is         */ \
     const char *cmd_pre;    /* ran before build     */ \
     const char *cmd_post;   /* ran after  build     */ \
@@ -175,7 +170,7 @@ typedef struct Target { \
     const char *msg_post;   /* printed after  build */ \
 \
     /* Links are targets or libraries. 
-    ** If target, its built before self. */ \
+    ** If target, it's built before self. */ \
     const char *links; \
  \
     /* Linker flags are passed to the linker as is &
@@ -186,7 +181,7 @@ typedef struct Target { \
     const char *dependencies;   /* targets          */ \
 \
     /* allatonce: Compile all .o with one call.
-    ** It's slightly faster.
+    ** Slightly faster.
     ** WARNING: DOES NOT WORK if multiple source
     ** files have the same filename. */ \
     b32 allatonce; \
@@ -356,10 +351,10 @@ void Mace_Args_Free(Mace_Args *args);
 #define MACE_VER_MINOR 0
 #define MACE_VER_MAJOR 2
 #define MACE_VER_STRING "5.0.2"
-#define MACE_USAGE_MIDCOLW 12
+
+#define MACE_SHA1_EXT ".sha1"
 
 enum MACE_PRIVATE_CONSTANTS {
-    
     MACE_DEFAULT_TARGET_LEN =    8,
     MACE_MAX_ITERATIONS     = 1024,
     MACE_DEFAULT_OBJECT_LEN =   16,
@@ -368,7 +363,8 @@ enum MACE_PRIVATE_CONSTANTS {
     MACE_JOBS_DEFAULT       =   12,
     /* SHA1DC_LEN is a magic number in sha1dc */
     SHA1DC_LEN              =   20,
-    MACE_SHA1_EXT_LEN       =    5
+    MACE_SHA1_EXT_LEN       =    5,
+    MACE_USAGE_MIDCOLW      =   12
 };
 
 enum MACE_CONFIG {
